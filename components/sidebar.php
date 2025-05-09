@@ -4,12 +4,7 @@
         <span class="logo_name">MFsuite Hotel</span>
     </div>
     <ul class="nav-links">
-        <li>
-            <a href="dashboard.php" class="<?php echo $page == 'dashboard' ? 'active' : ''; ?>">
-                <i class='bx bxs-dashboard'></i>
-                <span class="link_name">Dashboard</span>
-            </a>
-        </li>
+    
         <li>
             <a href="rooms.php" class="<?php echo $page == 'rooms' ? 'active' : ''; ?>">
                 <i class='bx bxs-door'></i>
@@ -23,17 +18,13 @@
             </a>
         </li>
         <li>
-            <a href="guests.php" class="<?php echo $page == 'guests' ? 'active' : ''; ?>">
+            <a href="service.php" class="<?php echo $page == 'guests' ? 'active' : ''; ?>">
                 <i class='bx bxs-user'></i>
-                <span class="link_name">Guests</span>
+                <span class="link_name">Service</span>
             </a>
         </li>
         <li>
-            <a href="settings.php" class="<?php echo $page == 'settings' ? 'active' : ''; ?>">
-                <i class='bx bxs-cog'></i>
-                <span class="link_name">Settings</span>
-            </a>
-        </li>
+        
         <li>
             <a href="logout.php">
                 <i class='bx bxs-log-out'></i>
