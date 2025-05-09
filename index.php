@@ -9,8 +9,8 @@
 <body>
     <?php include 'components/navigation.php'; ?>
     <?php include 'components/sidebar.php'; ?>
-    
-    
+
+
 
     <script src="script.js"></script>
 </body>

@@ -4,28 +4,24 @@
         <span class="logo_name">MFsuite Hotel</span>
     </div>
     <ul class="nav-links">
-    
         <li>
-            <a href="rooms.php" class="<?php echo $page == 'rooms' ? 'active' : ''; ?>">
+            <a href="rooms.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'rooms.php' ? 'active' : ''; ?>">
                 <i class='bx bxs-door'></i>
                 <span class="link_name">Rooms</span>
             </a>
         </li>
         <li>
-            <a href="reservations.php" class="<?php echo $page == 'reservations' ? 'active' : ''; ?>">
+            <a href="reservations.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'reservations.php' ? 'active' : ''; ?>">
                 <i class='bx bxs-calendar'></i>
                 <span class="link_name">Reservations</span>
             </a>
         </li>
         <li>
-            <a href="services.php" class="<?php echo $page == 'guests' ? 'active' : ''; ?>">
+            <a href="pages/services.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'services.php' ? 'active' : ''; ?>">
                 <i class='bx bxs-user'></i>
                 <span class="link_name">Service</span>
             </a>
         </li>
-        <li>
-        
-       
     </ul>
 </div>
 
