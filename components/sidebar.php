@@ -25,12 +25,7 @@
         </li>
         <li>
         
-        <li>
-            <a href="logout.php">
-                <i class='bx bxs-log-out'></i>
-                <span class="link_name">Logout</span>
-            </a>
-        </li>
+       
     </ul>
 </div>
 
