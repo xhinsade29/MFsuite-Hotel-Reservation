@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>MFsuite Hotel - Home</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    <h1>Welcome to my website</h1>
-    <p>This is a simple HTML document.</p>
+    <?php include 'components/navigation.php'; ?>
+    
+    <div class="container">
+        <h1>Welcome to MFsuite Hotel</h1>
+        <p>Experience luxury and comfort at its finest.</p>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
