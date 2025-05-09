@@ -18,7 +18,7 @@
             </a>
         </li>
         <li>
-            <a href="service.php" class="<?php echo $page == 'guests' ? 'active' : ''; ?>">
+            <a href="services.php" class="<?php echo $page == 'guests' ? 'active' : ''; ?>">
                 <i class='bx bxs-user'></i>
                 <span class="link_name">Service</span>
             </a>
