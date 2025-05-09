@@ -2,7 +2,7 @@
     <div class="nav-container">
         <div class="logo">
             <a href="index.php">
-                <img src="assets/images/logo.png" alt="MFsuite Hotel Logo" class="nav-logo">
+                <img src="assets/MFsuites_logo.png" alt="MFsuite Hotel Logo" class="nav-logo">
             </a>
         </div>
         
