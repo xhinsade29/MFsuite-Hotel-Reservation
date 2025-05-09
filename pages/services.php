@@ -1,6 +1,6 @@
 <?php
 include('../functions/db_connect.php');
-include('../functions/db_functions.php');
+include('../functions/service_card.php');
 
 // Just select all services - keep it simple
 $services = selectAll('tbl_services');
