@@ -8,11 +8,9 @@
 </head>
 <body>
     <?php include 'components/navigation.php'; ?>
+    <?php include 'components/sidebar.php'; ?>
     
-    <div class="container">
-        <h1>Welcome to MFsuite Hotel</h1>
-        <p>Experience luxury and comfort at its finest.</p>
-    </div>
+    
 
     <script src="script.js"></script>
 </body>

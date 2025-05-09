@@ -11,7 +11,7 @@
 
 <style>
 .navbar {
-    background-color: #fff;
+    background-color: #11101d;
     padding: 0.5rem 0;
     border-bottom: 1px solid #eee;
 }
@@ -37,7 +37,7 @@
 }
 
 .hotel-name {
-    color: #333;
+    color: white;
     font-size: 1.2rem;
     margin: 0;
     font-weight: 500;
