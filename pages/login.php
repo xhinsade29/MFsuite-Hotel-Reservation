@@ -10,7 +10,7 @@
     :root {
       --primary: #FF8C00;
       --background: #11101d;
-      --input-bg: #1f1d2e;
+      --input-bg:rgb(255, 255, 255);
       --text-light: #ffffff;
       --text-muted: rgba(255, 255, 255, 0.6);
     }
