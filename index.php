@@ -9,16 +9,8 @@
     
 </head>
 <body>
-    <?php include 'components/navigation.php'; ?>
-    <?php include 'components/sidebar.php'; ?>
+    <?php include 'components/user_navigation.php'; ?>
     
     <script src="script.js"></script>
 </body>
 </html>
-
-
-<?php
-
-
-
-?>

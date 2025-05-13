@@ -1,118 +1,257 @@
+<?php
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MF Suites Hotel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #FF8C00;
+            --secondary: #11101d;
+            --text-light: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --header-height: 70px;
+            --sidebar-width: 240px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f3f4f6;
+            color: #333;
+            padding-top: var(--header-height);
+            display: flex;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        /* HEADER NAVBAR */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: var(--secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            height: 40px;
+            width: auto;
+        }
+
+        .hotel-name {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .search-box input {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            padding-right: 2.5rem;
+            color: var(--text-light);
+            width: 200px;
+            font-size: 0.9rem;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+        }
+
+        .notifications {
+            position: relative;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 10px;
+        }
+
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+        }
+
+        .username {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - var(--header-height));
+            background: var(--secondary);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 999;
+        }
+
+        .sidebar a {
+            color: var(--text-dim);
+            padding: 0.8rem 1rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .sidebar a:hover, .sidebar a.active {
+            color: var(--text-light);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .logout-btn {
+            color: #ff4d4d !important;
+        }
+
+        /* MAIN CONTENT */
+        main {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            main {
+                margin-left: 0;
+            }
+            .hotel-name, .username, .search-box {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
 <nav class="navbar">
     <div class="nav-container">
         <div class="logo">
             <a href="index.php" class="logo-container">
                 <img src="../assets/MFsuites_logo.png" class="nav-logo">
-                <h1 class="hotel-name">MF Suites Hotel Reservation</h1>
+                <h1 class="hotel-name">MF Suites Hotel</h1>
             </a>
         </div>
-        <div class="burger-menu">
-            <div class="burger-icon">
-                <span></span>
-                <span></span>
-                <span></span>
+
+        <div class="nav-right">
+            <div class="search-box">
+                <input type="search" placeholder="Search rooms...">
+                <i class="bi bi-search"></i>
             </div>
-            <div class="menu-items">
-                <a href="profile.php">Profile</a>
-                <a href="reservations.php">My Reservations</a>
-                <a href="about.php">About</a>
-                <a href="privacy.php">Privacy</a>
-                <a href="logout.php">Log Out</a>
-            </div>
+            <button class="notifications">
+                <i class="bi bi-bell"></i>
+                <span class="badge">2</span>
+            </button>
+            <button class="profile-trigger">
+                <img src="https://ui-avatars.com/api/?name=Guest+User&background=FF8C00&color=fff" 
+                     alt="User" class="avatar">
+                <span class="username">Guest User</span>
+                <i class="bi bi-chevron-down"></i>
+            </button>
         </div>
     </div>
 </nav>
 
-<style>
-.navbar {
-    background-color: #11101d;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
-}
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <a href="profile.php" class="active"><i class="bi bi-person"></i> Profile</a>
+    <a href="reservations.php"><i class="bi bi-calendar-check"></i> My Reservations</a>
+    <a href="notifications.php"><i class="bi bi-bell"></i> Notifications</a>
+    <a href="settings.php"><i class="bi bi-gear"></i> Settings</a>
+    <hr style="border-color: rgba(255, 255, 255, 0.1);">
+    <a href="about.php"><i class="bi bi-info-circle"></i> About</a>
+    <a href="privacy.php"><i class="bi bi-shield-check"></i> Privacy</a>
+    <a href="logout.php" class="logout-btn"><i class="bi bi-box-arrow-right"></i> Log Out</a>
+</aside>
 
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    padding: 0 1rem;
-}
+<!-- MAIN CONTENT -->
+<main>
+    <h2>Welcome to MF Suites Hotel</h2>
+    <p>This is the main content area. Add your reservation list, room cards, or dashboard items here.</p>
+</main>
 
-.nav-logo {
-    height: 40px;
-    width: auto;
-}
-
-.logo-container {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    gap: 1rem;
-}
-
-.hotel-name {
-    color: white;
-    font-size: 1.2rem;
-    margin: 0;
-    font-weight: 500;
-}
-
-.burger-menu {
-    margin-left: auto;
-    position: relative;
-}
-
-.burger-icon {
-    cursor: pointer;
-    padding: 10px;
-}
-
-.burger-icon span {
-    display: block;
-    width: 25px;
-    height: 3px;
-    background-color: white;
-    margin: 5px 0;
-    transition: 0.4s;
-}
-
-.menu-items {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background-color: #11101d;
-    padding: 1rem;
-    border-radius: 4px;
-    min-width: 200px;
-}
-
-.menu-items.active {
-    display: block;
-}
-
-.menu-items a {
-    display: block;
-    color: white;
-    text-decoration: none;
-    padding: 10px;
-    transition: 0.3s;
-}
-
-.menu-items a:hover {
-    background-color: #2d2b3e;
-}
-</style>
-
-<script>
-document.querySelector('.burger-icon').addEventListener('click', function() {
-    document.querySelector('.menu-items').classList.toggle('active');
-});
-
-// Close menu when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.burger-menu')) {
-        document.querySelector('.menu-items').classList.remove('active');
-    }
-});
-</script>
+</body>
+</html>
