@@ -5,13 +5,13 @@
     </div>
     <ul class="nav-links">
         <li>
-            <a href="rooms.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'rooms.php' ? 'active' : ''; ?>">
+            <a href="pages/rooms.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'rooms.php' ? 'active' : ''; ?>">
                 <i class='bx bxs-door'></i>
                 <span class="link_name">Rooms</span>
             </a>
         </li>
         <li>
-            <a href="reservations.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'reservations.php' ? 'active' : ''; ?>">
+            <a href="pages/reservations.php" class="<?php echo basename($_SERVER['PHP_SELF']) == 'reservations.php' ? 'active' : ''; ?>">
                 <i class='bx bxs-calendar'></i>
                 <span class="link_name">Reservations</span>
             </a>
