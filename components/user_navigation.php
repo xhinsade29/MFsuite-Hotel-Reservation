@@ -211,7 +211,7 @@
     <div class="nav-container">
         <div class="logo">
             <a href="index.php" class="logo-container">
-                <img src="../assets/MFsuites_logo.png" class="nav-logo">
+                <img src="assets/MFsuites_logo.png" class="nav-logo">
                 <h1 class="hotel-name">MF Suites Hotel</h1>
             </a>
         </div>
@@ -246,12 +246,6 @@
     <a href="privacy.php"><i class="bi bi-shield-check"></i> Privacy</a>
     <a href="logout.php" class="logout-btn"><i class="bi bi-box-arrow-right"></i> Log Out</a>
 </aside>
-
-<!-- MAIN CONTENT -->
-<main>
-    <h2>Welcome to MF Suites Hotel</h2>
-    <p>This is the main content area. Add your reservation list, room cards, or dashboard items here.</p>
-</main>
 
 </body>
 </html>
