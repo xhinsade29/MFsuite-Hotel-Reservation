@@ -46,6 +46,8 @@
 <!-- SIDEBAR -->
 <aside class="sidebar">
     <a href="profile.php" class="active"><i class="bi bi-person"></i> Profile</a>
+    <a href="rooms.php"><i class="bi bi-house"></i> Rooms</a>
+    <a href="services.php"><i class="bi bi-tools"></i> Services</a>
     <a href="bookings.php"><i class="bi bi-book"></i> Book Now</a>
     <a href="reservations.php"><i class="bi bi-calendar-check"></i> My Reservations</a>
     <a href="notifications.php"><i class="bi bi-bell"></i> Notifications</a>
