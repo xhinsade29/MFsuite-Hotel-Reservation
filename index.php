@@ -25,236 +25,178 @@
         </div>
     </div>
 </section>
+<style>
+  #packageCarousel {
+  max-width: 900px;      /* or adjust to your layout needs */
+  margin: 0 auto;
+}
+#packageCarousel .carousel-inner {
+  width: 100%;
+  aspect-ratio: 3 / 2;   /* This keeps all slides 3:2 ratio */
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: #222;      /* optional: fallback bg color */
+}
+#packageCarousel .carousel-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
 
+</style>
 
-<!-- Featured Content -->
-<section class="mb-5">
-  <div class="container">
-    <h2 class="section-title text-center mb-4">Featured Offers</h2>
-    <p class="text-center text-muted mb-5">Explore our exclusive packages designed to elevate your stay with us.</p>
-
-    <div class="row g-4">
-      <!-- Romantic Getaway -->
-      <div class="col-md-4">
-        <div class="card bg-dark text-white border-0 shadow-lg overflow-hidden position-relative">
-          <img src="assets/romantic-atmosphere-valentines-day.jpg" class="card-img" alt="Romantic Getaway">
-          <div class="card-img-overlay d-flex flex-column justify-content-end bg-dark bg-opacity-50">
-            <h5 class="card-title text-warning">Romantic Getaway</h5>
-            <p class="card-text">Book a package with breakfast, spa access, and candlelight dinner.</p>
-            <a href="reservation.php" class="btn btn-sm btn-outline-warning mt-2">Book Now</a>
-          </div>
+<section class="container my-5">
+  <h2 class="text-center mb-4">Special Packages</h2>
+  <div id="packageCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-inner rounded shadow-sm">
+      <div class="carousel-item active">
+        <img src="assets/romantic.jpg" alt="Romantic Package">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Romantic Getaway</h5>
+          <p>Private dinner, spa, and a room with a view for couples.</p>
         </div>
       </div>
-
-      <!-- Family Package -->
-      <div class="col-md-4">
-        <div class="card bg-dark text-white border-0 shadow-lg overflow-hidden position-relative">
-          <img src="assets/close-up-people-traveling-by-bus.jpg" class="card-img" alt="Family Package">
-          <div class="card-img-overlay d-flex flex-column justify-content-end bg-dark bg-opacity-50">
-            <h5 class="card-title text-warning">Family Package</h5>
-            <p class="card-text">Includes full-board meals and fun activities for everyone.</p>
-            <a href="reservation.php" class="btn btn-sm btn-outline-warning mt-2">Book Now</a>
-          </div>
+      <div class="carousel-item">
+        <img src="assets/family.jpg" alt="Family Package">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Family Fun Package</h5>
+          <p>Includes family suite, kids’ activities, and free breakfast.</p>
         </div>
       </div>
+      <div class="carousel-item">
+        <img src="assets/business.jpg" alt="Business Package">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Business Traveler</h5>
+          <p>High-speed Wi-Fi, meeting room access, and express check-in.</p>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#packageCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#packageCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</section>
 
-      <!-- Business Stay -->
-      <div class="col-md-4">
-        <div class="card bg-dark text-white border-0 shadow-lg overflow-hidden position-relative">
-          <img src="assets/medium-shot-woman-working-by-pool.jpg" class="card-img" alt="Business Stay">
-          <div class="card-img-overlay d-flex flex-column justify-content-end bg-dark bg-opacity-50">
-            <h5 class="card-title text-warning">Business Stay</h5>
-            <p class="card-text">Work-friendly environment with complimentary breakfast and meeting access.</p>
-            <a href="reservation.php" class="btn btn-sm btn-outline-warning mt-2">Book Now</a>
-          </div>
+
+<!-- Room Types Carousel Section -->
+<section class="container my-5">
+  <h2 class="text-center mb-4">Explore Our Room Types</h2>
+  <div id="roomTypesCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-inner rounded shadow-sm">
+      <div class="carousel-item active">
+        <img src="assets/rooms/deluxe.jpg" class="d-block w-100" alt="Deluxe Room">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Deluxe Room</h5>
+          <p>Modern comfort with a touch of luxury.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/rooms/suite.jpg" class="d-block w-100" alt="Suite Room">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Executive Suite</h5>
+          <p>Spacious living with premium amenities.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/rooms/family.jpg" class="d-block w-100" alt="Family Room">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Family Room</h5>
+          <p>Perfect for families, with extra space and comfort.</p>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#roomTypesCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#roomTypesCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</section>
+
+<!-- Services Carousel Section -->
+<section class="container my-5">
+  <h2 class="text-center mb-4">Our Services</h2>
+  <div id="servicesCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-inner rounded shadow-sm">
+      <div class="carousel-item active">
+        <img src="assets/services/spa.jpg" class="d-block w-100" alt="Spa Service">
+        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+          <h5>Spa & Wellness</h5>
+          <p>Relax and rejuvenate with our world-class spa treatments.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/services/dining.jpg" class="d-block w-100" alt="Dining Service">
+        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+          <h5>Fine Dining</h5>
+          <p>Enjoy gourmet cuisine in our elegant restaurant.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/services/pool.jpg" class="d-block w-100" alt="Pool Service">
+        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+          <h5>Infinity Pool</h5>
+          <p>Swim and relax in our stunning rooftop pool.</p>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#servicesCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#servicesCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</section>
+
+
+
+   <!-- Service Quality Testimonies Section -->
+<section class="container my-5">
+  <h2 class="text-center mb-4">What Our Guests Say</h2>
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 text-center">
+        <img src="assets/testimonials/guest1.jpg" class="rounded-circle mx-auto mt-3" style="width: 80px;" alt="Guest 1">
+        <div class="card-body">
+          <h5 class="card-title">Alexandra P.</h5>
+          <p class="card-text">"Impeccable service and attention to detail. Highly recommend!"</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 text-center">
+        <img src="assets/testimonials/guest2.jpg" class="rounded-circle mx-auto mt-3" style="width: 80px;" alt="Guest 2">
+        <div class="card-body">
+          <h5 class="card-title">Michael T.</h5>
+          <p class="card-text">"The rooms were spotless and the staff was incredibly friendly."</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 text-center">
+        <img src="assets/testimonials/guest3.jpg" class="rounded-circle mx-auto mt-3" style="width: 80px;" alt="Guest 3">
+        <div class="card-body">
+          <h5 class="card-title">Sara L.</h5>
+          <p class="card-text">"Loved the spa and the breakfast buffet. Will come back!"</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-
-<!-- Room Types -->
-<section class="mb-5">
-  <div class="container">
-    <h2 class="section-title text-center mb-4">Room Types</h2>
-    <p class="text-center mb-4">
-      Choose from our variety of cozy, elegant, and affordable rooms designed for your comfort.
-    </p>
-    <div class="row g-4">
-
-      <!-- Deluxe Room -->
-      <div class="col-md-4">
-        <div class="card shadow h-100">
-          <img src="assets/images/room1.jpg" class="card-img-top" alt="Deluxe Room">
-          <div class="card-body">
-            <h5 class="card-title">Deluxe Room</h5>
-            <p class="card-text">Spacious room with king-sized bed, city view, and modern amenities.</p>
-            <p class="text-warning fw-bold">₱2,999 / night</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Suite Room -->
-      <div class="col-md-4">
-        <div class="card shadow h-100">
-          <img src="assets/images/room2.jpg" class="card-img-top" alt="Suite Room">
-          <div class="card-body">
-            <h5 class="card-title">Suite Room</h5>
-            <p class="card-text">Luxurious suite with private living area, ideal for families or long stays.</p>
-            <p class="text-warning fw-bold">₱4,500 / night</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Standard Room -->
-      <div class="col-md-4">
-        <div class="card shadow h-100">
-          <img src="assets/images/room3.jpg" class="card-img-top" alt="Standard Room">
-          <div class="card-body">
-            <h5 class="card-title">Standard Room</h5>
-            <p class="card-text">Affordable comfort with a queen-sized bed and minimalist interior.</p>
-            <p class="text-warning fw-bold">₱1,499 / night</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Family Room -->
-      <div class="col-md-4">
-        <div class="card shadow h-100">
-          <img src="assets/images/room4.jpg" class="card-img-top" alt="Family Room">
-          <div class="card-body">
-            <h5 class="card-title">Family Room</h5>
-            <p class="card-text">Two double beds, dining area, and a cozy space for the whole family.</p>
-            <p class="text-warning fw-bold">₱3,200 / night</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Executive Room -->
-      <div class="col-md-4">
-        <div class="card shadow h-100">
-          <img src="assets/images/room5.jpg" class="card-img-top" alt="Executive Room">
-          <div class="card-body">
-            <h5 class="card-title">Executive Room</h5>
-            <p class="card-text">Designed for business travelers, complete with workspace and fast Wi-Fi.</p>
-            <p class="text-warning fw-bold">₱3,700 / night</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Budget Room -->
-      <div class="col-md-4">
-        <div class="card shadow h-100">
-          <img src="assets/images/room6.jpg" class="card-img-top" alt="Budget Room">
-          <div class="card-body">
-            <h5 class="card-title">Budget Room</h5>
-            <p class="card-text">Simple, clean, and cozy — perfect for short stays and solo travelers.</p>
-            <p class="text-warning fw-bold">₱999 / night</p>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- Services -->
-<section class="mb-5">
-  <div class="container">
-    <h2 class="section-title text-center mb-4">Our Services</h2>
-    <p class="text-center mb-4">Experience top-notch hospitality with a wide range of services crafted for your comfort and convenience.</p>
-    <div class="row g-4 text-center">
-
-      <!-- Free Wi-Fi -->
-      <div class="col-md-4 col-sm-6">
-        <div class="card p-4 h-100 shadow">
-          <div class="service-icon mb-3"><i class="bi bi-wifi"></i></div>
-          <h5 class="text-warning">High-Speed Wi-Fi</h5>
-          <p class="text-muted">Unlimited access to fast and reliable internet in all rooms and public areas.</p>
-        </div>
-      </div>
-
-      <!-- In-Room Dining -->
-      <div class="col-md-4 col-sm-6">
-        <div class="card p-4 h-100 shadow">
-          <div class="service-icon mb-3"><i class="bi bi-cup-hot"></i></div>
-          <h5 class="text-warning">In-Room Dining</h5>
-          <p class="text-muted">Order meals, snacks, and drinks 24/7 with our convenient room service menu.</p>
-        </div>
-      </div>
-
-      <!-- Housekeeping -->
-      <div class="col-md-4 col-sm-6">
-        <div class="card p-4 h-100 shadow">
-          <div class="service-icon mb-3"><i class="bi bi-broom"></i></div>
-          <h5 class="text-warning">Daily Housekeeping</h5>
-          <p class="text-muted">Spotless rooms with daily cleaning and linen replacement for your comfort.</p>
-        </div>
-      </div>
-
-      <!-- Parking -->
-      <div class="col-md-4 col-sm-6">
-        <div class="card p-4 h-100 shadow">
-          <div class="service-icon mb-3"><i class="bi bi-car-front-fill"></i></div>
-          <h5 class="text-warning">Secure Parking</h5>
-          <p class="text-muted">Free and safe on-site parking with 24/7 monitoring.</p>
-        </div>
-      </div>
-
-      <!-- Airport Shuttle -->
-      <div class="col-md-4 col-sm-6">
-        <div class="card p-4 h-100 shadow">
-          <div class="service-icon mb-3"><i class="bi bi-bus-front-fill"></i></div>
-          <h5 class="text-warning">Airport Shuttle</h5>
-          <p class="text-muted">Hassle-free transfers to and from the airport upon request.</p>
-        </div>
-      </div>
-
-      <!-- 24/7 Security -->
-      <div class="col-md-4 col-sm-6">
-        <div class="card p-4 h-100 shadow">
-          <div class="service-icon mb-3"><i class="bi bi-shield-check"></i></div>
-          <h5 class="text-warning">24/7 Security</h5>
-          <p class="text-muted">Feel safe with round-the-clock surveillance and professional security staff.</p>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-
-    
-    <!-- Testimonials -->
-    <section class="mb-5">
-      <div class="container">
-        <h2 class="section-title text-center">What Our Guests Say</h2>
-        <div class="row g-4">
-          <div class="col-md-4">
-            <div class="testimonial-card">
-              <img src="assets/images/testimonial1.jpg" alt="Testimonial 1">
-              <h5>Jane Doe</h5>
-              <p>"The best hotel experience I've ever had. Amazing service and luxurious rooms."</p>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="testimonial-card">
-              <img src="assets/images/testimonial2.jpg" alt="Testimonial 2">
-              <h5>John Smith</h5>
-              <p>"Perfect place for business trips! Comfortable and convenient."</p>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="testimonial-card">
-              <img src="assets/images/testimonial3.jpg" alt="Testimonial 3">
-              <h5>Emily Johnson</h5>
-              <p>"I loved the spa and the view from my room. Will definitely come back."</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Contact Section -->
     <section class="contact-section mb-5">
