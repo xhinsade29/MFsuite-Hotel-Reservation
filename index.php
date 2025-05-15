@@ -97,8 +97,27 @@
           <h5>Family Room</h5>
           <p>Perfect for families, with extra space and comfort.</p>
         </div>
+        <div class="carousel-item">
+        <img src="assets/rooms/suite.jpg" class="d-block w-100" alt="Suite Room">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Standard Room </h5>
+          <p>A cozy and practical space ideal for solo travelers or couples. </p>
+        </div>
       </div>
-    </div>
+      <div class="carousel-item">
+        <img src="assets/rooms/family.jpg" class="d-block w-100" alt="Family Room">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Superior Suite</h5>
+          <p>A well-appointed suite designed for comfort and style.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/rooms/family.jpg" class="d-block w-100" alt="Family Room">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Presidential Suite</h5>
+          <p>A top-tier luxury suite offering unparalleled comfort and elegance.</p>
+        </div>
+      </div>
     <button class="carousel-control-prev" type="button" data-bs-target="#roomTypesCarousel" data-bs-slide="prev">
       <span class="carousel-control-prev-icon"></span>
       <span class="visually-hidden">Previous</span>
@@ -107,6 +126,11 @@
       <span class="carousel-control-next-icon"></span>
       <span class="visually-hidden">Next</span>
     </button>
+
+    <div class="text-center mt-3">
+    <a href="pages/rooms.php" class="btn btn-primary">Explore Rooms</a>
+  </div>
+  </div>
   </div>
 </section>
 
