@@ -21,34 +21,18 @@
             <h1 class="fw-bold">Welcome to MFsuites Hotel</h1>
             <p>Luxury & Comfort in One Place</p>
             <p class="lead mb-4">Experience world-class hospitality at MFsuites Hotel, where modern luxury meets traditional comfort. Our premium accommodations, exceptional service, and prime location make us the perfect choice for both business and leisure travelers.</p>
-            <a href="reservation.php" class="btn btn-primary mt-3">Book a Room</a>
+            <a href="services.php" class="btn btn-primary mt-3">Explore Services</a>
         </div>
     </div>
 </section>
 <style>
-  #packageCarousel {
-  max-width: 900px;      /* or adjust to your layout needs */
-  margin: 0 auto;
-}
-#packageCarousel .carousel-inner {
-  width: 100%;
-  aspect-ratio: 3 / 2;   /* This keeps all slides 3:2 ratio */
-  overflow: hidden;
-  border-radius: 0.5rem;
-  background: #222;      /* optional: fallback bg color */
-}
-#packageCarousel .carousel-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-}
+ 
 
 </style>
 
 <section class="container my-5">
   <h2 class="text-center mb-4">Special Packages</h2>
+  <p class="text-center mb-3 fst-italic">Discover our exclusive special packages designed to enhance your stay with unique experiences and added value.</p>
   <div id="packageCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner rounded shadow-sm">
       <div class="carousel-item active">
@@ -81,6 +65,9 @@
       <span class="carousel-control-next-icon"></span>
       <span class="visually-hidden">Next</span>
     </button>
+  </div>
+  <div class="text-center mt-3">
+    <a href="pages/bookings.php" class="btn btn-primary">Book Now</a>
   </div>
 </section>
 
