@@ -1,21 +1,22 @@
-  body {
+ body {
       color: #ffffff;
       font-family: 'Poppins', sans-serif;
       padding-top: 80px;
     }
 
     /* Hero Section with Image Overlay */
-    .hero-section {
-      position: relative;
-      background: url('assets/image.png') no-repeat center center;
-      background-size: cover;
-      height: 500px;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
+   .hero-section {
+  background: url('assets/image.png') no-repeat center center;
+  background-size: cover;
+  height: 500px;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
 
     .hero-section:before {
       content: '';
