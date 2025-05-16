@@ -23,14 +23,19 @@
                 <div class="hover-indicator"></div>
             </a>
         </li>
-        <li class="nav-item">
-            <a href="pages/rooms.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'rooms.php' ? 'active' : ''; ?>">
+        <li class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['rooms.php', 'room-types.php', 'room-status.php']) ? 'active' : ''; ?>" onclick="toggleDropdown(this)">
                 <div class="icon-wrapper">
                     <i class="bi bi-door-closed-fill"></i>
                 </div>
-                <span>Rooms</span>
+                <span>Aminities</span>
+                <i class="bi bi-chevron-down ms-auto"></i>
                 <div class="hover-indicator"></div>
             </a>
+            <ul class="dropdown-menu">
+                <li><a href="pages/rooms.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'rooms.php' ? 'active' : ''; ?>">Rooms</a></li>
+                <li><a href="pages/services.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) == 'services.php' ? 'active' : ''; ?>">Services</a></li>
+            </ul>
         </li>
         <li class="nav-item">
             <a href="pages/reservations.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reservations.php' ? 'active' : ''; ?>">
@@ -50,14 +55,7 @@
                 <div class="hover-indicator"></div>
             </a>
         </li>
-        <li class="nav-item">
-            <a href="pages/services.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'services.php' ? 'active' : ''; ?>">
-                <div class="icon-wrapper">
-                    <i class="bi bi-gem"></i>
-                </div>
-                <span>Services</span>
-                <div class="hover-indicator"></div>
-            </a>
+    
         </li>
         <li class="nav-item">
             <a href="pages/payments.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'payments.php' ? 'active' : ''; ?>">
@@ -70,27 +68,6 @@
         </li>
     </ul>
     
-    <!-- Hotel status summary cards -->
-    <div class="status-section">
-        <div class="status-card">
-            <div class="status-icon available">
-                <i class="bi bi-check-circle-fill"></i>
-            </div>
-            <div class="status-info">
-                <span class="status-label">Available</span>
-                <span class="status-value">24</span>
-            </div>
-        </div>
-        <div class="status-card">
-            <div class="status-icon occupied">
-                <i class="bi bi-person-fill"></i>
-            </div>
-            <div class="status-info">
-                <span class="status-label">Occupied</span>
-                <span class="status-value">18</span>
-            </div>
-        </div>
-    </div>
     
     <!-- User profile section with enhanced design -->
     <div class="profile-section">
@@ -567,9 +544,33 @@
         margin-left: var(--sidebar-width);
     }
 }
+/* Add dropdown menu hidden by default and show on toggle */
+.dropdown-menu {
+    display: none;
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    background-color: var(--secondary);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1001;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
 </style>
 
 <script>
+function toggleDropdown(element) {
+    const dropdownMenu = element.nextElementSibling;
+    if (dropdownMenu) {
+        dropdownMenu.classList.toggle('show');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
