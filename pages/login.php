@@ -11,7 +11,7 @@
       --primary: #FF8C00;
       --background: #11101d;
       --input-bg:rgb(255, 255, 255);
-      --text-light: #ffffff;
+      --text-light:rgb(0, 0, 0);
       --text-muted: rgba(255, 255, 255, 0.6);
     }
 
