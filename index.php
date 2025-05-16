@@ -194,7 +194,7 @@
     </button>
   </div>
   <div class="text-center mt-3">
-    <a href="pages/services.php" class="btn btn-primary">Explore More Services</a>
+    <a href="pages/room.php" class="btn btn-primary"> Explore Room Services</a>
   </div>
 </section>
 
