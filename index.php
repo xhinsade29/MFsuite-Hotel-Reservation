@@ -75,49 +75,52 @@
 <!-- Room Types Carousel Section -->
 <section class="container my-5">
   <h2 class="text-center mb-4">Explore Our Room Types</h2>
+  <p class="text-center mb-3 fst-italic">Choose from a variety of room types tailored to meet your needs, whether for business or leisure.</p>
   <div id="roomTypesCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner rounded shadow-sm">
       <div class="carousel-item active">
-        <img src="assets/rooms/deluxe.jpg" class="d-block w-100" alt="Deluxe Room">
+        <img src="assets/rooms/deluxe1.jpg" class="d-block w-100" alt="Deluxe Room">
         <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Deluxe Room</h5>
           <p>Modern comfort with a touch of luxury.</p>
         </div>
       </div>
       <div class="carousel-item">
-        <img src="assets/rooms/suite.jpg" class="d-block w-100" alt="Suite Room">
+        <img src="assets/rooms/executive.avif" class="d-block w-100" alt="Suite Room">
         <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Executive Suite</h5>
           <p>Spacious living with premium amenities.</p>
         </div>
       </div>
       <div class="carousel-item">
-        <img src="assets/rooms/family.jpg" class="d-block w-100" alt="Family Room">
+        <img src="assets/rooms/family_suite.avif" class="d-block w-100" alt="Family Room">
         <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Family Room</h5>
           <p>Perfect for families, with extra space and comfort.</p>
         </div>
-        <div class="carousel-item">
-        <img src="assets/rooms/suite.jpg" class="d-block w-100" alt="Suite Room">
+      </div>
+      <div class="carousel-item">
+        <img src="assets/rooms/standard.avif" class="d-block w-100" alt="Standard Room">
         <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Standard Room </h5>
           <p>A cozy and practical space ideal for solo travelers or couples. </p>
         </div>
       </div>
       <div class="carousel-item">
-        <img src="assets/rooms/family.jpg" class="d-block w-100" alt="Family Room">
+        <img src="assets/rooms/superior.avif" class="d-block w-100" alt="Superior Suite">
         <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Superior Suite</h5>
           <p>A well-appointed suite designed for comfort and style.</p>
         </div>
       </div>
       <div class="carousel-item">
-        <img src="assets/rooms/family.jpg" class="d-block w-100" alt="Family Room">
+        <img src="assets/rooms/presidential.avif" class="d-block w-100" alt="Presidential Suite">
         <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Presidential Suite</h5>
           <p>A top-tier luxury suite offering unparalleled comfort and elegance.</p>
         </div>
       </div>
+    </div>
     <button class="carousel-control-prev" type="button" data-bs-target="#roomTypesCarousel" data-bs-slide="prev">
       <span class="carousel-control-prev-icon"></span>
       <span class="visually-hidden">Previous</span>
@@ -126,38 +129,58 @@
       <span class="carousel-control-next-icon"></span>
       <span class="visually-hidden">Next</span>
     </button>
-
-    <div class="text-center mt-3">
+  </div>
+  <div class="text-center mt-3">
     <a href="pages/rooms.php" class="btn btn-primary">Explore Rooms</a>
-  </div>
-  </div>
   </div>
 </section>
 
 <!-- Services Carousel Section -->
 <section class="container my-5">
   <h2 class="text-center mb-4">Our Services</h2>
+  <p class="text-center mb-3 fst-italic">Experience a range of premium services designed to make your stay unforgettable.</p>
   <div id="servicesCarousel" class="carousel slide" data-bs-ride="carousel">
     <div class="carousel-inner rounded shadow-sm">
       <div class="carousel-item active">
-        <img src="assets/services/spa.jpg" class="d-block w-100" alt="Spa Service">
-        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+        <img src="assets/services/spa.avif" class="d-block w-100" alt="Spa Service">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Spa & Wellness</h5>
           <p>Relax and rejuvenate with our world-class spa treatments.</p>
         </div>
       </div>
       <div class="carousel-item">
-        <img src="assets/services/dining.jpg" class="d-block w-100" alt="Dining Service">
-        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+        <img src="assets/services/restaurant.avif" class="d-block w-100" alt="Dining Service">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Fine Dining</h5>
           <p>Enjoy gourmet cuisine in our elegant restaurant.</p>
         </div>
       </div>
       <div class="carousel-item">
-        <img src="assets/services/pool.jpg" class="d-block w-100" alt="Pool Service">
-        <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+        <img src="assets/services/pool.avif" class="d-block w-100" alt="Pool Service">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
           <h5>Infinity Pool</h5>
           <p>Swim and relax in our stunning rooftop pool.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/services/fitness.jpg" class="d-block w-100" alt="Fitness Center">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Fitness Center</h5>
+          <p>Stay fit with our state-of-the-art gym facilities.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/services/conference.jpg" class="d-block w-100" alt="Conference Room"> 
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Conference Facilities</h5>
+          <p>Host your events in our well-equipped conference rooms.</p>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <img src="assets/services/Airport_Shuttle_Service.avif" class="d-block w-100" alt="Transport Service">
+        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
+          <h5>Transport Services</h5>
+          <p>Convenient airport transfers and local transportation.</p>
         </div>
       </div>
     </div>
@@ -169,6 +192,9 @@
       <span class="carousel-control-next-icon"></span>
       <span class="visually-hidden">Next</span>
     </button>
+  </div>
+  <div class="text-center mt-3">
+    <a href="pages/services.php" class="btn btn-primary">Explore More Services</a>
   </div>
 </section>
 

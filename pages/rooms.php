@@ -1,6 +1,6 @@
 <?php
 // Database connection
-$conn = new mysqli("localhost", "root", "", "db_hotel_reservation");
+$conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
 
 // Check connection
 if ($conn->connect_error) {
@@ -12,8 +12,8 @@ $sql = "SELECT type_name, description, max_occupancy, room_price FROM tbl_room_t
 $result = $conn->query($sql);
 ?>
 
-<?php include '../components/navigation.php'; ?>
-<?php include '../components/sidebar.php'; ?>
+<?php include './components/user_navigation.php'; ?>
+<?php include './components/footer.php'; ?>
 
 <!DOCTYPE html>
 <html lang="en">
