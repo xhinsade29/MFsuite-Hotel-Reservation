@@ -1,89 +1,136 @@
 <?php
-// Database connection
-$conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include('../functions/db_connect.php');
 
 // Fetch room types from the database
 $sql = "SELECT type_name, description, max_occupancy, room_price FROM tbl_room_type";
-$result = $conn->query($sql);
+$result = mysqli_query($mycon, $sql);
 ?>
-
-<?php include './components/user_navigation.php'; ?>
-<?php include './components/footer.php'; ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <title>Room Types</title>
+
     <style>
+        :root {
+            --primary: #FF8C00;
+            --secondary: #11101d;
+            --text-light: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --header-height: 70px;
+            --sidebar-width: 240px;
+        }
+
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
+            font-family: 'Poppins', sans-serif;
             background-color: #1e1e2f;
-            color: #fff;
+            color: var(--text-light);
+            padding-top: var(--header-height);
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
         }
-        .sidebar {
-            position: fixed;
-            height: 100vh;
-            width: 260px;
-            background-color: #11101d;
-            padding-top: 20px;
-        }
+
         .content {
-            margin-left: 260px;
+            margin-left: var(--sidebar-width);
             padding: 40px;
-            width: 100%;
-            max-width: 900px;
+            width: calc(100% - var(--sidebar-width));
+            max-width: 1200px;
+            margin: 0 auto;
+            margin-left: var(--sidebar-width);
+            flex: 1;
         }
+
         h1 {
             text-align: center;
             margin-bottom: 30px;
             font-weight: 600;
+            color: var(--text-light);
         }
+
         .card-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        .card {
-            background-color: #2a2a40;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            width: 300px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
             padding: 20px;
-            text-align: center;
-            transition: transform 0.3s ease;
         }
+
+        .card {
+            background-color: var(--secondary);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
         .card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.7);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-color: var(--primary);
         }
+
         .card h3 {
-            margin: 0 0 10px;
+            margin: 0 0 15px;
             font-weight: 600;
+            color: var(--text-light);
+            font-size: 1.5em;
         }
+
         .card p {
-            margin: 5px 0;
+            margin: 10px 0;
+            color: var(--text-dim);
+            line-height: 1.6;
         }
+
         .card .price {
-            font-size: 1.2em;
+            font-size: 1.4em;
             font-weight: bold;
-            color: #007BFF;
+            color: var(--primary);
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card .occupancy {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-dim);
+            margin: 10px 0;
+        }
+
+        .card .occupancy i {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                margin-left: 0;
+                width: 100%;
+                padding: 20px;
+            }
+            
+            .card-container {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <?php include '../components/sidebar.php'; ?>
-    </div>
+    <?php include('../components/user_navigation.php'); ?>
+    
     <div class="content">
         <h1>Room Types</h1>
         <div class="card-container">
@@ -93,7 +140,7 @@ $result = $conn->query($sql);
                     echo '<div class="card">';
                     echo '<h3>' . htmlspecialchars($row['type_name']) . '</h3>';
                     echo '<p>' . htmlspecialchars($row['description']) . '</p>';
-                    echo '<p>Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</p>';
+                    echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
                     echo '<p class="price">₱' . number_format($row['room_price'], 2) . '</p>';
                     echo '</div>';
                 }
@@ -103,9 +150,8 @@ $result = $conn->query($sql);
             ?>
         </div>
     </div>
+
+    <?php include('../components/footer.php'); ?>
 </body>
 </html>
 
-<?php
-$conn->close();
-?>

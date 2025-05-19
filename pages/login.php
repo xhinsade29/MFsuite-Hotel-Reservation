@@ -12,7 +12,7 @@
       --background: #11101d;
       --input-bg:rgb(255, 255, 255);
       --text-light:rgb(0, 0, 0);
-      --text-muted: rgba(255, 255, 255, 0.6);
+      --text-muted: rgb(255, 255, 255);
     }
 
     body {
@@ -90,7 +90,8 @@
           <div class="card-body">
             <div class="text-center mb-4">
               <img src="../assets/MFsuites_logo.png" alt="Hotel Logo" class="img-fluid mb-3" style="max-width: 140px;">
-              <h4 class="fw-semibold">Welcome Back</h4>
+                <h3 class="mt-3 text-white" style="font-weight: 600;">Login</h3>
+              <h4 class="fw-semibold"></h4>
               <p class="text-muted" style="font-size: 0.9rem;">Login to your account</p>
             </div>
 

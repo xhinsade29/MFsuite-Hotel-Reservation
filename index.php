@@ -1,256 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MFsuite Hotel - Home</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"/>
-  <link rel="stylesheet" href="./styles/home.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MF Suites Hotel - Luxury Accommodations</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Welcome to MF Suites Hotel</h1>
+            <p>Experience luxury and comfort in the heart of the city</p>
+            <a href="pages/rooms.php" class="cta-button">Book Your Stay</a>
+        </div>
+    </section>
 
-  <?php include 'components/user_navigation.php'; ?>
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2>Why Choose MF Suites?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <i class="bi bi-star"></i>
+                    <h3>Luxury Rooms</h3>
+                    <p>Elegantly designed rooms with premium amenities</p>
+                </div>
+                <div class="feature-card">
+                    <i class="bi bi-geo-alt"></i>
+                    <h3>Prime Location</h3>
+                    <p>Centrally located with easy access to attractions</p>
+                </div>
+                <div class="feature-card">
+                    <i class="bi bi-cup-hot"></i>
+                    <h3>Fine Dining</h3>
+                    <p>Exquisite culinary experiences at our restaurants</p>
+                </div>
+                <div class="feature-card">
+                    <i class="bi bi-shield-check"></i>
+                    <h3>24/7 Security</h3>
+                    <p>Round-the-clock security for your peace of mind</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<div class="container-fluid">
-    <!-- Hero Section with Image Overlay -->
-    <section class="hero-section">
-    <div class="container position-relative"> <!-- Added position-relative -->
-        <div class="content position-relative"> <!-- Added wrapper div with position-relative -->
-            <h1 class="fw-bold">Welcome to MFsuites Hotel</h1>
-            <p>Luxury & Comfort in One Place</p>
-            <p class="lead mb-4">Experience world-class hospitality at MFsuites Hotel, where modern luxury meets traditional comfort. Our premium accommodations, exceptional service, and prime location make us the perfect choice for both business and leisure travelers.</p>
-            <a href="services.php" class="btn btn-primary mt-3">Explore Services</a>
+    <!-- Room Preview Section -->
+    <section class="room-preview">
+        <div class="container">
+            <h2>Our Luxurious Rooms</h2>
+            <div class="room-grid">
+                <div class="room-card">
+                    <img src="assets/room-deluxe.jpg" alt="Deluxe Room">
+                    <div class="room-info">
+                        <h3>Deluxe Room</h3>
+                        <p>Spacious comfort with modern amenities</p>
+                        <a href="pages/rooms.php" class="room-link">View Details</a>
+                    </div>
+                </div>
+                <div class="room-card">
+                    <img src="assets/room-suite.jpg" alt="Executive Suite">
+                    <div class="room-info">
+                        <h3>Executive Suite</h3>
+                        <p>Luxury living with premium services</p>
+                        <a href="pages/rooms.php" class="room-link">View Details</a>
+                    </div>
+                </div>
+                <div class="room-card">
+                    <img src="assets/room-presidential.jpg" alt="Presidential Suite">
+                    <div class="room-info">
+                        <h3>Presidential Suite</h3>
+                        <p>Ultimate luxury and exclusivity</p>
+                        <a href="pages/rooms.php" class="room-link">View Details</a>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-</section>
-<style>
- 
+    </section>
 
-</style>
-
-<section class="container my-5">
-  <h2 class="text-center mb-4">Special Packages</h2>
-  <p class="text-center mb-3 fst-italic">Discover our exclusive special packages designed to enhance your stay with unique experiences and added value.</p>
-  <div id="packageCarousel" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner rounded shadow-sm">
-      <div class="carousel-item active">
-        <img src="assets/romantic.jpg" alt="Romantic Package">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Romantic Getaway</h5>
-          <p>Private dinner, spa, and a room with a view for couples.</p>
+    <!-- Services Section -->
+    <section class="services">
+        <div class="container">
+            <h2>Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <i class="bi bi-cup-straw"></i>
+                    <h3>Room Service</h3>
+                    <p>24/7 in-room dining service</p>
+                </div>
+                <div class="service-card">
+                    <i class="bi bi-water"></i>
+                    <h3>Swimming Pool</h3>
+                    <p>Infinity pool with city views</p>
+                </div>
+                <div class="service-card">
+                    <i class="bi bi-spa"></i>
+                    <h3>Spa & Wellness</h3>
+                    <p>Rejuvenating treatments and massages</p>
+                </div>
+                <div class="service-card">
+                    <i class="bi bi-car-front"></i>
+                    <h3>Airport Transfer</h3>
+                    <p>Complimentary airport shuttle service</p>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/family.jpg" alt="Family Package">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Family Fun Package</h5>
-          <p>Includes family suite, kids’ activities, and free breakfast.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/business.jpg" alt="Business Package">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Business Traveler</h5>
-          <p>High-speed Wi-Fi, meeting room access, and express check-in.</p>
-        </div>
-      </div>
-    </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#packageCarousel" data-bs-slide="prev">
-      <span class="carousel-control-prev-icon"></span>
-      <span class="visually-hidden">Previous</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#packageCarousel" data-bs-slide="next">
-      <span class="carousel-control-next-icon"></span>
-      <span class="visually-hidden">Next</span>
-    </button>
-  </div>
-  <div class="text-center mt-3">
-    <a href="pages/bookings.php" class="btn btn-primary">Book Now</a>
-  </div>
-</section>
-
-
-<!-- Room Types Carousel Section -->
-<section class="container my-5">
-  <h2 class="text-center mb-4">Explore Our Room Types</h2>
-  <p class="text-center mb-3 fst-italic">Choose from a variety of room types tailored to meet your needs, whether for business or leisure.</p>
-  <div id="roomTypesCarousel" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner rounded shadow-sm">
-      <div class="carousel-item active">
-        <img src="assets/rooms/deluxe1.jpg" class="d-block w-100" alt="Deluxe Room">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Deluxe Room</h5>
-          <p>Modern comfort with a touch of luxury.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/rooms/executive.avif" class="d-block w-100" alt="Suite Room">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Executive Suite</h5>
-          <p>Spacious living with premium amenities.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/rooms/family_suite.avif" class="d-block w-100" alt="Family Room">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Family Room</h5>
-          <p>Perfect for families, with extra space and comfort.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/rooms/standard.avif" class="d-block w-100" alt="Standard Room">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Standard Room </h5>
-          <p>A cozy and practical space ideal for solo travelers or couples. </p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/rooms/superior.avif" class="d-block w-100" alt="Superior Suite">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Superior Suite</h5>
-          <p>A well-appointed suite designed for comfort and style.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/rooms/presidential.avif" class="d-block w-100" alt="Presidential Suite">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Presidential Suite</h5>
-          <p>A top-tier luxury suite offering unparalleled comfort and elegance.</p>
-        </div>
-      </div>
-    </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#roomTypesCarousel" data-bs-slide="prev">
-      <span class="carousel-control-prev-icon"></span>
-      <span class="visually-hidden">Previous</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#roomTypesCarousel" data-bs-slide="next">
-      <span class="carousel-control-next-icon"></span>
-      <span class="visually-hidden">Next</span>
-    </button>
-  </div>
-  <div class="text-center mt-3">
-    <a href="pages/rooms.php" class="btn btn-primary">Explore Rooms</a>
-  </div>
-</section>
-
-<!-- Services Carousel Section -->
-<section class="container my-5">
-  <h2 class="text-center mb-4">Our Services</h2>
-  <p class="text-center mb-3 fst-italic">Experience a range of premium services designed to make your stay unforgettable.</p>
-  <div id="servicesCarousel" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner rounded shadow-sm">
-      <div class="carousel-item active">
-        <img src="assets/services/spa.avif" class="d-block w-100" alt="Spa Service">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Spa & Wellness</h5>
-          <p>Relax and rejuvenate with our world-class spa treatments.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/services/restaurant.avif" class="d-block w-100" alt="Dining Service">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Fine Dining</h5>
-          <p>Enjoy gourmet cuisine in our elegant restaurant.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/services/pool.avif" class="d-block w-100" alt="Pool Service">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Infinity Pool</h5>
-          <p>Swim and relax in our stunning rooftop pool.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/services/fitness.jpg" class="d-block w-100" alt="Fitness Center">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Fitness Center</h5>
-          <p>Stay fit with our state-of-the-art gym facilities.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/services/conference.jpg" class="d-block w-100" alt="Conference Room"> 
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Conference Facilities</h5>
-          <p>Host your events in our well-equipped conference rooms.</p>
-        </div>
-      </div>
-      <div class="carousel-item">
-        <img src="assets/services/Airport_Shuttle_Service.avif" class="d-block w-100" alt="Transport Service">
-        <div class="carousel-caption bg-dark bg-opacity-50 rounded p-2">
-          <h5>Transport Services</h5>
-          <p>Convenient airport transfers and local transportation.</p>
-        </div>
-      </div>
-    </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#servicesCarousel" data-bs-slide="prev">
-      <span class="carousel-control-prev-icon"></span>
-      <span class="visually-hidden">Previous</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#servicesCarousel" data-bs-slide="next">
-      <span class="carousel-control-next-icon"></span>
-      <span class="visually-hidden">Next</span>
-    </button>
-  </div>
-  <div class="text-center mt-3">
-    <a href="pages/room.php" class="btn btn-primary"> Explore Room Services</a>
-  </div>
-</section>
-
-
-
-   <!-- Service Quality Testimonies Section -->
-<section class="container my-5">
-  <h2 class="text-center mb-4">What Our Guests Say</h2>
-  <div class="row g-4">
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 text-center">
-        <img src="assets/testimonials/guest1.jpg" class="rounded-circle mx-auto mt-3" style="width: 80px;" alt="Guest 1">
-        <div class="card-body">
-          <h5 class="card-title">Alexandra P.</h5>
-          <p class="card-text">"Impeccable service and attention to detail. Highly recommend!"</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 text-center">
-        <img src="assets/testimonials/guest2.jpg" class="rounded-circle mx-auto mt-3" style="width: 80px;" alt="Guest 2">
-        <div class="card-body">
-          <h5 class="card-title">Michael T.</h5>
-          <p class="card-text">"The rooms were spotless and the staff was incredibly friendly."</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card shadow-sm border-0 text-center">
-        <img src="assets/testimonials/guest3.jpg" class="rounded-circle mx-auto mt-3" style="width: 80px;" alt="Guest 3">
-        <div class="card-body">
-          <h5 class="card-title">Sara L.</h5>
-          <p class="card-text">"Loved the spa and the breakfast buffet. Will come back!"</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
+    </section>
 
     <!-- Contact Section -->
-    <section class="contact-section mb-5">
-      <div class="container">
-        <h2 class="section-title text-center">Contact Us</h2>
-        <form action="#" method="POST" class="contact-form">
-          <input type="text" name="name" placeholder="Your Name" required/>
-          <input type="email" name="email" placeholder="Your Email" required/>
-          <textarea name="message" placeholder="Your Message" rows="5" required></textarea>
-          <button type="submit">Send Message</button>
-        </form>
-      </div>
+    <section class="contact">
+        <div class="container">
+            <h2>Contact Us</h2>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <div class="info-item">
+                        <i class="bi bi-geo-alt"></i>
+                        <p>123 Hotel Street, City Center</p>
+                    </div>
+                    <div class="info-item">
+                        <i class="bi bi-telephone"></i>
+                        <p>+1 234 567 8900</p>
+                    </div>
+                    <div class="info-item">
+                        <i class="bi bi-envelope"></i>
+                        <p>info@mfsuites.com</p>
+                    </div>
+                </div>
+                <div class="contact-form">
+                    <form action="process_contact.php" method="POST">
+                        <input type="text" name="name" placeholder="Your Name" required>
+                        <input type="email" name="email" placeholder="Your Email" required>
+                        <textarea name="message" placeholder="Your Message" required></textarea>
+                        <button type="submit" class="submit-btn">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </section>
-  </div>
 
-  <?php include 'components/footer.php'; ?>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="assets/MFsuites_logo.png" alt="MF Suites Logo">
+                    <p>Luxury Redefined</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <a href="pages/rooms.php">Rooms</a>
+                    <a href="pages/services.php">Services</a>
+                    <a href="pages/about.php">About Us</a>
+                    <a href="pages/contact.php">Contact</a>
+                </div>
+                <div class="footer-social">
+                    <h4>Follow Us</h4>
+                    <div class="social-icons">
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="#"><i class="bi bi-instagram"></i></a>
+                        <a href="#"><i class="bi bi-twitter"></i></a>
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 MF Suites Hotel. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
-</html>
+</html> 
