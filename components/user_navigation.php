@@ -46,7 +46,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-    <a href="../pages/profile.php" class="<?php echo ($current_page == 'profile.php') ? 'active' : ''; ?>">
+    <a href="../pages/update_profile.php" class="<?php echo ($current_page == 'update_profile.php') ? 'active' : ''; ?>">
         <i class="bi bi-person"></i> Profile
     </a>
     <a href="../pages/rooms.php" class="<?php echo ($current_page == 'rooms.php') ? 'active' : ''; ?>">

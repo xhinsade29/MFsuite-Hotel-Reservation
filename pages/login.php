@@ -79,9 +79,65 @@
     a {
       text-decoration: none;
     }
+
+    /* Toast Styles */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+
+    .toast {
+      background: #1f1d2e;
+      color: var(--text-light);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .toast-header {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .toast-success {
+      border-left: 4px solid #28a745;
+    }
+
+    .toast-error {
+      border-left: 4px solid #dc3545;
+    }
   </style>
 </head>
 <body>
+  <!-- Toast Container -->
+  <div class="toast-container">
+    <?php if (isset($_SESSION['success'])): ?>
+    <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+      <div class="toast-header">
+        <i class="bi bi-check-circle-fill text-success me-2"></i>
+        <strong class="me-auto">Success</strong>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error'])): ?>
+    <div class="toast toast-error" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+      <div class="toast-header">
+        <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+        <strong class="me-auto">Error</strong>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+      </div>
+    </div>
+    <?php endif; ?>
+  </div>
 
   <div class="container">
     <div class="row justify-content-center align-items-center min-vh-100">
@@ -90,7 +146,7 @@
           <div class="card-body">
             <div class="text-center mb-4">
               <img src="../assets/MFsuites_logo.png" alt="Hotel Logo" class="img-fluid mb-3" style="max-width: 140px;">
-                <h3 class="mt-3 text-white" style="font-weight: 600;">Login</h3>
+              <h3 class="mt-3 text-white" style="font-weight: 600;">Login</h3>
               <h4 class="fw-semibold"></h4>
               <p class="text-muted" style="font-size: 0.9rem;">Login to your account</p>
             </div>
@@ -132,7 +188,26 @@
         icon.className = 'bi bi-eye';
       }
     }
-  </script>
 
+    // Initialize all toasts
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM Content Loaded');
+      var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+      console.log('Found toasts:', toastElList.length);
+      
+      var toastList = toastElList.map(function(toastEl) {
+        console.log('Initializing toast:', toastEl);
+        return new bootstrap.Toast(toastEl, {
+          autohide: true,
+          delay: 3000
+        });
+      });
+      
+      toastList.forEach(toast => {
+        console.log('Showing toast');
+        toast.show();
+      });
+    });
+  </script>
 </body>
 </html>
