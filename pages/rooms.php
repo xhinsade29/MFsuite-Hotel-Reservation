@@ -1,9 +1,27 @@
 <?php
 include('../functions/db_connect.php');
 
-// Fetch room types from the database
-$sql = "SELECT type_name, description, max_occupancy, room_price FROM tbl_room_type";
+// Fetch room types with their services
+$sql = "SELECT rt.*, 
+        GROUP_CONCAT(
+            CONCAT(s.service_name, '|', s.service_description) 
+            SEPARATOR '||'
+        ) as services 
+        FROM tbl_room_type rt 
+        LEFT JOIN tbl_room_services rs ON rt.room_type_id = rs.room_type_id 
+        LEFT JOIN tbl_services s ON rs.service_id = s.service_id 
+        GROUP BY rt.room_type_id";
 $result = mysqli_query($mycon, $sql);
+
+// Map room types to their image files
+$room_images = [
+    1 => 'standard.avif',      // Standard Room
+    2 => 'deluxe1.jpg',        // Deluxe Room
+    3 => 'superior.jpg',      // Superior Room
+    4 => 'family_suite.jpg',  // Family Suite
+    5 => 'executive.jpg',     // Executive Suite
+    6 => 'presidential.avif'   // Presidential Suite
+];
 ?>
 
 <!DOCTYPE html>
@@ -64,19 +82,26 @@ $result = mysqli_query($mycon, $sql);
             background-color: var(--secondary);
             border-radius: 15px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            padding: 25px;
-            text-align: center;
+            overflow: hidden;
             transition: all 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            cursor: pointer;
         }
 
         .card:hover {
             transform: translateY(-10px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border-color: var(--primary);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .card-content {
+            padding: 25px;
         }
 
         .card h3 {
@@ -114,6 +139,113 @@ $result = mysqli_query($mycon, $sql);
             color: var(--primary);
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: var(--secondary);
+            margin: 50px auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 1000px;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: var(--primary);
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .modal-details h2 {
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .modal-details p {
+            color: var(--text-dim);
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .services-list {
+            margin-top: 20px;
+        }
+
+        .services-list h3 {
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .service-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .service-item:hover {
+            transform: translateY(-5px);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .service-item i {
+            color: var(--primary);
+            font-size: 1.2em;
+            margin-right: 10px;
+        }
+
+        .service-name {
+            font-weight: 500;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        .service-description {
+            font-size: 0.9em;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
         @media (max-width: 768px) {
             .content {
                 margin-left: 0;
@@ -125,6 +257,104 @@ $result = mysqli_query($mycon, $sql);
                 grid-template-columns: 1fr;
                 padding: 10px;
             }
+
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-image {
+                height: 300px;
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Add these styles to your existing CSS */
+        .gallery-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .gallery-main {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .gallery-main img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-thumbnails {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .gallery-thumbnail {
+            width: 80px;
+            height: 60px;
+            border-radius: 5px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .gallery-thumbnail:hover,
+        .gallery-thumbnail.active {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .gallery-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .gallery-nav:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .gallery-prev {
+            left: 10px;
+        }
+
+        .gallery-next {
+            right: 10px;
+        }
+
+        .gallery-counter {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            z-index: 2;
         }
     </style>
 </head>
@@ -137,12 +367,16 @@ $result = mysqli_query($mycon, $sql);
             <?php
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    echo '<div class="card">';
+                    $image_file = $room_images[$row['room_type_id']] ?? 'standard.avif';
+                    
+                    echo '<div class="card" onclick="openModal(' . htmlspecialchars(json_encode($row)) . ')">';
+                    echo '<img src="../assets/rooms/' . htmlspecialchars($image_file) . '" alt="' . htmlspecialchars($row['type_name']) . '" class="card-image" onerror="this.src=\'../assets/rooms/standard.avif\'">';
+                    echo '<div class="card-content">';
                     echo '<h3>' . htmlspecialchars($row['type_name']) . '</h3>';
                     echo '<p>' . htmlspecialchars($row['description']) . '</p>';
                     echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
                     echo '<p class="price">₱' . number_format($row['room_price'], 2) . '</p>';
-                    echo '</div>';
+                    echo '</div></div>';
                 }
             } else {
                 echo '<p>No room types available.</p>';
@@ -151,7 +385,185 @@ $result = mysqli_query($mycon, $sql);
         </div>
     </div>
 
+    <!-- Modal -->
+    <div id="roomModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-grid">
+                <div class="gallery-container">
+                    <div class="gallery-main">
+                        <img id="modalImage" src="" alt="Room Image">
+                        <div class="gallery-nav gallery-prev" onclick="changeImage(-1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </div>
+                        <div class="gallery-nav gallery-next" onclick="changeImage(1)">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                        <div class="gallery-counter">
+                            <span id="currentImage">1</span> / <span id="totalImages">1</span>
+                        </div>
+                    </div>
+                    <div class="gallery-thumbnails" id="galleryThumbnails">
+                        <!-- Thumbnails will be added here dynamically -->
+                    </div>
+                </div>
+                <div class="modal-details">
+                    <h2 id="modalTitle"></h2>
+                    <p id="modalDescription"></p>
+                    <div class="occupancy">
+                        <i class="bi bi-people"></i>
+                        <span id="modalOccupancy"></span>
+                    </div>
+                    <p class="price" id="modalPrice"></p>
+                    <div class="services-list">
+                        <h3>Room Inclusions</h3>
+                        <div class="services-grid" id="modalServices"></div>
+                    </div>
+                    <div class="booking-button-container" style="margin-top: 30px; text-align: center;">
+                        <a href="bookings.php" class="btn-book-now" style="
+                            display: inline-block;
+                            padding: 15px 40px;
+                            background: linear-gradient(45deg, var(--primary), #ffa533);
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            font-size: 1.1em;
+                            transition: all 0.3s ease;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+                        ">
+                            <i class="bi bi-calendar-check"></i> Book Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php include('../components/footer.php'); ?>
+
+    <script>
+        let currentRoomImages = [];
+        let currentImageIndex = 0;
+
+        function openModal(roomData) {
+            const modal = document.getElementById('roomModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalDescription = document.getElementById('modalDescription');
+            const modalOccupancy = document.getElementById('modalOccupancy');
+            const modalPrice = document.getElementById('modalPrice');
+            const modalServices = document.getElementById('modalServices');
+            const galleryThumbnails = document.getElementById('galleryThumbnails');
+
+            // Map room types to their image files
+            const roomImages = {
+                1: ['standard.avif', 'standard2.avif', 'standard3.avif', 'standard4.jpg', 'standard5.avif'],
+                2: ['deluxe1.jpg', 'deluxe2.avif', 'deluxe3.avif', 'deluxe4.avif', 'deluxe5.avif'],
+                3: ['superior.jpg', 'superior2.jpg', 'superior3.jpg', 'superior4.jpg', 'superior5.jpg'],
+                4: ['family_suite.jpg', 'family_suite2.jpg', 'family_suite3.jpg', 'family_suite4.jpg', 'family_suite5.jpg'],
+                5: ['executive.jpg', 'executive2.jpg', 'executive3.jpg', 'executive4.jpg', 'executive5.jpg'],
+                6: ['presidential.avif', 'presidential2.jpg', 'presidential3.jpg', 'presidential4.jpg', 'presidential5.jpg']
+            };
+
+            // Set current room images
+            currentRoomImages = roomImages[roomData.room_type_id] || ['standard.avif'];
+            currentImageIndex = 0;
+
+            // Update main image
+            updateMainImage();
+
+            // Update thumbnails
+            updateThumbnails();
+
+            // Update counter
+            updateImageCounter();
+
+            modalTitle.textContent = roomData.type_name;
+            modalDescription.textContent = roomData.description;
+            modalOccupancy.textContent = `Max Occupancy: ${roomData.max_occupancy}`;
+            modalPrice.textContent = `₱${parseFloat(roomData.room_price).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+            // Display services with descriptions
+            modalServices.innerHTML = '';
+            if (roomData.services) {
+                const services = roomData.services.split('||');
+                services.forEach(service => {
+                    const [name, description] = service.split('|');
+                    const serviceItem = document.createElement('div');
+                    serviceItem.className = 'service-item';
+                    serviceItem.innerHTML = `
+                        <div class="service-name">
+                            <i class="bi bi-check-circle"></i>
+                            ${name.trim()}
+                        </div>
+                        <div class="service-description">
+                            ${description.trim()}
+                        </div>
+                    `;
+                    modalServices.appendChild(serviceItem);
+                });
+            }
+
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function updateMainImage() {
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = `../assets/rooms/${currentRoomImages[currentImageIndex]}`;
+            modalImage.onerror = function() {
+                this.src = '../assets/rooms/standard.avif';
+            };
+        }
+
+        function updateThumbnails() {
+            const galleryThumbnails = document.getElementById('galleryThumbnails');
+            galleryThumbnails.innerHTML = '';
+
+            currentRoomImages.forEach((image, index) => {
+                const thumbnail = document.createElement('img');
+                thumbnail.src = `../assets/rooms/${image}`;
+                thumbnail.alt = `Thumbnail ${index + 1}`;
+                thumbnail.className = `gallery-thumbnail ${index === currentImageIndex ? 'active' : ''}`;
+                thumbnail.onclick = () => {
+                    currentImageIndex = index;
+                    updateMainImage();
+                    updateThumbnails();
+                    updateImageCounter();
+                };
+                galleryThumbnails.appendChild(thumbnail);
+            });
+        }
+
+        function updateImageCounter() {
+            document.getElementById('currentImage').textContent = currentImageIndex + 1;
+            document.getElementById('totalImages').textContent = currentRoomImages.length;
+        }
+
+        function changeImage(direction) {
+            currentImageIndex = (currentImageIndex + direction + currentRoomImages.length) % currentRoomImages.length;
+            updateMainImage();
+            updateThumbnails();
+            updateImageCounter();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('roomModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('roomModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
 </body>
 </html>
 
