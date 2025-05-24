@@ -52,9 +52,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="../pages/rooms.php" class="<?php echo ($current_page == 'rooms.php') ? 'active' : ''; ?>">
         <i class="bi bi-house"></i> Rooms
     </a>
-    <a href="../pages/bookings.php" class="<?php echo ($current_page == 'bookings.php') ? 'active' : ''; ?>">
-        <i class="bi bi-book"></i> Book Now
-    </a>
     <a href="../pages/reservations.php" class="<?php echo ($current_page == 'reservations.php') ? 'active' : ''; ?>">
         <i class="bi bi-calendar-check"></i> My Reservations
     </a>

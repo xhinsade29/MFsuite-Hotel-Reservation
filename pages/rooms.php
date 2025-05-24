@@ -156,8 +156,8 @@ $room_images = [
             background-color: var(--secondary);
             margin: 50px auto;
             padding: 30px;
-            width: 90%;
-            max-width: 1000px;
+            width: 96%;
+            max-width: 1300px;
             border-radius: 15px;
             position: relative;
         }
@@ -178,9 +178,10 @@ $room_images = [
 
         .modal-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 48px;
             margin-top: 20px;
+            align-items: center;
         }
 
         .modal-image {
@@ -190,15 +191,108 @@ $room_images = [
             border-radius: 10px;
         }
 
-        .modal-details h2 {
-            color: var(--text-light);
-            margin-bottom: 20px;
+        .modal-details {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
-        .modal-details p {
-            color: var(--text-dim);
-            margin-bottom: 15px;
-            line-height: 1.6;
+        .modal-details.booking-form {
+            background: #23234a;
+            border-left: 2px solid rgba(255,255,255,0.10);
+            padding: 40px 32px 40px 32px;
+            border-radius: 0 16px 16px 0;
+            min-width: 420px;
+            max-width: 480px;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18);
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .modal-details.booking-form h4 {
+            margin-bottom: 1.2rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .modal-details.booking-form form {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .modal-details.booking-form .form-label {
+            color: var(--text-light);
+            font-size: 1em;
+            margin-bottom: 0.3rem;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .modal-details.booking-form .form-control {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 8px;
+            margin-bottom: 1.1rem;
+            font-size: 1em;
+            padding: 0.85rem 1.1rem;
+            box-shadow: none;
+        }
+
+        .modal-details.booking-form .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
+        }
+
+        .modal-details.booking-form button.btn-primary {
+            width: 100%;
+            padding: 0.9rem 0;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--primary), #ffa533);
+            border: none;
+            box-shadow: 0 2px 8px rgba(255,140,0,0.10);
+        }
+
+        .modal-details.booking-form button.btn-primary:hover {
+            background: linear-gradient(90deg, #e67c00, #ffb366);
+            box-shadow: 0 4px 12px rgba(255,140,0,0.18);
+        }
+
+        .service-description {
+            font-size: 0.85em;
+            color: #bdbdbd;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 1400px) {
+            .modal-content {
+                max-width: 1100px;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .modal-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            .modal-content {
+                max-width: 98vw;
+            }
+            .modal-details.booking-form {
+                border-left: none;
+                border-top: 2px solid rgba(255,255,255,0.10);
+                border-radius: 0 0 16px 16px;
+                padding: 24px 6px 24px 6px;
+                margin-top: 20px;
+                min-width: unset;
+                max-width: unset;
+            }
         }
 
         .services-list {
@@ -238,12 +332,6 @@ $room_images = [
             font-weight: 500;
             color: var(--text-light);
             margin-bottom: 5px;
-        }
-
-        .service-description {
-            font-size: 0.9em;
-            color: var(--text-dim);
-            line-height: 1.4;
         }
 
         @media (max-width: 768px) {
@@ -419,24 +507,78 @@ $room_images = [
                         <h3>Room Inclusions</h3>
                         <div class="services-grid" id="modalServices"></div>
                     </div>
-                    <div class="booking-button-container" style="margin-top: 30px; text-align: center;">
-                        <a href="bookings.php" class="btn-book-now" style="
-                            display: inline-block;
-                            padding: 15px 40px;
-                            background: linear-gradient(45deg, var(--primary), #ffa533);
-                            color: white;
-                            text-decoration: none;
-                            border-radius: 8px;
-                            font-weight: 600;
-                            font-size: 1.1em;
-                            transition: all 0.3s ease;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
-                        ">
+                    <div class="d-grid mt-4">
+                        <button class="btn btn-primary openBookingFormBtn" style="width:100%;font-size:1.1em;">
                             <i class="bi bi-calendar-check"></i> Book Now
-                        </a>
+                        </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Booking Form Modal (move outside main modal) -->
+    <div class="modal fade" id="bookingFormModal" tabindex="-1" aria-labelledby="bookingFormModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
+                <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
+                    <h4 class="modal-title w-100 text-center fw-bold text-warning" id="bookingFormModalLabel">Book this Room</h4>
+                    <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body d-flex justify-content-center align-items-center p-0">
+                    <form id="modalBookingForm" action="pages/bookings.php" method="POST" class="w-100 p-4 rounded-3 bg-secondary-subtle shadow-sm" style="max-width: 500px;">
+                        <input type="hidden" name="room_type_id" id="modalRoomTypeId">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="first_name" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Middle Name</label>
+                                <input type="text" class="form-control" name="middle_name">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="last_name" required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" name="phone" required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <label class="form-label">Check-in</label>
+                                <input type="date" class="form-control" name="checkin" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Check-out</label>
+                                <input type="date" class="form-control" name="checkout" required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <label class="form-label">Number of Guests</label>
+                                <input type="number" class="form-control" name="guests" min="1" max="10" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Total Amount</label>
+                                <input type="text" class="form-control" name="total_amount" id="modalTotalAmountInput" readonly>
+                            </div>
+                        </div>
+                        <div class="mb-2 mt-2">
+                            <label class="form-label">Special Requests</label>
+                            <textarea class="form-control" name="requests" rows="2" placeholder="Optional"></textarea>
+                        </div>
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-warning btn-lg fw-bold shadow-sm">Book Now</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -444,9 +586,14 @@ $room_images = [
 
     <?php include('../components/footer.php'); ?>
 
+    <!-- Bootstrap JS (required for modal) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
         let currentRoomImages = [];
         let currentImageIndex = 0;
+        let bookingFormModal;
+        let lastRoomData = null;
 
         function openModal(roomData) {
             const modal = document.getElementById('roomModal');
@@ -507,8 +654,13 @@ $room_images = [
                 });
             }
 
+            // Set booking form values
+            document.getElementById('modalRoomTypeId').value = roomData.room_type_id;
+            document.getElementById('modalTotalAmountInput').value = parseFloat(roomData.room_price).toLocaleString('en-US', {minimumFractionDigits:2});
+
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
+            lastRoomData = roomData;
         }
 
         function updateMainImage() {
@@ -563,6 +715,20 @@ $room_images = [
                 closeModal();
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            bookingFormModal = new bootstrap.Modal(document.getElementById('bookingFormModal'));
+            // Use event delegation for dynamically created or multiple buttons
+            document.body.addEventListener('click', function(e) {
+                if (e.target.classList.contains('openBookingFormBtn')) {
+                    if (lastRoomData) {
+                        document.getElementById('modalRoomTypeId').value = lastRoomData.room_type_id;
+                        document.getElementById('modalTotalAmountInput').value = parseFloat(lastRoomData.room_price).toLocaleString('en-US', {minimumFractionDigits:2});
+                    }
+                    bookingFormModal.show();
+                }
+            });
+        });
     </script>
 </body>
 </html>
