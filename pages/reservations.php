@@ -1,7 +1,8 @@
 <?php
+session_start();
 
 // Database connection
-$conn = new mysqli("localhost", "root", "", "db_hotel_reservation");
+$conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
 
 // Check connection
 if ($conn->connect_error) {
@@ -9,7 +10,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch available room types
-$rooms_sql = "SELECT type_id, type_name FROM tbl_room_type";
+$rooms_sql = "SELECT room_type_id, type_name FROM tbl_room_type";
 $rooms_result = $conn->query($rooms_sql);
 
 // Fetch available service types
@@ -17,8 +18,51 @@ $services_sql = "SELECT service_id, service_name FROM tbl_services";
 $services_result = $conn->query($services_sql);
 
 // Fetch available payment types
-$payments_sql = "SELECT payment_id, payment_type FROM tbl_payment";
+$payments_sql = "SELECT payment_id, payment_method FROM tbl_payment";
 $payments_result = $conn->query($payments_sql);
+
+// Fetch user bookings if logged in
+$user_bookings = [];
+$room_images = [
+    1 => 'standard.avif',
+    2 => 'deluxe1.jpg',
+    3 => 'superior.jpg',
+    4 => 'family_suite.jpg',
+    5 => 'executive.jpg',
+    6 => 'presidential.avif'
+];
+if (isset($_SESSION['guest_id'])) {
+    $guest_id = $_SESSION['guest_id'];
+    $sql = "SELECT r.*, rt.type_name, rt.description, rt.room_price, 
+                   GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
+                   p.payment_status, p.payment_method, p.amount, rt.room_type_id
+            FROM tbl_reservation r
+            LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
+            LEFT JOIN reservation_services rs ON r.reservation_id = rs.reservation_id
+            LEFT JOIN tbl_services s ON rs.service_id = s.service_id
+            LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id
+            WHERE r.guest_id = $guest_id
+            GROUP BY r.reservation_id
+            ORDER BY r.date_created DESC";
+    $result = $conn->query($sql);
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $user_bookings[] = $row;
+        }
+    }
+}
+
+// Admin-only: Display all transactions
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    $all_reservations = [];
+    $sql_admin = "SELECT * FROM tbl_reservation ORDER BY date_created DESC";
+    $result_admin = $conn->query($sql_admin);
+    if ($result_admin && $result_admin->num_rows > 0) {
+        while ($row = $result_admin->fetch_assoc()) {
+            $all_reservations[] = $row;
+        }
+    }
+}
 ?>
 
 <?php include '../components/user_navigation.php'; ?>
@@ -29,7 +73,7 @@ $payments_result = $conn->query($payments_sql);
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Make a Reservation</title>
+    <title>My Reservations</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
@@ -163,130 +207,93 @@ $payments_result = $conn->query($payments_sql);
                 padding: 20px;
             }
         }
+
+        .booking-card { background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); margin-bottom: 32px; display: flex; overflow: hidden; }
+        .booking-card img { width: 220px; height: 180px; object-fit: cover; border-radius: 16px 0 0 16px; }
+        .booking-details { flex: 1; padding: 24px 32px; color: #fff; }
+        .booking-details h4 { color: #FF8C00; font-weight: 700; }
+        .booking-details .desc { color: #bdbdbd; font-size: 1em; margin-bottom: 10px; }
+        .booking-details .meta { margin-bottom: 8px; }
+        .booking-details .status { font-weight: 600; }
+        .booking-details .cancel-btn { margin-top: 12px; }
+        .badge-waiting { background: #ffc107; color: #23234a; }
+        .badge-approved { background: #28a745; }
+        .badge-cancel { background: #dc3545; }
     </style>
 </head>
 <body>
-    <div class="content">
-        <h1><i class="fas fa-calendar-alt"></i> Make a Reservation</h1>
+    <?php include '../components/user_navigation.php'; ?>
+    <?php include '../components/footer.php'; ?>
+    
+    <div class="content d-flex flex-column align-items-center justify-content-center">
+        <h1 class="text-center"><i class="fas fa-calendar-alt"></i> My Reservations</h1>
         
-        <form class="reservation-form" action="process_reservation.php" method="POST">
-            <!-- Personal Information Section -->
-            <div class="form-section">
-                <h2 class="section-title"><i class="fas fa-user"></i> Personal Information</h2>
-                <div class="grid-3">
-                    <div class="form-group">
-                        <label for="first_name">First Name</label>
-                        <input type="text" name="first_name" id="first_name" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="middle_name">Middle Name</label>
-                        <input type="text" name="middle_name" id="middle_name" />
-                    </div>
-                    <div class="form-group">
-                        <label for="last_name">Last Name</label>
-                        <input type="text" name="last_name" id="last_name" required />
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="phone_number">Phone Number</label>
-                        <input type="text" name="phone_number" id="phone_number" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="address">Address</label>
-                        <input type="text" name="address" id="address" required />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Booking Details Section -->
-            <div class="form-section">
-                <h2 class="section-title"><i class="fas fa-bed"></i> Booking Details</h2>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="room_id">Room Type</label>
-                        <select name="room_id" id="room_id" required>
-                            <option value="">Select a Room Type</option>
-                            <?php
-                            if ($rooms_result->num_rows > 0) {
-                                while ($room = $rooms_result->fetch_assoc()) {
-                                    echo '<option value="' . htmlspecialchars($room['type_id']) . '">' . 
-                                         htmlspecialchars($room['type_name']) . '</option>';
-                                }
+        <?php if (isset($_SESSION['guest_id'])): ?>
+        <div class="mb-5 w-100" style="max-width: 900px;">
+            <h2 class="text-warning mb-3" style="font-size:1.3em;"><i class="bi bi-journal-bookmark"></i> My Bookings</h2>
+            <?php if (count($user_bookings) > 0): ?>
+            <div class="container py-5">
+                <?php foreach ($user_bookings as $booking): ?>
+                <?php
+                $services = [];
+                if (!empty($booking['services'])) {
+                    $services = explode(', ', $booking['services']);
+                }
+                // Fetch included room services for this room type
+                $included_services = [];
+                $room_type_id = $booking['room_type_id'];
+                $service_sql = "SELECT s.service_name FROM tbl_room_services rs JOIN tbl_services s ON rs.service_id = s.service_id WHERE rs.room_type_id = $room_type_id";
+                $service_result = $conn->query($service_sql);
+                if ($service_result && $service_result->num_rows > 0) {
+                    while ($row = $service_result->fetch_assoc()) {
+                        $included_services[] = $row['service_name'];
+                    }
+                }
+                ?>
+                <div class="booking-card">
+                    <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
+                    <div class="booking-details">
+                        <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
+                        <div class="desc mb-2"><?php echo htmlspecialchars($booking['description']); ?></div>
+                        <div class="meta"><strong>Check-in:</strong> <?php echo htmlspecialchars($booking['check_in']); ?></div>
+                        <div class="meta"><strong>Check-out:</strong> <?php echo htmlspecialchars($booking['check_out']); ?></div>
+                        <div class="meta"><strong>Payment:</strong> <?php echo htmlspecialchars($booking['payment_method']); ?> (<?php echo htmlspecialchars($booking['payment_status']); ?>)</div>
+                        <div class="meta"><strong>Amount:</strong> ₱<?php echo number_format($booking['amount'], 2); ?></div>
+                        <div class="meta"><strong>Room Price:</strong> ₱<?php echo number_format($booking['room_price'], 2); ?></div>
+                        <div class="meta"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></div>
+                        <?php if (!empty($included_services)): ?>
+                        <div class="meta"><strong>Included Room Services:</strong> <?php echo htmlspecialchars(implode(', ', $included_services)); ?></div>
+                        <?php endif; ?>
+                        <?php if (!empty($services)): ?>
+                        <div class="meta"><strong>Selected Services:</strong> <?php echo htmlspecialchars(implode(', ', $services)); ?></div>
+                        <?php endif; ?>
+                        <div class="meta"><strong>Status:</strong> 
+                            <?php 
+                            if (isset($booking['cancel_requested']) && $booking['cancel_requested']) {
+                                echo '<span class="badge badge-cancel">Cancellation Requested</span>';
+                            } else if (isset($booking['approved']) && $booking['approved']) {
+                                echo '<span class="badge badge-approved">Approved</span>';
+                            } else {
+                                echo '<span class="badge badge-waiting">Waiting for Approval</span>';
                             }
                             ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="check_in">Check-in Date</label>
-                        <input type="datetime-local" name="check_in" id="check_in" required />
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="check_out">Check-out Date</label>
-                        <input type="datetime-local" name="check_out" id="check_out" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="guests">Number of Guests</label>
-                        <input type="number" name="guests" id="guests" min="1" required />
+                        </div>
+                        <?php if (empty($booking['cancel_requested'])): ?>
+                        <form method="POST" action="cancel_booking.php" class="cancel-btn">
+                            <input type="hidden" name="reservation_id" value="<?php echo $booking['reservation_id']; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm">Cancel Booking</button>
+                        </form>
+                        <?php endif; ?>
+                        <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-primary btn-sm mt-2">View Details</a>
                     </div>
                 </div>
+                <?php endforeach; ?>
             </div>
-
-            <!-- Additional Services Section -->
-            <div class="form-section">
-                <h2 class="section-title"><i class="fas fa-concierge-bell"></i> Additional Services</h2>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="service_id">Select Services</label>
-                        <select name="service_id" id="service_id" multiple>
-                            <?php
-                            if ($services_result->num_rows > 0) {
-                                while ($service = $services_result->fetch_assoc()) {
-                                    echo '<option value="' . htmlspecialchars($service['service_id']) . '">' . 
-                                         htmlspecialchars($service['service_name']) . '</option>';
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="special_requests">Special Requests</label>
-                        <textarea name="special_requests" id="special_requests" rows="4" 
-                                  class="form-control" style="background: rgba(255, 255, 255, 0.05); 
-                                  border: 1px solid rgba(255, 255, 255, 0.1); 
-                                  color: var(--text-light); 
-                                  border-radius: 8px;"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Payment Section -->
-            <div class="form-section">
-                <h2 class="section-title"><i class="fas fa-credit-card"></i> Payment Information</h2>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="payment_type">Payment Method</label>
-                        <select name="payment_type" id="payment_type" required>
-                            <option value="">Select Payment Method</option>
-                            <?php
-                            if ($payments_result->num_rows > 0) {
-                                while ($payment = $payments_result->fetch_assoc()) {
-                                    echo '<option value="' . htmlspecialchars($payment['payment_id']) . '">' . 
-                                         htmlspecialchars($payment['payment_type']) . '</option>';
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="btn-submit">
-                <i class="fas fa-check-circle"></i> Confirm Reservation
-            </button>
-        </form>
+            <?php else: ?>
+            <div class="alert alert-info">You have no bookings yet.</div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

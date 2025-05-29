@@ -444,6 +444,28 @@ $room_images = [
             font-size: 14px;
             z-index: 2;
         }
+
+        .see-details-btn {
+            background: linear-gradient(90deg, #FF8C00, #ffa533);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.08em;
+            padding: 0.7em 1.6em;
+            box-shadow: 0 2px 8px rgba(255,140,0,0.10);
+            transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+            outline: none;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+        }
+
+        .see-details-btn:hover, .see-details-btn:focus {
+            background: linear-gradient(90deg, #e67c00, #ffb366);
+            box-shadow: 0 4px 16px rgba(255,140,0,0.18);
+            transform: translateY(-2px) scale(1.04);
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -457,13 +479,14 @@ $room_images = [
                 while ($row = $result->fetch_assoc()) {
                     $image_file = $room_images[$row['room_type_id']] ?? 'standard.avif';
                     
-                    echo '<div class="card" onclick="openModal(' . htmlspecialchars(json_encode($row)) . ')">';
+                    echo '<div class="card">';
                     echo '<img src="../assets/rooms/' . htmlspecialchars($image_file) . '" alt="' . htmlspecialchars($row['type_name']) . '" class="card-image" onerror="this.src=\'../assets/rooms/standard.avif\'">';
                     echo '<div class="card-content">';
                     echo '<h3>' . htmlspecialchars($row['type_name']) . '</h3>';
                     echo '<p>' . htmlspecialchars($row['description']) . '</p>';
                     echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
                     echo '<p class="price">₱' . number_format($row['room_price'], 2) . '</p>';
+                    echo '<button class="see-details-btn mt-3" onclick="window.location.href=\'booking_form.php?room_type_id=' . urlencode($row['room_type_id']) . '\';">See Details</button>';
                     echo '</div></div>';
                 }
             } else {
@@ -508,77 +531,10 @@ $room_images = [
                         <div class="services-grid" id="modalServices"></div>
                     </div>
                     <div class="d-grid mt-4">
-                        <button class="btn btn-primary openBookingFormBtn" style="width:100%;font-size:1.1em;">
+                        <a href="booking_form.php?room_type_id=' + encodeURIComponent(roomData.room_type_id) + '" class="btn btn-primary" style="width:100%;font-size:1.1em;">
                             <i class="bi bi-calendar-check"></i> Book Now
-                        </button>
+                        </a>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Booking Form Modal (move outside main modal) -->
-    <div class="modal fade" id="bookingFormModal" tabindex="-1" aria-labelledby="bookingFormModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
-                <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
-                    <h4 class="modal-title w-100 text-center fw-bold text-warning" id="bookingFormModalLabel">Book this Room</h4>
-                    <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body d-flex justify-content-center align-items-center p-0">
-                    <form id="modalBookingForm" action="pages/bookings.php" method="POST" class="w-100 p-4 rounded-3 bg-secondary-subtle shadow-sm" style="max-width: 500px;">
-                        <input type="hidden" name="room_type_id" id="modalRoomTypeId">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">First Name</label>
-                                <input type="text" class="form-control" name="first_name" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Middle Name</label>
-                                <input type="text" class="form-control" name="middle_name">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Last Name</label>
-                                <input type="text" class="form-control" name="last_name" required>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-1">
-                            <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" name="phone" required>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-1">
-                            <div class="col-md-6">
-                                <label class="form-label">Check-in</label>
-                                <input type="date" class="form-control" name="checkin" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Check-out</label>
-                                <input type="date" class="form-control" name="checkout" required>
-                            </div>
-                        </div>
-                        <div class="row g-3 mt-1">
-                            <div class="col-md-6">
-                                <label class="form-label">Number of Guests</label>
-                                <input type="number" class="form-control" name="guests" min="1" max="10" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Total Amount</label>
-                                <input type="text" class="form-control" name="total_amount" id="modalTotalAmountInput" readonly>
-                            </div>
-                        </div>
-                        <div class="mb-2 mt-2">
-                            <label class="form-label">Special Requests</label>
-                            <textarea class="form-control" name="requests" rows="2" placeholder="Optional"></textarea>
-                        </div>
-                        <div class="d-grid mt-3">
-                            <button type="submit" class="btn btn-warning btn-lg fw-bold shadow-sm">Book Now</button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
@@ -715,20 +671,6 @@ $room_images = [
                 closeModal();
             }
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            bookingFormModal = new bootstrap.Modal(document.getElementById('bookingFormModal'));
-            // Use event delegation for dynamically created or multiple buttons
-            document.body.addEventListener('click', function(e) {
-                if (e.target.classList.contains('openBookingFormBtn')) {
-                    if (lastRoomData) {
-                        document.getElementById('modalRoomTypeId').value = lastRoomData.room_type_id;
-                        document.getElementById('modalTotalAmountInput').value = parseFloat(lastRoomData.room_price).toLocaleString('en-US', {minimumFractionDigits:2});
-                    }
-                    bookingFormModal.show();
-                }
-            });
-        });
     </script>
 </body>
 </html>
