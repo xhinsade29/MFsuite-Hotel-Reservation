@@ -101,74 +101,66 @@ echo "Using admin_id: $admin_id<br>";
         <form id="bookingForm" action="bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate>
             <input type="hidden" name="room_type_id" value="<?php echo htmlspecialchars($room_type_id); ?>">
             <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">First Name</label>
-                    <input type="text" class="form-control" name="first_name" required>
-                    <div class="invalid-feedback">First name is required.</div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Check-in</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" name="checkin" required>
+                            <div class="input-group">
+                                <input type="time" class="form-control" name="checkin_time" required>
+                                <select class="form-select" name="checkin_ampm" required>
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback">Check-in date and time are required.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Check-out</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" name="checkout" required>
+                            <div class="input-group">
+                                <input type="time" class="form-control" name="checkout_time" required>
+                                <select class="form-select" name="checkout_ampm" required>
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback">Check-out date and time are required.</div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Middle Name</label>
-                    <input type="text" class="form-control" name="middle_name">
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Number of Guests</label>
+                        <input type="number" class="form-control" name="guests" min="1" max="10" required>
+                        <div class="invalid-feedback">Please enter the number of guests (1-10).</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-control" name="payment_id" required>
+                            <option value="">Select Payment Method</option>
+                            <?php foreach ($payment_types as $ptype): ?>
+                                <option value="<?php echo $ptype['payment_type_id']; ?>"><?php echo htmlspecialchars($ptype['payment_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="invalid-feedback">Please select a payment method.</div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Last Name</label>
-                    <input type="text" class="form-control" name="last_name" required>
-                    <div class="invalid-feedback">Last name is required.</div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Total Amount</label>
+                        <input type="text" class="form-control" name="total_amount" value="<?php echo $room ? number_format($room['room_price'], 2) : ''; ?>" readonly>
+                    </div>
                 </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-6">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-control" name="email" required>
-                    <div class="invalid-feedback">A valid email is required.</div>
+                <div class="mb-2 mt-2">
+                    <label class="form-label">Special Requests</label>
+                    <textarea class="form-control" name="requests" rows="2" placeholder="Optional"></textarea>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Phone Number</label>
-                    <input type="tel" class="form-control" name="phone" required pattern="[0-9]{10,15}">
-                    <div class="invalid-feedback">A valid phone number is required.</div>
+                <div class="d-grid mt-3">
+                    <button type="button" class="btn btn-warning btn-lg fw-bold shadow-sm" id="openConfirmModalBtn">Book Now</button>
                 </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-6">
-                    <label class="form-label">Check-in</label>
-                    <input type="date" class="form-control" name="checkin" required>
-                    <div class="invalid-feedback">Check-in date is required.</div>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Check-out</label>
-                    <input type="date" class="form-control" name="checkout" required>
-                    <div class="invalid-feedback">Check-out date is required.</div>
-                </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-6">
-                    <label class="form-label">Number of Guests</label>
-                    <input type="number" class="form-control" name="guests" min="1" max="10" required>
-                    <div class="invalid-feedback">Please enter the number of guests (1-10).</div>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Payment Method</label>
-                    <select class="form-control" name="payment_id" required>
-                        <option value="">Select Payment Method</option>
-                        <?php foreach ($payment_types as $ptype): ?>
-                            <option value="<?php echo $ptype['payment_type_id']; ?>"><?php echo htmlspecialchars($ptype['payment_name']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="invalid-feedback">Please select a payment method.</div>
-                </div>
-            </div>
-            <div class="row g-3 mt-1">
-                <div class="col-md-6">
-                    <label class="form-label">Total Amount</label>
-                    <input type="text" class="form-control" name="total_amount" value="<?php echo $room ? number_format($room['room_price'], 2) : ''; ?>" readonly>
-                </div>
-            </div>
-            <div class="mb-2 mt-2">
-                <label class="form-label">Special Requests</label>
-                <textarea class="form-control" name="requests" rows="2" placeholder="Optional"></textarea>
-            </div>
-            <div class="d-grid mt-3">
-                <button type="button" class="btn btn-warning btn-lg fw-bold shadow-sm" id="openConfirmModalBtn">Book Now</button>
             </div>
         </form>
     </div>
@@ -212,7 +204,6 @@ echo "Using admin_id: $admin_id<br>";
   </div>
 </div>
 
-<?php include('../components/footer.php'); ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

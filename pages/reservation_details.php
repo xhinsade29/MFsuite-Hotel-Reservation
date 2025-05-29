@@ -141,18 +141,65 @@ $conn->close();
     </style>
 </head>
 <body>
+    <?php include '../components/user_navigation.php'; ?>
+   
 <div class="container mt-5">
     <h2 class="text-center mb-4">Reservation Details</h2>
     <?php if ($show_cancel_notification): ?>
     <div class="alert alert-info text-center">Your cancellation request has been sent. Please wait for admin approval.</div>
+    <!-- Toast notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+      <div id="cancelToast" class="toast align-items-center text-bg-info border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            Your cancellation request has been sent!
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.getElementById('cancelToast');
+        if (toastEl) {
+            var toast = new bootstrap.Toast(toastEl, { delay: 2000 });
+            toast.show();
+            setTimeout(function() {
+                window.location.reload();
+            }, 2000); // Refresh after toast
+        }
+        // Auto-close modal if open
+        var cancelModal = document.getElementById('cancelModal');
+        if (cancelModal) {
+            var modal = bootstrap.Modal.getInstance(cancelModal);
+            if (modal) { modal.hide(); }
+        }
+    });
+    </script>
     <?php endif; ?>
     <?php if ($booking['status'] === 'cancellation_requested'): ?>
-        <div class="alert alert-warning d-flex align-items-center justify-content-center fw-bold mb-4" style="font-size:1.25em; border-width:2px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-exclamation-triangle me-2" viewBox="0 0 16 16">
-                <path d="M7.938 2.016a.13.13 0 0 1 .125 0l6.857 11.856c.06.104.01.228-.104.228H1.184c-.115 0-.164-.124-.104-.228L7.938 2.016zm.823-1.447a1.13 1.13 0 0 0-1.624 0L.28 12.425C-.457 13.634.524 15 1.816 15h12.367c1.292 0 2.273-1.366 1.537-2.575L8.76.57zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-            </svg>
-            Requesting for Cancellation - Awaiting Admin Approval
+        <!-- Recurring toast notification only -->
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+          <div id="cancelToast" class="toast align-items-center text-bg-info border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+              <div class="toast-body">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                Your cancellation request has been sent and is awaiting admin approval.
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>
         </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toastEl = document.getElementById('cancelToast');
+            if (toastEl) {
+                var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+                toast.show();
+            }
+        });
+        </script>
     <?php endif; ?>
     <div class="row justify-content-center">
         <div class="col-md-6 text-center">
@@ -162,15 +209,15 @@ $conn->close();
         </div>
         <div class="col-md-6">
             <div class="user-details bg-dark rounded p-3 mb-3">
-                <h5 class="text-warning">User Details</h5>
+               
                 <div><strong>Name:</strong> <?php echo htmlspecialchars(trim($first_name . ' ' . $middle_name . ' ' . $last_name)); ?></div>
                 <div><strong>Email:</strong> <?php echo htmlspecialchars($user_email); ?></div>
                 <div><strong>Phone:</strong> <?php echo htmlspecialchars($phone_number); ?></div>
                 <div><strong>Address:</strong> <?php echo htmlspecialchars($address); ?></div>
             </div>
             <ul class="list-group list-group-flush mb-3">
-                <li class="list-group-item bg-dark text-light"><strong>Check-in:</strong> <?php echo htmlspecialchars($booking['check_in']); ?></li>
-                <li class="list-group-item bg-dark text-light"><strong>Check-out:</strong> <?php echo htmlspecialchars($booking['check_out']); ?></li>
+                <li class="list-group-item bg-dark text-light"><strong>Check-in:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['check_in'])); ?></li>
+                <li class="list-group-item bg-dark text-light"><strong>Check-out:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['check_out'])); ?></li>
                 <?php if (!empty($included_services)): ?>
                 <li class="list-group-item bg-dark text-light"><strong>Included Room Services:</strong> <?php echo htmlspecialchars(implode(', ', $included_services)); ?></li>
                 <?php endif; ?>
@@ -189,7 +236,7 @@ $conn->close();
             <?php elseif ($booking['status'] === 'denied'): ?>
                 <span class="badge bg-secondary mb-2">Cancellation Denied</span>
             <?php else: ?>
-                <button class="btn btn-danger mb-2" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel Reservation</button>
+                <button id="cancelBtn" class="btn btn-danger mb-2" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel Reservation</button>
             <?php endif; ?>
         </div>
     </div>
@@ -235,6 +282,18 @@ $conn->close();
                 document.getElementById('other_reason').removeAttribute('required');
             }
         }
+        document.addEventListener('DOMContentLoaded', function() {
+            var cancelForm = document.getElementById('cancelForm');
+            if (cancelForm) {
+                cancelForm.addEventListener('submit', function() {
+                    var btn = document.querySelector('#cancelModal button[type="submit"]');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = 'Cancelling...';
+                    }
+                });
+            }
+        });
         </script>
       </div>
     </div>

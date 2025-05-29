@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("isi", $reservation_id, $canceled_by, $reason_id);
         $stmt->execute();
         $stmt->close();
-        // Update reservation: set status to 'cancellation_requested' (waiting for admin approval)
-        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'cancellation_requested' WHERE reservation_id = ?");
+        // Update reservation: set status to 'cancellation_requested' only if currently 'pending'
+        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'cancellation_requested' WHERE reservation_id = ? AND status = 'pending'");
         $stmt->bind_param("i", $reservation_id);
         $stmt->execute();
         $stmt->close();

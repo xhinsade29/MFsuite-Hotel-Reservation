@@ -15,8 +15,19 @@ if (!isset($_SESSION['guest_id'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $guest_id = $_SESSION['guest_id'];
     $room_type_id = intval($_POST['room_type_id']);
-    $check_in = $_POST['checkin'];
-    $check_out = $_POST['checkout'];
+    function to24Hour($time, $ampm) {
+        return date("H:i", strtotime("$time $ampm"));
+    }
+    $check_in_date = $_POST['checkin'];
+    $check_in_time = $_POST['checkin_time'];
+    $check_in_ampm = $_POST['checkin_ampm'];
+    $check_out_date = $_POST['checkout'];
+    $check_out_time = $_POST['checkout_time'];
+    $check_out_ampm = $_POST['checkout_ampm'];
+    $check_in_time_24 = to24Hour($check_in_time, $check_in_ampm);
+    $check_out_time_24 = to24Hour($check_out_time, $check_out_ampm);
+    $check_in = $check_in_date . ' ' . $check_in_time_24 . ':00';
+    $check_out = $check_out_date . ' ' . $check_out_time_24 . ':00';
     // Get a valid admin_id from tbl_admin
     $admin_id = 1;
     $admin_result = $mycon->query("SELECT admin_id FROM tbl_admin LIMIT 1");

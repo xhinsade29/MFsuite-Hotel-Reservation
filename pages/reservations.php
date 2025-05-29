@@ -33,7 +33,7 @@ $room_images = [
 ];
 if (isset($_SESSION['guest_id'])) {
     $guest_id = $_SESSION['guest_id'];
-    $sql = "SELECT r.*, rt.type_name, rt.description, rt.room_price, 
+    $sql = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.room_price, 
                    GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
                    p.payment_status, p.payment_method, p.amount, rt.room_type_id
             FROM tbl_reservation r
@@ -66,7 +66,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
 ?>
 
 <?php include '../components/user_navigation.php'; ?>
-<?php include '../components/footer.php'; ?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -223,7 +222,6 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
 </head>
 <body>
     <?php include '../components/user_navigation.php'; ?>
-    <?php include '../components/footer.php'; ?>
     
     <div class="content d-flex flex-column align-items-center justify-content-center">
         <h1 class="text-center"><i class="fas fa-calendar-alt"></i> My Reservations</h1>
@@ -273,21 +271,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                     <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
                     <div class="booking-details">
                         <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
-                        <div class="meta"><strong>Status:</strong>
-                            <?php
-                            if ($booking['status'] === 'cancellation_requested') {
-                                echo '<span class="badge badge-warning text-dark">Requesting for Cancellation</span>';
-                            } elseif ($booking['status'] === 'pending') {
-                                echo '<span class="badge badge-info text-dark">Pending</span>';
-                            } elseif ($booking['status'] === 'cancelled') {
-                                echo '<span class="badge badge-danger">Cancelled</span>';
-                            } elseif ($booking['status'] === 'denied') {
-                                echo '<span class="badge badge-secondary">Cancellation Denied</span>';
-                            } else {
-                                echo '<span class="badge badge-success">Active</span>';
-                            }
-                            ?>
-                        </div>
+
+                        
                         <div class="meta"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></div>
                         <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-primary btn-sm mt-2">View Details</a>
                     </div>
