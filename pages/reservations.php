@@ -249,41 +249,46 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         $included_services[] = $row['service_name'];
                     }
                 }
+                $total_amount = $booking['room_price'];
+                // Get selected service names for this booking
+                $service_names = [];
+                if (!empty($booking['services'])) {
+                    $service_names = explode(', ', $booking['services']);
+                }
+                if (count($service_names) > 0) {
+                    $service_names_escaped = array_map(function($name) use ($conn) {
+                        return "'" . $conn->real_escape_string($name) . "'";
+                    }, $service_names);
+                    $service_names_str = implode(',', $service_names_escaped);
+                    $service_price_sql = "SELECT service_price FROM tbl_services WHERE service_name IN ($service_names_str)";
+                    $service_price_result = $conn->query($service_price_sql);
+                    if ($service_price_result && $service_price_result->num_rows > 0) {
+                        while ($row = $service_price_result->fetch_assoc()) {
+                            $total_amount += $row['service_price'];
+                        }
+                    }
+                }
                 ?>
                 <div class="booking-card">
                     <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
                     <div class="booking-details">
                         <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
-                        <div class="desc mb-2"><?php echo htmlspecialchars($booking['description']); ?></div>
-                        <div class="meta"><strong>Check-in:</strong> <?php echo htmlspecialchars($booking['check_in']); ?></div>
-                        <div class="meta"><strong>Check-out:</strong> <?php echo htmlspecialchars($booking['check_out']); ?></div>
-                        <div class="meta"><strong>Payment:</strong> <?php echo htmlspecialchars($booking['payment_method']); ?> (<?php echo htmlspecialchars($booking['payment_status']); ?>)</div>
-                        <div class="meta"><strong>Amount:</strong> ₱<?php echo number_format($booking['amount'], 2); ?></div>
-                        <div class="meta"><strong>Room Price:</strong> ₱<?php echo number_format($booking['room_price'], 2); ?></div>
-                        <div class="meta"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></div>
-                        <?php if (!empty($included_services)): ?>
-                        <div class="meta"><strong>Included Room Services:</strong> <?php echo htmlspecialchars(implode(', ', $included_services)); ?></div>
-                        <?php endif; ?>
-                        <?php if (!empty($services)): ?>
-                        <div class="meta"><strong>Selected Services:</strong> <?php echo htmlspecialchars(implode(', ', $services)); ?></div>
-                        <?php endif; ?>
-                        <div class="meta"><strong>Status:</strong> 
-                            <?php 
-                            if (isset($booking['cancel_requested']) && $booking['cancel_requested']) {
-                                echo '<span class="badge badge-cancel">Cancellation Requested</span>';
-                            } else if (isset($booking['approved']) && $booking['approved']) {
-                                echo '<span class="badge badge-approved">Approved</span>';
+                        <div class="meta"><strong>Status:</strong>
+                            <?php
+                            if ($booking['status'] === 'cancellation_requested') {
+                                echo '<span class="badge badge-warning text-dark">Requesting for Cancellation</span>';
+                            } elseif ($booking['status'] === 'pending') {
+                                echo '<span class="badge badge-info text-dark">Pending</span>';
+                            } elseif ($booking['status'] === 'cancelled') {
+                                echo '<span class="badge badge-danger">Cancelled</span>';
+                            } elseif ($booking['status'] === 'denied') {
+                                echo '<span class="badge badge-secondary">Cancellation Denied</span>';
                             } else {
-                                echo '<span class="badge badge-waiting">Waiting for Approval</span>';
+                                echo '<span class="badge badge-success">Active</span>';
                             }
                             ?>
                         </div>
-                        <?php if (empty($booking['cancel_requested'])): ?>
-                        <form method="POST" action="cancel_booking.php" class="cancel-btn">
-                            <input type="hidden" name="reservation_id" value="<?php echo $booking['reservation_id']; ?>">
-                            <button type="submit" class="btn btn-danger btn-sm">Cancel Booking</button>
-                        </form>
-                        <?php endif; ?>
+                        <div class="meta"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></div>
                         <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-primary btn-sm mt-2">View Details</a>
                     </div>
                 </div>

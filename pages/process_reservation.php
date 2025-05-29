@@ -54,7 +54,7 @@ $guest_id = $_SESSION['guest_id'] ?? null;
 if (!$guest_id) {
     die("Not logged in.");
 }
-$stmt = $conn->prepare("INSERT INTO tbl_reservation (guest_id, payment_id, check_in, check_out, room_type_id, guests, special_requests, date_created) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+$stmt = $conn->prepare("INSERT INTO tbl_reservation (guest_id, payment_id, check_in, check_out, room_id, guests, special_requests, date_created, status) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 'pending')");
 $stmt->bind_param("iisssis", $guest_id, $payment_id, $check_in, $check_out, $room_id, $guests, $special_requests);
 $stmt->execute();
 $reservation_id = $conn->insert_id;
