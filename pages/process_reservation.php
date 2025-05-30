@@ -69,6 +69,6 @@ if (!empty($service_ids)) {
 }
 
 $conn->close();
-header("Location: ../pages/reservations.php?success=1");
+header("Location: /pages/reservations.php?success=1");
 exit;
 ?> 

@@ -87,6 +87,7 @@ $conn->close();
 <head>
     <title>Reservation Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #1e1e2f; color: #fff; }
         .details-container {
@@ -142,9 +143,34 @@ $conn->close();
 </head>
 <body>
     <?php include '../components/user_navigation.php'; ?>
-   
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Reservation Details</h2>
+    <!-- Toast for Paid or Completed -->
+    <?php if ($booking['payment_status'] === 'Paid' || $booking['status'] === 'completed'): ?>
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
+      <div id="statusToast" class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <?php if ($booking['payment_status'] === 'Paid'): ?>
+              Your payment has been received!
+            <?php endif; ?>
+            <?php if ($booking['status'] === 'completed'): ?>
+              Reservation marked as completed. Thank you for staying with us!
+            <?php endif; ?>
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.getElementById('statusToast');
+        if (toastEl) {
+            var toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+            toast.show();
+        }
+    });
+    </script>
+    <?php endif; ?>
     <?php if ($show_cancel_notification): ?>
     <div class="alert alert-info text-center">Your cancellation request has been sent. Please wait for admin approval.</div>
     <!-- Toast notification -->
@@ -235,6 +261,8 @@ $conn->close();
                 <span class="badge bg-danger mb-2">Cancelled</span>
             <?php elseif ($booking['status'] === 'denied'): ?>
                 <span class="badge bg-secondary mb-2">Cancellation Denied</span>
+            <?php elseif ($booking['status'] === 'completed'): ?>
+                <span class="badge bg-success mb-2">Completed</span>
             <?php else: ?>
                 <button id="cancelBtn" class="btn btn-danger mb-2" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel Reservation</button>
             <?php endif; ?>

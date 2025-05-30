@@ -7,8 +7,12 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['rol
 include '../pages/notification.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reservation_id = intval($_POST['reservation_id'] ?? 0);
+    $action = $_POST['action'] ?? '';
     $new_status = $_POST['new_status'] ?? '';
     $allowed = ['pending','approved','cancelled','denied','completed','cancellation_requested'];
+    if ($reservation_id && $action === 'complete') {
+        $new_status = 'completed';
+    }
     if ($reservation_id && in_array($new_status, $allowed)) {
         $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
         if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
@@ -25,9 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt2->close();
         $conn->close();
         if ($email) notify_status_update($reservation_id, $new_status, $email);
-        header("Location: reservations.php?msg=" . urlencode('Status updated successfully.'));
+        header("Location: dashboard.php?msg=" . urlencode('Status updated successfully.'));
         exit();
     }
 }
-header("Location: reservations.php?msg=Invalid+request");
+header("Location: dashboard.php?msg=Invalid+request");
 exit(); 

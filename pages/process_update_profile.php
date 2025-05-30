@@ -5,7 +5,7 @@ ini_set('display_errors', 1);
 
 // Check if user is logged in
 if (!isset($_SESSION['guest_id'])) {
-    header("Location: login.php");
+    header("Location: /pages/login.php");
     exit();
 }
 
@@ -31,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($result->num_rows > 0) {
         $_SESSION['error'] = "Email already exists";
-        header("Location: update_profile.php");
+        header("Location: /pages/update_profile.php");
         exit();
     }
 
@@ -98,31 +98,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if (strlen($new_password) < 8) {
                 $_SESSION['error'] = "New password must be at least 8 characters long";
-                header("Location: update_profile.php");
+                header("Location: /pages/update_profile.php");
                 exit();
             }
 
             if (!preg_match("/[A-Z]/", $new_password)) {
                 $_SESSION['error'] = "New password must contain at least one uppercase letter";
-                header("Location: update_profile.php");
+                header("Location: /pages/update_profile.php");
                 exit();
             }
 
             if (!preg_match("/[a-z]/", $new_password)) {
                 $_SESSION['error'] = "New password must contain at least one lowercase letter";
-                header("Location: update_profile.php");
+                header("Location: /pages/update_profile.php");
                 exit();
             }
 
             if (!preg_match("/[0-9]/", $new_password)) {
                 $_SESSION['error'] = "New password must contain at least one number";
-                header("Location: update_profile.php");
+                header("Location: /pages/update_profile.php");
                 exit();
             }
 
             if ($new_password !== $confirm_password) {
                 $_SESSION['error'] = "New passwords do not match";
-                header("Location: update_profile.php");
+                header("Location: /pages/update_profile.php");
                 exit();
             }
 
@@ -132,7 +132,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $types .= "s";
         } else {
             $_SESSION['error'] = "Current password is incorrect";
-            header("Location: update_profile.php");
+            header("Location: /pages/update_profile.php");
             exit();
         }
     }
@@ -154,15 +154,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['phone_number'] = $phone_number;
 
         $_SESSION['success'] = "Profile updated successfully!";
-        header("Location: update_profile.php");
+        header("Location: /pages/update_profile.php");
         exit();
     } else {
         $_SESSION['error'] = "Failed to update profile: " . mysqli_error($mycon);
-        header("Location: update_profile.php");
+        header("Location: /pages/update_profile.php");
         exit();
     }
 } else {
-    header("Location: update_profile.php");
+    header("Location: /pages/update_profile.php");
     exit();
 }
 ?> 

@@ -52,6 +52,8 @@ echo "Using admin_id: $admin_id<br>";
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
     <title>Book Room</title>
     <style>
         body { background: #1e1e2f; color: #fff; }
@@ -72,6 +74,7 @@ echo "Using admin_id: $admin_id<br>";
 </head>
 <body>
 <?php include('../components/user_navigation.php'); ?>
+
 <div class="booking-container">
     <div class="booking-room-details">
         <?php if ($room): ?>
@@ -100,33 +103,22 @@ echo "Using admin_id: $admin_id<br>";
         <div id="formErrorMsg" class="alert alert-danger d-none"></div>
         <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate>
             <input type="hidden" name="room_type_id" value="<?php echo htmlspecialchars($room_type_id); ?>">
+            <!-- Hidden fields for reference number and amount -->
+            <input type="hidden" name="reference_number" id="reference_number">
+            <input type="hidden" name="reference_amount" id="reference_amount">
             <div class="row g-3">
                 <div class="row g-3 mt-1">
                     <div class="col-md-6">
                         <label class="form-label">Check-in</label>
-                        <div class="input-group">
-                            <input type="date" class="form-control" name="checkin" required>
-                            <div class="input-group">
-                                <input type="time" class="form-control" name="checkin_time" required>
-                                <select class="form-select" name="checkin_ampm" required>
-                                    <option value="AM">AM</option>
-                                    <option value="PM">PM</option>
-                                </select>
-                            </div>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control flatpickr-datetime" name="checkin_datetime" id="checkin_datetime" placeholder="Select check-in date & time" required autocomplete="off">
                         </div>
                         <div class="invalid-feedback">Check-in date and time are required.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Check-out</label>
-                        <div class="input-group">
-                            <input type="date" class="form-control" name="checkout" required>
-                            <div class="input-group">
-                                <input type="time" class="form-control" name="checkout_time" required>
-                                <select class="form-select" name="checkout_ampm" required>
-                                    <option value="AM">AM</option>
-                                    <option value="PM">PM</option>
-                                </select>
-                            </div>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control flatpickr-datetime" name="checkout_datetime" id="checkout_datetime" placeholder="Select check-out date & time" required autocomplete="off">
                         </div>
                         <div class="invalid-feedback">Check-out date and time are required.</div>
                     </div>
@@ -139,10 +131,10 @@ echo "Using admin_id: $admin_id<br>";
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Payment Method</label>
-                        <select class="form-control" name="payment_id" required>
+                        <select class="form-control" name="payment_id" id="payment_id" required>
                             <option value="">Select Payment Method</option>
                             <?php foreach ($payment_types as $ptype): ?>
-                                <option value="<?php echo $ptype['payment_type_id']; ?>"><?php echo htmlspecialchars($ptype['payment_name']); ?></option>
+                                <option value="<?php echo $ptype['payment_type_id']; ?>" data-name="<?php echo htmlspecialchars(strtolower($ptype['payment_name'])); ?>"><?php echo htmlspecialchars($ptype['payment_name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                         <div class="invalid-feedback">Please select a payment method.</div>
@@ -204,7 +196,35 @@ echo "Using admin_id: $admin_id<br>";
   </div>
 </div>
 
+<!-- Reference Modal -->
+<div class="modal fade" id="referenceModal" tabindex="-1" aria-labelledby="referenceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
+      <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
+        <h4 class="modal-title w-100 text-center fw-bold text-warning" id="referenceModalLabel">Enter Payment Reference</h4>
+        <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3">
+          <label for="modal_reference_number" class="form-label">Reference Number</label>
+          <input type="text" class="form-control" id="modal_reference_number" placeholder="Enter reference number">
+        </div>
+        <div class="mb-3">
+          <label for="modal_reference_amount" class="form-label">Amount</label>
+          <input type="number" class="form-control" id="modal_reference_amount" placeholder="Enter amount" min="1">
+        </div>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-warning fw-bold" id="saveReferenceBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/en.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var confirmModal = new bootstrap.Modal(document.getElementById('confirmBookingModal'));
@@ -213,6 +233,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var confirmBtn = document.getElementById('confirmBookingBtn');
     var bookingForm = document.getElementById('bookingForm');
     var errorMsg = document.getElementById('formErrorMsg');
+    var paymentSelect = document.getElementById('payment_id');
+    var referenceModal = new bootstrap.Modal(document.getElementById('referenceModal'));
+    var saveReferenceBtn = document.getElementById('saveReferenceBtn');
+    var modalReferenceNumber = document.getElementById('modal_reference_number');
+    var modalReferenceAmount = document.getElementById('modal_reference_amount');
+    var hiddenReferenceNumber = document.getElementById('reference_number');
+    var hiddenReferenceAmount = document.getElementById('reference_amount');
+    var lastPaymentType = '';
 
     // Bootstrap validation
     bookingForm.addEventListener('submit', function(event) {
@@ -256,6 +284,67 @@ document.addEventListener('DOMContentLoaded', function() {
             successModal.show();
         }, 400);
     }
+
+    // Flatpickr initialization
+    flatpickr("#checkin_datetime", {
+        enableTime: true,
+        dateFormat: "Y-m-d h:i K",
+        minDate: "today",
+        time_24hr: false,
+        theme: "material_blue"
+    });
+    flatpickr("#checkout_datetime", {
+        enableTime: true,
+        dateFormat: "Y-m-d h:i K",
+        minDate: "today",
+        time_24hr: false,
+        theme: "material_blue"
+    });
+
+    // Show modal if non-cash payment is selected
+    paymentSelect.addEventListener('change', function() {
+        var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
+        var paymentName = selectedOption.getAttribute('data-name');
+        if (paymentName && paymentName !== 'cash') {
+            // Only show modal if not already filled for this selection
+            if (lastPaymentType !== paymentSelect.value) {
+                modalReferenceNumber.value = '';
+                modalReferenceAmount.value = '';
+                referenceModal.show();
+                lastPaymentType = paymentSelect.value;
+            }
+        } else {
+            // Clear hidden fields if cash
+            hiddenReferenceNumber.value = '';
+            hiddenReferenceAmount.value = '';
+        }
+    });
+
+    saveReferenceBtn.addEventListener('click', function() {
+        if (!modalReferenceNumber.value.trim() || !modalReferenceAmount.value.trim()) {
+            modalReferenceNumber.classList.add('is-invalid');
+            modalReferenceAmount.classList.add('is-invalid');
+            return;
+        }
+        hiddenReferenceNumber.value = modalReferenceNumber.value.trim();
+        hiddenReferenceAmount.value = modalReferenceAmount.value.trim();
+        modalReferenceNumber.classList.remove('is-invalid');
+        modalReferenceAmount.classList.remove('is-invalid');
+        referenceModal.hide();
+    });
+
+    // Prevent form submission if reference is required but not filled
+    bookingForm.addEventListener('submit', function(event) {
+        var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
+        var paymentName = selectedOption.getAttribute('data-name');
+        if (paymentName && paymentName !== 'cash') {
+            if (!hiddenReferenceNumber.value.trim() || !hiddenReferenceAmount.value.trim()) {
+                event.preventDefault();
+                referenceModal.show();
+                return false;
+            }
+        }
+    });
 });
 </script>
 </body>

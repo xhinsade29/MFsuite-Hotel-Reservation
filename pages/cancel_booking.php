@@ -32,10 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
         $conn->close();
         // Redirect back to details with notification
-        header("Location: ../pages/reservation_details.php?id=$reservation_id&cancel=requested");
+        header("Location: /pages/reservation_details.php?id=$reservation_id&cancel=requested");
         exit();
     }
 }
 // If invalid, redirect to reservations page
-header("Location: ../pages/reservations.php");
+header("Location: /pages/reservations.php");
 exit(); 

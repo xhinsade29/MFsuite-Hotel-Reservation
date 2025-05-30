@@ -69,6 +69,33 @@ include 'functions/db_connect.php';
     </style>
 </head>
 <body>
+    <!-- Toast Container -->
+    <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
+        <?php if (isset($_SESSION['success'])): ?>
+        <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+            <div class="toast-header">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        <?php if (isset($_SESSION['error'])): ?>
+        <div class="toast toast-error" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+            <div class="toast-header">
+                <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+                <strong class="me-auto">Error</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
     <!-- Hero Section -->
     <section class="hero-section">
         <video autoplay muted loop playsinline>
@@ -202,7 +229,7 @@ include 'functions/db_connect.php';
                     <div class="mb-3"><input type="email" class="form-control" name="email" placeholder="Your Email" required></div>
                     <div class="mb-3"><textarea class="form-control" name="message" placeholder="Your Message" rows="4" required></textarea></div>
                     <button type="submit" class="btn btn-warning w-100">Send Message</button>
-                </form>
+                    </form>
                 <div class="mt-4 text-center">
                     <div><i class="bi bi-geo-alt"></i> 123 Hotel Street, City Center</div>
                     <div><i class="bi bi-telephone"></i> +1 234 567 8900</div>
@@ -220,16 +247,16 @@ include 'functions/db_connect.php';
                 <a href="#services">Services</a>|
                 <a href="#offers">Offers</a>|
                 <a href="#contact">Contact</a>
-            </div>
+                </div>
             <div class="social-icons mb-2">
-                <a href="#"><i class="bi bi-facebook"></i></a>
-                <a href="#"><i class="bi bi-instagram"></i></a>
-                <a href="#"><i class="bi bi-twitter"></i></a>
-                <a href="#"><i class="bi bi-linkedin"></i></a>
-            </div>
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="#"><i class="bi bi-instagram"></i></a>
+                        <a href="#"><i class="bi bi-twitter"></i></a>
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                    </div>
             <div>&copy; 2024 MF Suites Hotel. All rights reserved.</div>
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
+</html> 

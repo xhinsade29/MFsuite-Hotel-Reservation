@@ -10,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($reservation_id && $action === 'approve') {
         $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
         if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
-        // Set reservation status to approved
-        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'approved' WHERE reservation_id = ?");
+        // Set reservation status to completed (valid enum value)
+        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'completed' WHERE reservation_id = ?");
         $stmt->bind_param("i", $reservation_id);
         $stmt->execute();
         $stmt->close();
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt2->execute();
         $stmt2->close();
         $conn->close();
-        header("Location: dashboard.php?msg=" . urlencode('Booking approved and marked as paid.'));
+        header("Location: dashboard.php?msg=" . urlencode('Booking marked as completed and paid.'));
         exit();
     }
 }

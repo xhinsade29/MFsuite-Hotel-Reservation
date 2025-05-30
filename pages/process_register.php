@@ -29,32 +29,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Password validation
     if (strlen($password) < 8) {
         $_SESSION['error'] = "Password must be at least 8 characters long";
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 
     if (!preg_match("/[A-Z]/", $password)) {
         $_SESSION['error'] = "Password must contain at least one uppercase letter";
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 
     if (!preg_match("/[a-z]/", $password)) {
         $_SESSION['error'] = "Password must contain at least one lowercase letter";
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 
     if (!preg_match("/[0-9]/", $password)) {
         $_SESSION['error'] = "Password must contain at least one number";
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 
     // Validate passwords match
     if ($password !== $confirm_password) {
         $_SESSION['error'] = "Passwords do not match";
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 
@@ -67,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($result->num_rows > 0) {
         $_SESSION['error'] = "Email already exists";
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 
@@ -93,22 +93,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['phone_number'] = $phone_number;
 
         // Set success message
-        $_SESSION['success'] = "Registration successful! Welcome to MF Suites Hotel.";
+        $_SESSION['success'] = "Registration successful! You may now log in.";
         
         // Clear form data from session
         unset($_SESSION['form_data']);
         
-        // Redirect to index.php
-        header("Location: ../index.php");
+        // Redirect to login page
+        header("Location: /pages/login.php");
         exit();
     } else {
         $_SESSION['error'] = "Registration failed: " . mysqli_error($mycon);
         error_log("Registration error: " . mysqli_error($mycon));
-        header("Location: register.php");
+        header("Location: /pages/register.php");
         exit();
     }
 } else {
-    header("Location: register.php");
+    header("Location: /pages/register.php");
     exit();
 }
 ?> 

@@ -36,6 +36,27 @@ include '../functions/db_connect.php';
 <body>
 <?php include './sidebar.php'; ?>
 <div class="dashboard-container">
+    <?php if (isset($_SESSION['msg'])): ?>
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        <div class="toast show align-items-center text-bg-<?php echo $_SESSION['msg_type'] ?? 'info'; ?> border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <?php echo $_SESSION['msg']; unset($_SESSION['msg'], $_SESSION['msg_type']); ?>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.querySelector('.toast');
+        if (toastEl) {
+            var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        }
+    });
+    </script>
+    <?php endif; ?>
     <div class="dashboard-title">Admin Dashboard</div>
     <?php
     // Fetch summary data
@@ -144,12 +165,14 @@ include '../functions/db_connect.php';
                     <th>Check-in</th>
                     <th>Check-out</th>
                     <th>Amount</th>
+                    <th>Reference #</th>
+                    <th>Payment Method</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
             <?php
-            $cash_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, rt.type_name, p.amount FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND r.status = 'pending' ORDER BY r.date_created DESC";
+            $cash_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, rt.type_name, p.amount, p.reference_number, p.payment_method FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND r.status = 'pending' ORDER BY r.date_created DESC";
             $cash_res = mysqli_query($mycon, $cash_sql);
             if ($cash_res && mysqli_num_rows($cash_res) > 0) {
                 while ($row = mysqli_fetch_assoc($cash_res)) {
@@ -160,6 +183,8 @@ include '../functions/db_connect.php';
                     echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
                     echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
                     echo '<td>₱' . number_format($row['amount'], 2) . '</td>';
+                    echo '<td>' . htmlspecialchars($row['reference_number']) . '</td>';
+                    echo '<td>' . htmlspecialchars($row['payment_method']) . '</td>';
                     echo '<td>';
                     echo '<form method="POST" action="process_cash_approval.php" style="display:inline-block;">';
                     echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
@@ -169,7 +194,7 @@ include '../functions/db_connect.php';
                     echo '</tr>';
                 }
             } else {
-                echo '<tr><td colspan="7" class="text-center text-secondary">No pending cash payment bookings.</td></tr>';
+                echo '<tr><td colspan="9" class="text-center text-secondary">No pending cash payment bookings.</td></tr>';
             }
             ?>
             </tbody>

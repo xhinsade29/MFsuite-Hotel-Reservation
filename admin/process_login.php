@@ -1,9 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: admin_login.php');
-    exit();
-}
+// DO NOT check for admin session here! This is the login process.
 include '../functions/db_connect.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
