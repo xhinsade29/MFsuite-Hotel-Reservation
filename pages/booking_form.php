@@ -98,7 +98,7 @@ echo "Using admin_id: $admin_id<br>";
     <div class="booking-form-section">
         <h4 class="text-warning fw-bold mb-4">Book this Room</h4>
         <div id="formErrorMsg" class="alert alert-danger d-none"></div>
-        <form id="bookingForm" action="bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate>
+        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate>
             <input type="hidden" name="room_type_id" value="<?php echo htmlspecialchars($room_type_id); ?>">
             <div class="row g-3">
                 <div class="row g-3 mt-1">

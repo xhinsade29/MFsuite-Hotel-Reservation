@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -93,6 +96,17 @@
               <h4 class="fw-semibold">Admin Login</h4>
               <p class="text-muted" style="font-size: 0.9rem;">Login to your account</p>
             </div>
+
+            <?php
+            include '../pages/notification.php';
+            $msg = $_SESSION['msg'] ?? '';
+            $type = $_SESSION['msg_type'] ?? '';
+            unset($_SESSION['msg'], $_SESSION['msg_type']);
+            ?>
+
+            <?php if ($msg): ?>
+                <?php show_toast($msg, $type ?: 'info'); ?>
+            <?php endif; ?>
 
             <form action="process_login.php" method="POST">
               <div class="mb-3">

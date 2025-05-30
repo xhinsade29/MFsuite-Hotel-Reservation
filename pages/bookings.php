@@ -8,7 +8,7 @@ error_reporting(E_ALL);
 // Check if user is logged in
 if (!isset($_SESSION['guest_id'])) {
     $_SESSION['error'] = "You must be logged in to book a room.";
-    header("Location: login.php");
+    header("Location: ../pages/login.php");
     exit();
 }
 
@@ -54,14 +54,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($stmt->execute()) {
         $_SESSION['success'] = "Reservation successful!";
-        header("Location: booking_form.php?success=1");
+        header("Location: ../pages/booking_form.php?success=1");
         exit();
     } else {
         $_SESSION['error'] = "Error: " . $stmt->error;
-        header("Location: booking_form.php?room_type_id=" . $room_type_id);
+        header("Location: ../pages/booking_form.php?room_type_id=" . $room_type_id);
         exit();
     }
 } else {
-    header("Location: rooms.php");
+    header("Location: ../pages/rooms.php");
     exit();
 } 

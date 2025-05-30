@@ -1,7 +1,7 @@
 <?php
 session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: ../pages/login.php');
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header('Location: admin_login.php');
     exit();
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
         $conn->close();
         $msg = $action === 'approve' ? 'Cancellation approved.' : 'Cancellation denied.';
-        header("Location: cancellation_requests.php?msg=" . urlencode($msg));
+        header("Location: dashboard.php?msg=" . urlencode($msg));
         exit();
     }
 }
-header("Location: cancellation_requests.php?msg=Invalid+request");
+header("Location: dashboard.php?msg=Invalid+request");
 exit(); 

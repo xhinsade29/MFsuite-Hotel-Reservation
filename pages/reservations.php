@@ -274,7 +274,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
 
                         
                         <div class="meta"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></div>
-                        <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-primary btn-sm mt-2">View Details</a>
+                        <form method="POST" action="../functions/cancel_booking.php" class="cancel-btn">
+                            <input type="hidden" name="reservation_id" value="<?php echo $booking['reservation_id']; ?>">
+                            <button type="submit" class="btn btn-danger btn-sm mt-2">Cancel</button>
+                        </form>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -285,6 +288,32 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         </div>
         <?php endif; ?>
     </div>
+
+    <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
+    <!-- Booking Success Modal -->
+    <div class="modal fade" id="bookingSuccessModal" tabindex="-1" aria-labelledby="bookingSuccessLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title" id="bookingSuccessLabel">Booking Successful!</h5>
+          </div>
+          <div class="modal-body">
+            Your booking was successful. Where would you like to go next?
+          </div>
+          <div class="modal-footer">
+            <a href="reservations.php" class="btn btn-primary">My Bookings</a>
+            <a href="../index.php" class="btn btn-secondary">Back to Home</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var modal = new bootstrap.Modal(document.getElementById('bookingSuccessModal'));
+        modal.show();
+      });
+    </script>
+    <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

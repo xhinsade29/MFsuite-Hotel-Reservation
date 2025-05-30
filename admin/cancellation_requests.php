@@ -1,8 +1,7 @@
 <?php
 session_start();
-// Only allow admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: ../pages/login.php');
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header('Location: admin_login.php');
     exit();
 }
 $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");

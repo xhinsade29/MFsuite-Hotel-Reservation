@@ -1,651 +1,235 @@
+<?php
+include 'functions/db_connect.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MF Suites Hotel - Luxury Accommodations</title>
-    
-    <!-- Google Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- AOS Animation Library -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="styles/main.css">
     <style>
-        :root {
-            --primary: #FF8C00;
-            --secondary: #11101d;
-            --text-light: #ffffff;
-            --text-dim: rgba(255, 255, 255, 0.7);
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Poppins', sans-serif;
-            line-height: 1.6;
-            color: var(--text-light);
-            overflow-x: hidden;
-        }
-
-        /* Hero Section */
-        .hero {
-            position: relative;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .hero-video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1;
-        }
-
-        .hero-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7));
-            z-index: 0;
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 1;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 0 20px;
-        }
-
-        .hero-content h1 {
-            font-size: 4rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .hero-content p {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        .cta-button {
-            display: inline-block;
-            padding: 15px 40px;
-            background: linear-gradient(45deg, var(--primary), #ffa533);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
-        }
-
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4);
-        }
-
-        /* Features Section */
-        .features {
-            padding: 100px 0;
-            background: var(--secondary);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        .section-title {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .section-title h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            position: relative;
-            display: inline-block;
-        }
-
-        .section-title h2::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 3px;
-            background: var(--primary);
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 40px 30px;
-            border-radius: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-10px);
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--primary);
-        }
-
-        .feature-card i {
-            font-size: 3rem;
-            color: var(--primary);
-            margin-bottom: 20px;
-        }
-
-        .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-        }
-
-        /* Room Preview Section */
-        .room-preview {
-            padding: 100px 0;
-            background: #1a1a2e;
-        }
-
-        .room-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-        }
-
-        .room-card {
-            position: relative;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-
-        .room-card:hover {
-            transform: translateY(-10px);
-        }
-
-        .room-card img {
-            width: 100%;
-            height: 300px;
-            object-fit: cover;
-            transition: all 0.3s ease;
-        }
-
-        .room-card:hover img {
-            transform: scale(1.1);
-        }
-
-        .room-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 30px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            color: white;
-        }
-
-        .room-info h3 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-        }
-
-        .room-link {
-            display: inline-block;
-            padding: 10px 25px;
-            background: var(--primary);
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            margin-top: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .room-link:hover {
-            background: #ffa533;
-            transform: translateY(-2px);
-        }
-
-        /* Testimonials Section */
-        .testimonials {
-            padding: 100px 0;
-            background: var(--secondary);
-        }
-
-        .testimonials-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-        }
-
-        .testimonial-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-        }
-
-        .testimonial-card img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin-bottom: 20px;
-        }
-
-        .testimonial-text {
-            font-style: italic;
-            margin-bottom: 20px;
-        }
-
-        .testimonial-author {
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* Services Section */
-        .services {
-            padding: 100px 0;
-            background: #1a1a2e;
-        }
-
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-        }
-
-        .service-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 40px 30px;
-            border-radius: 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .service-card:hover {
-            transform: translateY(-10px);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .service-card i {
-            font-size: 3rem;
-            color: var(--primary);
-            margin-bottom: 20px;
-        }
-
-        /* Contact Section */
-        .contact {
-            padding: 100px 0;
-            background: var(--secondary);
-        }
-
-        .contact-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-        }
-
-        .contact-info {
-            display: grid;
-            gap: 30px;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .info-item i {
-            font-size: 1.5rem;
-            color: var(--primary);
-        }
-
-        .contact-form {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 40px;
-            border-radius: 20px;
-        }
-
-        .contact-form input,
-        .contact-form textarea {
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 10px;
-            color: white;
-        }
-
-        .contact-form textarea {
-            height: 150px;
-            resize: none;
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 15px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .submit-btn:hover {
-            background: #ffa533;
-        }
-
-        /* Footer */
-        .footer {
-            background: #11101d;
-            padding: 80px 0 20px;
-        }
-
-        .footer-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-
-        .footer-logo img {
-            max-width: 150px;
-            margin-bottom: 20px;
-        }
-
-        .footer-links a {
-            display: block;
-            color: var(--text-dim);
-            text-decoration: none;
-            margin-bottom: 10px;
-            transition: all 0.3s ease;
-        }
-
-        .footer-links a:hover {
-            color: var(--primary);
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 15px;
-        }
-
-        .social-icons a {
-            color: var(--text-dim);
-            font-size: 1.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .social-icons a:hover {
-            color: var(--primary);
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        @media (max-width: 768px) {
-            .hero-content h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero-content p {
-                font-size: 1.2rem;
-            }
-
-            .contact-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .section-title h2 {
-                font-size: 2rem;
-            }
-        }
+        body { font-family: 'Poppins', sans-serif; background: #1e1e2f; color: #fff; }
+        .hero-section { position: relative; height: 100vh; overflow: hidden; }
+        .hero-section video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+        .hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)); z-index: 1; }
+        .hero-content { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #fff; }
+        .hero-content img { max-width: 160px; margin-bottom: 1.5rem; filter: drop-shadow(0 2px 8px #ff8c0033); }
+        .hero-content h1 { font-size: 3.2rem; font-weight: 700; margin-bottom: 1rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
+        .hero-content p { font-size: 1.3rem; margin-bottom: 2rem; }
+        .cta-btn { padding: 14px 38px; background: linear-gradient(45deg, #FF8C00, #ffa533); color: #fff; border: none; border-radius: 50px; font-weight: 600; font-size: 1.1rem; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(255,140,0,0.3); transition: all 0.3s; }
+        .cta-btn:hover { background: linear-gradient(45deg, #e67c00, #ffb366); transform: translateY(-2px); }
+        .section-title { text-align: center; margin-bottom: 48px; font-size: 2.2rem; font-weight: 700; color: #ffa533; }
+        .about-section { background: #23234a; padding: 70px 0 40px; }
+        .about-section .about-content { max-width: 800px; margin: 0 auto; text-align: center; }
+        .about-section img { max-width: 120px; margin-bottom: 1.2rem; }
+        .about-section h2 { color: #ffa533; font-weight: 700; margin-bottom: 1rem; }
+        .about-section p { color: #fff; font-size: 1.1rem; }
+        .rooms-section { background: #1a1a2e; padding: 80px 0; }
+        .rooms-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; }
+        .room-card { background: #23234a; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); overflow: hidden; transition: all 0.3s; border: 1px solid rgba(255,255,255,0.08); }
+        .room-card:hover { transform: translateY(-8px); border-color: #ffa533; }
+        .room-card img { width: 100%; height: 220px; object-fit: cover; }
+        .room-card .card-body { padding: 28px 22px 22px; }
+        .room-card h4 { color: #ffa533; font-weight: 700; margin-bottom: 10px; }
+        .room-card .desc { color: #bdbdbd; font-size: 1em; margin-bottom: 10px; }
+        .room-card .occupancy { color: #fff; font-size: 0.98em; margin-bottom: 8px; }
+        .room-card .price { color: #FF8C00; font-weight: 600; font-size: 1.1em; margin-bottom: 10px; }
+        .room-card .btn { width: 100%; }
+        .services-section { background: #23234a; padding: 80px 0; }
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; }
+        .service-card { background: #1a1a2e; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); padding: 32px 22px; text-align: center; transition: all 0.3s; border: 1px solid rgba(255,255,255,0.06); }
+        .service-card:hover { transform: translateY(-6px); border-color: #ffa533; }
+        .service-card img { width: 60px; height: 60px; object-fit: cover; border-radius: 50%; margin-bottom: 16px; }
+        .service-card h5 { color: #ffa533; font-weight: 600; margin-bottom: 8px; }
+        .service-card p { color: #bdbdbd; font-size: 0.98em; }
+        .offers-section { background: #1a1a2e; padding: 80px 0; }
+        .offers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
+        .offer-card { background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); overflow: hidden; text-align: center; }
+        .offer-card img { width: 100%; height: 200px; object-fit: cover; }
+        .offer-card .card-body { padding: 24px 18px; }
+        .offer-card h5 { color: #ffa533; font-weight: 600; margin-bottom: 10px; }
+        .testimonials-section { background: #23234a; padding: 80px 0; }
+        .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
+        .testimonial-card { background: #1a1a2e; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); padding: 32px 22px; text-align: center; }
+        .testimonial-card img { width: 70px; height: 70px; border-radius: 50%; margin-bottom: 16px; }
+        .testimonial-card .testimonial-text { color: #bdbdbd; font-style: italic; margin-bottom: 12px; }
+        .testimonial-card .testimonial-author { color: #ffa533; font-weight: 600; }
+        .contact-section { background: #1a1a2e; padding: 80px 0; }
+        .contact-card { background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); padding: 40px 32px; max-width: 600px; margin: 0 auto; }
+        .footer { background: #11101d; padding: 60px 0 20px; color: #bdbdbd; }
+        .footer .footer-logo img { max-width: 120px; margin-bottom: 10px; }
+        .footer .footer-links a { color: #bdbdbd; text-decoration: none; margin-right: 18px; }
+        .footer .footer-links a:hover { color: #ffa533; }
+        .footer .social-icons a { color: #bdbdbd; font-size: 1.4rem; margin-right: 12px; }
+        .footer .social-icons a:hover { color: #ffa533; }
+        @media (max-width: 768px) { .hero-content h1 { font-size: 2rem; } .section-title { font-size: 1.4rem; } }
     </style>
 </head>
 <body>
     <!-- Hero Section -->
-    <section class="hero">
-        <video class="hero-video" autoplay muted loop>
+    <section class="hero-section">
+        <video autoplay muted loop playsinline>
             <source src="assets/hero.mp4" type="video/mp4">
         </video>
         <div class="hero-overlay"></div>
-        <div class="hero-content" data-aos="fade-up">
+        <div class="hero-content">
+            <img src="assets/MFsuites_logo.png" alt="MF Suites Logo">
             <h1>Welcome to MF Suites Hotel</h1>
             <p>Experience luxury and comfort in the heart of the city</p>
-            <a href="pages/rooms.php" class="cta-button">Book Your Stay</a>
+            <a href="#rooms" class="cta-btn">Book Your Stay</a>
         </div>
     </section>
-
-    <!-- Features Section -->
-    <section class="features">
+    <!-- About Section -->
+    <section class="about-section">
+        <div class="about-content">
+            <img src="assets/MFsuites_logo.png" alt="Hotel Logo">
+            <h2>About MF Suites Hotel</h2>
+            <p>MF Suites Hotel offers a blend of luxury, comfort, and convenience. Located in the heart of the city, our hotel features elegantly designed rooms, world-class amenities, and exceptional service to make your stay unforgettable.</p>
+        </div>
+    </section>
+    <!-- Rooms Section -->
+    <section class="rooms-section" id="rooms">
         <div class="container">
-            <div class="section-title" data-aos="fade-up">
-                <h2>Why Choose MF Suites?</h2>
-            </div>
-            <div class="features-grid">
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
-                    <i class="bi bi-star"></i>
-                    <h3>Luxury Rooms</h3>
-                    <p>Elegantly designed rooms with premium amenities</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
-                    <i class="bi bi-geo-alt"></i>
-                    <h3>Prime Location</h3>
-                    <p>Centrally located with easy access to attractions</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
-                    <i class="bi bi-cup-hot"></i>
-                    <h3>Fine Dining</h3>
-                    <p>Exquisite culinary experiences at our restaurants</p>
-                </div>
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
-                    <i class="bi bi-shield-check"></i>
-                    <h3>24/7 Security</h3>
-                    <p>Round-the-clock security for your peace of mind</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Room Preview Section -->
-    <section class="room-preview">
-        <div class="container">
-            <div class="section-title" data-aos="fade-up">
-                <h2>Our Luxurious Rooms</h2>
-            </div>
-            <div class="room-grid">
-                <div class="room-card" data-aos="fade-up" data-aos-delay="100">
-                    <img src="assets/rooms/deluxe1.jpg" alt="Deluxe Room">
-                    <div class="room-info">
-                        <h3>Deluxe Room</h3>
-                        <p>Spacious comfort with modern amenities</p>
-                        <a href="pages/rooms.php" class="room-link">View Details</a>
-                    </div>
-                </div>
-                <div class="room-card" data-aos="fade-up" data-aos-delay="200">
-                    <img src="assets/rooms/executive.jpg" alt="Executive Suite">
-                    <div class="room-info">
-                        <h3>Executive Suite</h3>
-                        <p>Luxury living with premium services</p>
-                        <a href="pages/rooms.php" class="room-link">View Details</a>
-                    </div>
-                </div>
-                <div class="room-card" data-aos="fade-up" data-aos-delay="300">
-                    <img src="assets/rooms/presidential.avif" alt="Presidential Suite">
-                    <div class="room-info">
-                        <h3>Presidential Suite</h3>
-                        <p>Ultimate luxury and exclusivity</p>
-                        <a href="pages/rooms.php" class="room-link">View Details</a>
-                    </div>
-                </div>
+            <div class="section-title">Our Rooms</div>
+            <div class="rooms-grid">
+                <?php
+                // Fetch room types with their services
+                $sql = "SELECT rt.*, GROUP_CONCAT(CONCAT(s.service_name, '|', s.service_description) SEPARATOR '||') as services FROM tbl_room_type rt LEFT JOIN tbl_room_services rs ON rt.room_type_id = rs.room_type_id LEFT JOIN tbl_services s ON rs.service_id = s.service_id GROUP BY rt.room_type_id";
+                $result = mysqli_query($mycon, $sql);
+                $room_images = [
+                    1 => 'standard.avif',
+                    2 => 'deluxe1.jpg',
+                    3 => 'superior.jpg',
+                    4 => 'family_suite.jpg',
+                    5 => 'executive.jpg',
+                    6 => 'presidential.avif'
+                ];
+                if ($result && $result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $image_file = $room_images[$row['room_type_id']] ?? 'standard.avif';
+                        echo '<div class="room-card">';
+                        echo '<img src="assets/rooms/' . htmlspecialchars($image_file) . '" alt="' . htmlspecialchars($row['type_name']) . '" onerror="this.src=\'assets/rooms/standard.avif\'">';
+                        echo '<div class="card-body">';
+                        echo '<h4>' . htmlspecialchars($row['type_name']) . '</h4>';
+                        echo '<div class="desc">' . htmlspecialchars($row['description']) . '</div>';
+                        echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
+                        echo '<div class="price">₱' . number_format($row['room_price'], 2) . '</div>';
+                        echo '<a href="pages/booking_form.php?room_type_id=' . urlencode($row['room_type_id']) . '" class="btn btn-warning mt-2"><i class="bi bi-calendar-check"></i> Book Now</a>';
+                        echo '</div></div>';
+                    }
+                } else {
+                    echo '<p class="text-center">No room types available.</p>';
+                }
+                ?>
             </div>
         </div>
     </section>
-
-    <!-- Testimonials Section -->
-    <section class="testimonials">
-        <div class="container">
-            <div class="section-title" data-aos="fade-up">
-                <h2>Guest Reviews</h2>
-            </div>
-            <div class="testimonials-grid">
-                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="100">
-                    <img src="assets/testimonial1.jpg" alt="Guest">
-                    <p class="testimonial-text">"An unforgettable experience! The service was impeccable and the rooms were luxurious."</p>
-                    <p class="testimonial-author">- John Smith</p>
-                </div>
-                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="200">
-                    <img src="assets/testimonial2.jpg" alt="Guest">
-                    <p class="testimonial-text">"The best hotel I've ever stayed in. Everything was perfect from check-in to check-out."</p>
-                    <p class="testimonial-author">- Sarah Johnson</p>
-                </div>
-                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="300">
-                    <img src="assets/testimonial3.jpg" alt="Guest">
-                    <p class="testimonial-text">"Amazing location and stunning views. The staff went above and beyond to make our stay special."</p>
-                    <p class="testimonial-author">- Michael Brown</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- Services Section -->
-    <section class="services">
+    <section class="services-section" id="services">
         <div class="container">
-            <div class="section-title" data-aos="fade-up">
-                <h2>Our Services</h2>
-            </div>
+            <div class="section-title">Our Services</div>
             <div class="services-grid">
-                <div class="service-card" data-aos="fade-up" data-aos-delay="100">
-                    <i class="bi bi-cup-straw"></i>
-                    <h3>Room Service</h3>
-                    <p>24/7 in-room dining service</p>
-                </div>
-                <div class="service-card" data-aos="fade-up" data-aos-delay="200">
-                    <i class="bi bi-water"></i>
-                    <h3>Swimming Pool</h3>
-                    <p>Infinity pool with city views</p>
-                </div>
-                <div class="service-card" data-aos="fade-up" data-aos-delay="300">
-                    <i class="bi bi-spa"></i>
-                    <h3>Spa & Wellness</h3>
-                    <p>Rejuvenating treatments and massages</p>
-                </div>
-                <div class="service-card" data-aos="fade-up" data-aos-delay="400">
-                    <i class="bi bi-car-front"></i>
-                    <h3>Airport Transfer</h3>
-                    <p>Complimentary airport shuttle service</p>
-                </div>
+                <?php
+                $services_sql = "SELECT * FROM tbl_services";
+                $services_result = mysqli_query($mycon, $services_sql);
+                $service_images = [
+                    'spa' => 'spa.avif',
+                    'swimming pool' => 'pool.avif',
+                    'restaurant' => 'restaurant.avif',
+                    'airport shuttle' => 'Airport_Shuttle_Service.avif',
+                    'business center' => 'Business_Center.jpg',
+                    'concierge' => 'Concierge_Service.avif',
+                    'fitness center' => 'fitness.jpg',
+                    'luggage storage' => 'Luggage_storage.jpg',
+                    'laundry & dry cleaning' => 'laundry_dry.jpg',
+                    'room service' => 'room_service.jpg',
+                    'housekeeping' => 'house_keeping.avif',
+                    'conference room' => 'conference.jpg',
+                    'wifi' => 'wifi.jpg'
+                ];
+                function normalize_service_key($name) {
+                    return strtolower(trim(preg_replace('/[^a-zA-Z0-9 ]/', '', $name)));
+                }
+                if ($services_result && $services_result->num_rows > 0) {
+                    while ($service = $services_result->fetch_assoc()) {
+                        $key = normalize_service_key($service['service_name']);
+                        $img = $service_images[$key] ?? 'service.png';
+                        echo '<div class="service-card">';
+                        echo '<img src="assets/services/' . htmlspecialchars($img) . '" alt="' . htmlspecialchars($service['service_name']) . '" onerror="this.src=\'assets/services/service.png\'">';
+                        echo '<h5>' . htmlspecialchars($service['service_name']) . '</h5>';
+                        echo '<p>' . htmlspecialchars($service['service_description']) . '</p>';
+                        echo '</div>';
+                    }
+                } else {
+                    echo '<p class="text-center">No services available.</p>';
+                }
+                ?>
             </div>
         </div>
     </section>
-
-    <!-- Contact Section -->
-    <section class="contact">
+    <!-- Special Offers Section -->
+    <section class="offers-section" id="offers">
         <div class="container">
-            <div class="section-title" data-aos="fade-up">
-                <h2>Contact Us</h2>
+            <div class="section-title">Special Offers & Packages</div>
+            <div class="offers-grid">
+                <div class="offer-card"><img src="assets/family.jpg" alt="Family Package"><div class="card-body"><h5>Family Getaway</h5><p>Spacious suites and fun amenities for the whole family. Enjoy exclusive discounts and perks!</p></div></div>
+                <div class="offer-card"><img src="assets/business.jpg" alt="Business Package"><div class="card-body"><h5>Business Traveler</h5><p>Modern workspaces, high-speed WiFi, and business center access for your productivity.</p></div></div>
+                <div class="offer-card"><img src="assets/romantic.jpg" alt="Romantic Package"><div class="card-body"><h5>Romantic Escape</h5><p>Luxurious rooms, spa treatments, and candlelit dinners for couples.</p></div></div>
             </div>
-            <div class="contact-grid">
-                <div class="contact-info" data-aos="fade-right">
-                    <div class="info-item">
-                        <i class="bi bi-geo-alt"></i>
-                        <p>123 Hotel Street, City Center</p>
-                    </div>
-                    <div class="info-item">
-                        <i class="bi bi-telephone"></i>
-                        <p>+1 234 567 8900</p>
-                    </div>
-                    <div class="info-item">
-                        <i class="bi bi-envelope"></i>
-                        <p>info@mfsuites.com</p>
-                    </div>
-                </div>
-                <div class="contact-form" data-aos="fade-left">
-                    <form action="process_contact.php" method="POST">
-                        <input type="text" name="name" placeholder="Your Name" required>
-                        <input type="email" name="email" placeholder="Your Email" required>
-                        <textarea name="message" placeholder="Your Message" required></textarea>
-                        <button type="submit" class="submit-btn">Send Message</button>
-                    </form>
+        </div>
+    </section>
+    <!-- Testimonials Section -->
+    <section class="testimonials-section" id="testimonials">
+        <div class="container">
+            <div class="section-title">Guest Reviews</div>
+            <div class="testimonials-grid">
+                <div class="testimonial-card"><img src="assets/testimonial1.jpg" alt="Guest"><div class="testimonial-text">"An unforgettable experience! The service was impeccable and the rooms were luxurious."</div><div class="testimonial-author">- Samanita Smith</div></div>
+                <div class="testimonial-card"><img src="assets/testimonial2.avif" alt="Guest"><div class="testimonial-text">"The best hotel I've ever stayed in. Everything was perfect from check-in to check-out."</div><div class="testimonial-author">- Sarah Johnson</div></div>
+                <div class="testimonial-card"><img src="assets/testimonial3.avif" alt="Guest"><div class="testimonial-text">"Amazing location and stunning views. The staff went above and beyond to make our stay special."</div><div class="testimonial-author">- Michelle Brown</div></div>
+            </div>
+        </div>
+    </section>
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact">
+        <div class="container">
+            <div class="section-title">Contact Us</div>
+            <div class="contact-card">
+                <form action="pages/process_contact.php" method="POST">
+                    <div class="mb-3"><input type="text" class="form-control" name="name" placeholder="Your Name" required></div>
+                    <div class="mb-3"><input type="email" class="form-control" name="email" placeholder="Your Email" required></div>
+                    <div class="mb-3"><textarea class="form-control" name="message" placeholder="Your Message" rows="4" required></textarea></div>
+                    <button type="submit" class="btn btn-warning w-100">Send Message</button>
+                </form>
+                <div class="mt-4 text-center">
+                    <div><i class="bi bi-geo-alt"></i> 123 Hotel Street, City Center</div>
+                    <div><i class="bi bi-telephone"></i> +1 234 567 8900</div>
+                    <div><i class="bi bi-envelope"></i> info@mfsuites.com</div>
                 </div>
             </div>
         </div>
     </section>
-
     <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <img src="assets/MFsuites_logo.png" alt="MF Suites Logo">
-                    <p>Luxury Redefined</p>
-                </div>
-                <div class="footer-links">
-                    <h4>Quick Links</h4>
-                    <a href="pages/rooms.php">Rooms</a>
-                    <a href="pages/services.php">Services</a>
-                    <a href="pages/about.php">About Us</a>
-                    <a href="pages/contact.php">Contact</a>
-                </div>
-                <div class="footer-social">
-                    <h4>Follow Us</h4>
-                    <div class="social-icons">
-                        <a href="#"><i class="bi bi-facebook"></i></a>
-                        <a href="#"><i class="bi bi-instagram"></i></a>
-                        <a href="#"><i class="bi bi-twitter"></i></a>
-                        <a href="#"><i class="bi bi-linkedin"></i></a>
-                    </div>
-                </div>
+        <div class="container text-center">
+            <div class="footer-logo mb-3"><img src="assets/MFsuites_logo.png" alt="MF Suites Logo"></div>
+            <div class="footer-links mb-2">
+                <a href="#rooms">Rooms</a>|
+                <a href="#services">Services</a>|
+                <a href="#offers">Offers</a>|
+                <a href="#contact">Contact</a>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 MF Suites Hotel. All rights reserved.</p>
+            <div class="social-icons mb-2">
+                <a href="#"><i class="bi bi-facebook"></i></a>
+                <a href="#"><i class="bi bi-instagram"></i></a>
+                <a href="#"><i class="bi bi-twitter"></i></a>
+                <a href="#"><i class="bi bi-linkedin"></i></a>
             </div>
+            <div>&copy; 2024 MF Suites Hotel. All rights reserved.</div>
         </div>
     </footer>
-
-    <!-- AOS Animation Library -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 1000,
-            once: true
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html> 
+</html>

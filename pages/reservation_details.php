@@ -251,7 +251,7 @@ $conn->close();
       </div>
       <div class="modal-body text-center">
         <p>Are you sure you want to cancel this reservation?</p>
-        <form method="POST" action="cancel_booking.php" id="cancelForm">
+        <form method="POST" action="../functions/cancel_booking.php" id="cancelForm">
             <input type="hidden" name="reservation_id" value="<?php echo $booking['reservation_id']; ?>">
             <div class="mb-3 text-start">
                 <label for="reason_id" class="form-label">Reason for cancellation:</label>
