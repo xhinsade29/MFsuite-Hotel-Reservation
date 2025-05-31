@@ -1,7 +1,7 @@
 <?php
 include('../functions/db_connect.php');
 
-// Fetch room types with their services
+// Fetch room types with their services and image
 $sql = "SELECT rt.*, 
         GROUP_CONCAT(
             CONCAT(s.service_name, '|', s.service_description) 
@@ -13,7 +13,7 @@ $sql = "SELECT rt.*,
         GROUP BY rt.room_type_id";
 $result = mysqli_query($mycon, $sql);
 
-// Map room types to their image files
+// Map room types to their image files (fallback)
 $room_images = [
     1 => 'standard.avif',      // Standard Room
     2 => 'deluxe1.jpg',        // Deluxe Room
@@ -477,8 +477,8 @@ $room_images = [
             <?php
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    $image_file = $room_images[$row['room_type_id']] ?? 'standard.avif';
-                    
+                    // Use uploaded image if available, else fallback
+                    $image_file = !empty($row['image']) ? $row['image'] : ($room_images[$row['room_type_id']] ?? 'standard.avif');
                     echo '<div class="card">';
                     echo '<img src="../assets/rooms/' . htmlspecialchars($image_file) . '" alt="' . htmlspecialchars($row['type_name']) . '" class="card-image" onerror="this.src=\'../assets/rooms/standard.avif\'">';
                     echo '<div class="card-content">';

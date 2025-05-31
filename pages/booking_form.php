@@ -1,5 +1,6 @@
 <?php
 include('../functions/db_connect.php');
+session_start();
 $room_type_id = isset($_GET['room_type_id']) ? intval($_GET['room_type_id']) : 0;
 $room = null;
 $services = [];
@@ -33,6 +34,18 @@ if ($payment_result && mysqli_num_rows($payment_result) > 0) {
         $payment_types[] = $row;
     }
 }
+// Fetch wallet balance if logged in
+$wallet_balance = null;
+if (isset($_SESSION['guest_id'])) {
+    $guest_id = $_SESSION['guest_id'];
+    $sql_wallet = "SELECT wallet_balance FROM tbl_guest WHERE guest_id = ?";
+    $stmt_wallet = mysqli_prepare($mycon, $sql_wallet);
+    mysqli_stmt_bind_param($stmt_wallet, "i", $guest_id);
+    mysqli_stmt_execute($stmt_wallet);
+    mysqli_stmt_bind_result($stmt_wallet, $wallet_balance);
+    mysqli_stmt_fetch($stmt_wallet);
+    mysqli_stmt_close($stmt_wallet);
+}
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -43,6 +56,28 @@ if ($admin_result && $admin_result->num_rows > 0) {
     $admin_id = $row['admin_id'];
 }
 echo "Using admin_id: $admin_id<br>";
+// After fetching $room, add PHP check for room availability
+$room_fully_booked = false;
+if ($room_type_id) {
+    // Only check if room type is selected
+    $sql_count = "SELECT COUNT(*) as total FROM tbl_room WHERE room_type_id = $room_type_id";
+    $result_count = mysqli_query($mycon, $sql_count);
+    $total_rooms = 0;
+    if ($result_count && $row_count = mysqli_fetch_assoc($result_count)) {
+        $total_rooms = $row_count['total'];
+    }
+    // Default to today for initial check
+    $today = date('Y-m-d');
+    $sql_booked = "SELECT COUNT(DISTINCT r.room_id) as booked FROM tbl_reservation r WHERE r.room_id IN (SELECT room_id FROM tbl_room WHERE room_type_id = $room_type_id) AND r.status IN ('pending','approved','completed') AND r.check_in < '$today 23:59:59' AND r.check_out > '$today 00:00:00'";
+    $result_booked = mysqli_query($mycon, $sql_booked);
+    $booked_rooms = 0;
+    if ($result_booked && $row_booked = mysqli_fetch_assoc($result_booked)) {
+        $booked_rooms = $row_booked['booked'];
+    }
+    if ($total_rooms > 0 && $booked_rooms >= $total_rooms) {
+        $room_fully_booked = true;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,8 +135,18 @@ echo "Using admin_id: $admin_id<br>";
     </div>
     <div class="booking-form-section">
         <h4 class="text-warning fw-bold mb-4">Book this Room</h4>
+        <?php if ($room_fully_booked): ?>
+            <div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for today. Please select another room type or date.</div>
+        <?php endif; ?>
+        <?php if (isset($_SESSION['guest_id']) && $wallet_balance !== null): ?>
+            <div class="alert alert-info mb-3"><i class="bi bi-wallet2"></i> Your Wallet Balance: <b>₱<?php echo number_format($wallet_balance, 2); ?></b></div>
+            <input type="hidden" id="userWalletBalance" value="<?php echo $wallet_balance; ?>">
+        <?php endif; ?>
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger"> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?> </div>
+        <?php endif; ?>
         <div id="formErrorMsg" class="alert alert-danger d-none"></div>
-        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate>
+        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate <?php if ($room_fully_booked) echo 'style="pointer-events:none;opacity:0.6;"'; ?>>
             <input type="hidden" name="room_type_id" value="<?php echo htmlspecialchars($room_type_id); ?>">
             <!-- Hidden fields for reference number and amount -->
             <input type="hidden" name="reference_number" id="reference_number">
@@ -241,6 +286,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var hiddenReferenceNumber = document.getElementById('reference_number');
     var hiddenReferenceAmount = document.getElementById('reference_amount');
     var lastPaymentType = '';
+    var walletBalanceInput = document.getElementById('userWalletBalance');
+    var totalAmountInput = document.querySelector('input[name="total_amount"]');
+    var bookNowBtn = document.getElementById('openConfirmModalBtn');
+    var walletWarning = null;
 
     // Bootstrap validation
     bookingForm.addEventListener('submit', function(event) {
@@ -282,6 +331,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.location.search.includes('success=1')) {
         setTimeout(function() {
             successModal.show();
+            // Show toast
+            var toastDiv = document.createElement('div');
+            toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
+            toastDiv.style.zIndex = 1100;
+            toastDiv.innerHTML = `<div id="customToast" class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body">Booking and payment successful!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
+            document.body.appendChild(toastDiv);
+            var toastEl = document.getElementById('customToast');
+            if (toastEl) {
+                var toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+                toast.show();
+            }
         }, 400);
     }
 
@@ -306,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
         var paymentName = selectedOption.getAttribute('data-name');
         if (paymentName && paymentName !== 'cash') {
-            // Only show modal if not already filled for this selection
+            // Show modal for all non-cash payments
             if (lastPaymentType !== paymentSelect.value) {
                 modalReferenceNumber.value = '';
                 modalReferenceAmount.value = '';
@@ -321,10 +381,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     saveReferenceBtn.addEventListener('click', function() {
+        var totalAmount = parseFloat(totalAmountInput.value.replace(/,/g, ''));
+        var enteredAmount = parseFloat(modalReferenceAmount.value.trim());
         if (!modalReferenceNumber.value.trim() || !modalReferenceAmount.value.trim()) {
             modalReferenceNumber.classList.add('is-invalid');
             modalReferenceAmount.classList.add('is-invalid');
             return;
+        }
+        if (enteredAmount !== totalAmount) {
+            modalReferenceAmount.classList.add('is-invalid');
+            modalReferenceAmount.setCustomValidity('Amount must match the total amount.');
+            // Show toast instead of alert
+            var toastDiv = document.createElement('div');
+            toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
+            toastDiv.style.zIndex = 1100;
+            toastDiv.innerHTML = `<div id="customToastError" class="toast align-items-center text-bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body">The amount you entered must match the total amount (₱${totalAmount.toFixed(2)}).</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
+            document.body.appendChild(toastDiv);
+            var toastEl = document.getElementById('customToastError');
+            if (toastEl) {
+                var toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+                toast.show();
+            }
+            return;
+        } else {
+            modalReferenceAmount.classList.remove('is-invalid');
+            modalReferenceAmount.setCustomValidity('');
         }
         hiddenReferenceNumber.value = modalReferenceNumber.value.trim();
         hiddenReferenceAmount.value = modalReferenceAmount.value.trim();
@@ -345,6 +426,87 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    function checkWalletSufficiency() {
+        if (!walletBalanceInput || !totalAmountInput || !bookNowBtn) return;
+        var wallet = parseFloat(walletBalanceInput.value);
+        var total = parseFloat(totalAmountInput.value.replace(/,/g, ''));
+        if (wallet < total) {
+            bookNowBtn.disabled = true;
+            if (!walletWarning) {
+                walletWarning = document.createElement('div');
+                walletWarning.className = 'alert alert-danger mt-2';
+                walletWarning.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Your wallet balance is insufficient for this booking.';
+                bookNowBtn.parentNode.insertBefore(walletWarning, bookNowBtn.nextSibling);
+            }
+        } else {
+            bookNowBtn.disabled = false;
+            if (walletWarning) {
+                walletWarning.remove();
+                walletWarning = null;
+            }
+        }
+    }
+    checkWalletSufficiency();
+    // If total amount can change (e.g., with services), listen for changes
+    totalAmountInput && totalAmountInput.addEventListener('input', checkWalletSufficiency);
+    // Optionally, listen for service selection changes if needed
+    // document.querySelectorAll('input[name="service_id[]"]').forEach(function(cb) {
+    //     cb.addEventListener('change', checkWalletSufficiency);
+    // });
+
+    // Add JS to check room availability after date selection
+    function checkRoomAvailability() {
+        var checkin = document.getElementById('checkin_datetime').value;
+        var checkout = document.getElementById('checkout_datetime').value;
+        var roomTypeId = <?php echo json_encode($room_type_id); ?>;
+        var formSection = document.querySelector('.booking-form-section');
+        var alertDiv = document.getElementById('roomFullAlert');
+        if (!checkin || !checkout || !roomTypeId) {
+            // If missing dates, remove alert and enable form
+            if (alertDiv) alertDiv.remove();
+            document.getElementById('bookingForm').style.pointerEvents = '';
+            document.getElementById('bookingForm').style.opacity = '';
+            return;
+        }
+        fetch(`../functions/check_room_availability.php?room_type_id=${roomTypeId}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.fully_booked) {
+                    if (!alertDiv) {
+                        alertDiv = document.createElement('div');
+                        alertDiv.id = 'roomFullAlert';
+                        alertDiv.className = 'alert alert-danger mb-3';
+                        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for the selected dates. Please select another room type or date.';
+                        formSection.insertBefore(alertDiv, formSection.firstChild.nextSibling);
+                    }
+                    document.getElementById('bookingForm').style.pointerEvents = 'none';
+                    document.getElementById('bookingForm').style.opacity = '0.6';
+                } else {
+                    if (alertDiv) alertDiv.remove();
+                    document.getElementById('bookingForm').style.pointerEvents = '';
+                    document.getElementById('bookingForm').style.opacity = '';
+                }
+            })
+            .catch(() => {
+                // On error, show alert and disable form
+                if (!alertDiv) {
+                    alertDiv = document.createElement('div');
+                    alertDiv.id = 'roomFullAlert';
+                    alertDiv.className = 'alert alert-danger mb-3';
+                    alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Unable to check room availability. Please try again later.';
+                    formSection.insertBefore(alertDiv, formSection.firstChild.nextSibling);
+                }
+                document.getElementById('bookingForm').style.pointerEvents = 'none';
+                document.getElementById('bookingForm').style.opacity = '0.6';
+            });
+    }
+    document.getElementById('checkin_datetime').addEventListener('change', checkRoomAvailability);
+    document.getElementById('checkout_datetime').addEventListener('change', checkRoomAvailability);
+    // Auto-refresh room availability every 10 seconds
+    setInterval(checkRoomAvailability, 10000);
+    // Run once on page load
+    checkRoomAvailability();
 });
 </script>
 </body>

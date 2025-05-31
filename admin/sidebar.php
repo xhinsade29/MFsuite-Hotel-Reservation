@@ -16,6 +16,7 @@
         <a href="Amenities.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'Amenities.php') ? 'active' : ''; ?>">
             <i class="bi bi-cup-hot"></i> Amenities
         </a>
+    
         <a href="reservations.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reservations.php') ? 'active' : ''; ?>">
             <i class="bi bi-calendar2-check-fill"></i> Reservations
         </a>

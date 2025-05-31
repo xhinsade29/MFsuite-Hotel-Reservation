@@ -1,6 +1,3 @@
-
-
-
 <?php
 session_start();
 error_reporting(E_ALL);
@@ -25,6 +22,18 @@ $user = mysqli_fetch_assoc($result);
 
 // Get profile picture path
 $profile_pic = !empty($user['profile_picture']) ? '../uploads/profile_pictures/' . $user['profile_picture'] : '../assets/default_profile.png';
+
+// Fetch wallet transactions for the user
+$transactions = [];
+$trans_sql = "SELECT * FROM wallet_transactions WHERE guest_id = ? ORDER BY created_at DESC";
+$trans_stmt = mysqli_prepare($mycon, $trans_sql);
+mysqli_stmt_bind_param($trans_stmt, "i", $guest_id);
+mysqli_stmt_execute($trans_stmt);
+$trans_result = mysqli_stmt_get_result($trans_stmt);
+while ($row = mysqli_fetch_assoc($trans_result)) {
+    $transactions[] = $row;
+}
+mysqli_stmt_close($trans_stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -192,6 +201,115 @@ $profile_pic = !empty($user['profile_picture']) ? '../uploads/profile_pictures/'
                         <h3 class="mt-3">Update Profile</h3>
                     </div>
                     <div class="card-body">
+                        <!-- Wallet Balance and Actions -->
+                        <div class="mb-4 p-3 rounded d-flex align-items-center justify-content-between" style="background:#23234a;">
+                            <div>
+                                <h5 class="mb-0 text-warning">
+                                    <i class="bi bi-wallet-fill me-2"></i> Wallet Balance:
+                                    <span class="fw-bold">₱<?php echo number_format($user['wallet_balance'], 2); ?></span>
+                                </h5>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#topupModal">
+                                    <i class="bi bi-plus-circle"></i> Top Up
+                                </button>
+                                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#walletHistoryModal">
+                                    <i class="bi bi-clock-history"></i> View History
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Wallet Balance and Actions -->
+
+                        <!-- Top Up Modal -->
+                        <div class="modal fade" id="topupModal" tabindex="-1" aria-labelledby="topupModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content bg-dark text-light">
+                              <div class="modal-header border-0">
+                                <h5 class="modal-title text-warning" id="topupModalLabel"><i class="bi bi-wallet2 me-2"></i>Top Up Wallet</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <form action="process_topup.php" method="POST">
+                                <div class="modal-body">
+                                  <div class="mb-3">
+                                    <label for="topupAmount" class="form-label">Amount</label>
+                                    <input type="number" name="topup_amount" id="topupAmount" min="1" step="0.01" class="form-control" placeholder="Enter amount" required>
+                                  </div>
+                                  <div class="mb-3">
+                                    <label for="paymentMethod" class="form-label">Payment Method</label>
+                                    <select name="payment_method" id="paymentMethod" class="form-select" required>
+                                      <option value="">Select payment method</option>
+                                      <option value="GCash">GCash</option>
+                                      <option value="PayMaya">PayMaya</option>
+                                      <option value="Bank Transfer">Bank Transfer</option>
+                                      <option value="Credit Card">Credit Card</option>
+                                      <option value="Other">Other</option>
+                                    </select>
+                                  </div>
+                                  <div class="mb-3">
+                                    <label for="referenceNumber" class="form-label">Reference Number</label>
+                                    <input type="text" name="reference_number" id="referenceNumber" class="form-control" placeholder="Enter reference number" required>
+                                  </div>
+                                </div>
+                                <div class="modal-footer border-0">
+                                  <button type="submit" class="btn btn-success"><i class="bi bi-plus-circle"></i> Top Up</button>
+                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- End Top Up Modal -->
+
+                        <!-- Wallet History Modal -->
+                        <div class="modal fade" id="walletHistoryModal" tabindex="-1" aria-labelledby="walletHistoryModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content bg-dark text-light">
+                              <div class="modal-header border-0">
+                                <h5 class="modal-title text-info" id="walletHistoryModalLabel"><i class="bi bi-clock-history me-2"></i>Wallet Transaction History</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <div class="modal-body">
+                                <?php if (count($transactions) > 0): ?>
+                                <div class="table-responsive">
+                                  <table class="table table-dark table-striped table-bordered align-middle mb-0">
+                                    <thead>
+                                      <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Amount (₱)</th>
+                                        <th>Payment Method</th>
+                                        <th>Reference Number</th>
+                                        <th>Description</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <?php foreach ($transactions as $t): ?>
+                                      <tr>
+                                        <td><?php echo date('Y-m-d H:i', strtotime($t['created_at'])); ?></td>
+                                        <td><?php echo ucfirst($t['type']); ?></td>
+                                        <td class="text-<?php echo $t['type'] === 'topup' || $t['type'] === 'refund' ? 'success' : 'danger'; ?>">
+                                          <?php echo number_format($t['amount'], 2); ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($t['payment_method'] ?? '-'); ?></td>
+                                        <td><?php echo htmlspecialchars($t['reference_number'] ?? '-'); ?></td>
+                                        <td><?php echo htmlspecialchars($t['description']); ?></td>
+                                      </tr>
+                                      <?php endforeach; ?>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <?php else: ?>
+                                <div class="text-muted">No wallet transactions yet.</div>
+                                <?php endif; ?>
+                              </div>
+                              <div class="modal-footer border-0">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- End Wallet History Modal -->
+
                         <form action="process_update_profile.php" method="POST" enctype="multipart/form-data">
                             <div class="text-center mb-4">
                                 <div class="profile-picture-container">

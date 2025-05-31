@@ -41,13 +41,39 @@ if (isset($_SESSION['guest_id'])) {
             LEFT JOIN reservation_services rs ON r.reservation_id = rs.reservation_id
             LEFT JOIN tbl_services s ON rs.service_id = s.service_id
             LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id
+            LEFT JOIN hidden_reservations h ON h.reservation_id = r.reservation_id AND h.guest_id = $guest_id
             WHERE r.guest_id = $guest_id
+              AND h.reservation_id IS NULL
             GROUP BY r.reservation_id
             ORDER BY r.date_created DESC";
     $result = $conn->query($sql);
     if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             $user_bookings[] = $row;
+        }
+    }
+}
+
+// Fetch hidden bookings for the user
+$hidden_bookings = [];
+if (isset($_SESSION['guest_id'])) {
+    $guest_id = $_SESSION['guest_id'];
+    $sql_hidden = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.room_price, 
+                   GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
+                   p.payment_status, p.payment_method, p.amount, rt.room_type_id
+            FROM tbl_reservation r
+            LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
+            LEFT JOIN reservation_services rs ON r.reservation_id = rs.reservation_id
+            LEFT JOIN tbl_services s ON rs.service_id = s.service_id
+            LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id
+            INNER JOIN hidden_reservations h ON h.reservation_id = r.reservation_id AND h.guest_id = $guest_id
+            WHERE r.guest_id = $guest_id
+            GROUP BY r.reservation_id
+            ORDER BY r.date_created DESC";
+    $result_hidden = $conn->query($sql_hidden);
+    if ($result_hidden && $result_hidden->num_rows > 0) {
+        while ($row = $result_hidden->fetch_assoc()) {
+            $hidden_bookings[] = $row;
         }
     }
 }
@@ -312,12 +338,16 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 // Fetch included room services for this room type
                 $included_services = [];
                 $room_type_id = $booking['room_type_id'];
-                $service_sql = "SELECT s.service_name FROM tbl_room_services rs JOIN tbl_services s ON rs.service_id = s.service_id WHERE rs.room_type_id = $room_type_id";
-                $service_result = $conn->query($service_sql);
-                if ($service_result && $service_result->num_rows > 0) {
-                    while ($row = $service_result->fetch_assoc()) {
-                        $included_services[] = $row['service_name'];
+                if (!empty($room_type_id) && is_numeric($room_type_id)) {
+                    $service_sql = "SELECT s.service_name FROM tbl_room_services rs JOIN tbl_services s ON rs.service_id = s.service_id WHERE rs.room_type_id = $room_type_id";
+                    $service_result = $conn->query($service_sql);
+                    if ($service_result && $service_result->num_rows > 0) {
+                        while ($row = $service_result->fetch_assoc()) {
+                            $included_services[] = $row['service_name'];
+                        }
                     }
+                } else {
+                    $included_services = [];
                 }
                 $total_amount = $booking['room_price'];
                 // Get selected service names for this booking
@@ -339,7 +369,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                     }
                 }
                 ?>
-                <div class="booking-card position-relative" data-date="<?php echo $booking['date_created']; ?>" data-status="<?php echo strtolower($booking['reservation_status']); ?>">
+                <div class="booking-card position-relative" data-reservation-id="<?php echo $booking['reservation_id']; ?>" data-date="<?php echo $booking['date_created']; ?>" data-status="<?php echo strtolower($booking['reservation_status']); ?>">
                     <input type="checkbox" class="form-check-input booking-checkbox position-absolute" style="left:10px;top:10px;z-index:2;">
                     <button class="btn btn-close btn-close-white position-absolute m-2 delete-booking-btn" title="Remove from view" style="right:10px;top:10px;"></button>
                     <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
@@ -368,6 +398,31 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
             <?php else: ?>
             <div class="alert alert-info">You have no bookings yet.</div>
             <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (count($hidden_bookings) > 0): ?>
+        <button id="showHiddenBtn" class="btn btn-secondary mb-3">Show Hidden Reservations (<?php echo count($hidden_bookings); ?>)</button>
+        <div id="hiddenReservationsSection" style="display:none;max-width:900px;width:100%;">
+            <h2 class="text-muted mb-3" style="font-size:1.1em;">Hidden Reservations</h2>
+            <div class="container py-3">
+                <?php foreach ($hidden_bookings as $booking): ?>
+                <div class="booking-card position-relative bg-dark-subtle" data-reservation-id="<?php echo $booking['reservation_id']; ?>">
+                    <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
+                    <div class="booking-details">
+                        <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
+                        <span class="badge bg-secondary mb-2">
+                            <?php echo ucfirst(str_replace('_', ' ', $booking['reservation_status'])); ?> (Hidden)
+                        </span>
+                        <div class="meta"><strong>Date Booked:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['date_created'])); ?></div>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-info btn-sm">View Details</a>
+                            <button class="btn btn-success btn-sm restore-booking-btn">Restore</button>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
         </div>
         <?php endif; ?>
     </div>
@@ -404,14 +459,66 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // UI-only delete (single)
+        // Hide (delete) a single booking
         document.querySelectorAll('.delete-booking-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 var card = btn.closest('.booking-card');
-                if (card) card.remove();
+                var reservationId = card.getAttribute('data-reservation-id');
+                if (confirm('Are you sure you want to hide this reservation?')) {
+                    fetch('hide_reservation.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'reservation_id=' + encodeURIComponent(reservationId)
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data.trim() === 'success') {
+                            card.remove(); // Remove from UI
+                        } else {
+                            alert('Failed to hide reservation.');
+                        }
+                    });
+                }
             });
         });
+        // Restore hidden booking
+        document.querySelectorAll('.restore-booking-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var card = btn.closest('.booking-card');
+                var reservationId = card.getAttribute('data-reservation-id');
+                fetch('restore_reservation.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'reservation_id=' + encodeURIComponent(reservationId)
+                })
+                .then(response => response.text())
+                .then(data => {
+                    if (data.trim() === 'success') {
+                        card.remove();
+                        // Optionally, reload the page to show restored booking in main list
+                        location.reload();
+                    } else {
+                        alert('Failed to restore reservation.');
+                    }
+                });
+            });
+        });
+        // Toggle hidden reservations section
+        var showHiddenBtn = document.getElementById('showHiddenBtn');
+        var hiddenSection = document.getElementById('hiddenReservationsSection');
+        if (showHiddenBtn && hiddenSection) {
+            showHiddenBtn.addEventListener('click', function() {
+                if (hiddenSection.style.display === 'none') {
+                    hiddenSection.style.display = 'block';
+                    showHiddenBtn.textContent = 'Hide Hidden Reservations';
+                } else {
+                    hiddenSection.style.display = 'none';
+                    showHiddenBtn.textContent = 'Show Hidden Reservations (<?php echo count($hidden_bookings); ?>)';
+                }
+            });
+        }
         // Sorting
         var sortSelect = document.getElementById('sortSelect');
         var bookingList = document.getElementById('bookingList');
@@ -456,7 +563,20 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
             var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
             checked.forEach(function(cb) {
                 var card = cb.closest('.booking-card');
-                if (card) card.remove();
+                var reservationId = card.getAttribute('data-reservation-id');
+                fetch('hide_reservation.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'reservation_id=' + encodeURIComponent(reservationId)
+                })
+                .then(response => response.text())
+                .then(data => {
+                    if (data.trim() === 'success') {
+                        card.remove();
+                    } else {
+                        alert('Failed to hide reservation: ' + reservationId);
+                    }
+                });
             });
             updateDeleteBtn();
         });

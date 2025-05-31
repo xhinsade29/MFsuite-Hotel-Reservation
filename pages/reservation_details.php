@@ -24,12 +24,16 @@ $booking = $result->fetch_assoc();
 // Fetch included room services for this room type
 $included_services = [];
 $room_type_id = $booking['room_type_id'];
-$service_sql = "SELECT s.service_name FROM tbl_room_services rs JOIN tbl_services s ON rs.service_id = s.service_id WHERE rs.room_type_id = $room_type_id";
-$service_result = $conn->query($service_sql);
-if ($service_result && $service_result->num_rows > 0) {
-    while ($row = $service_result->fetch_assoc()) {
-        $included_services[] = $row['service_name'];
+if (!empty($room_type_id) && is_numeric($room_type_id)) {
+    $service_sql = "SELECT s.service_name FROM tbl_room_services rs JOIN tbl_services s ON rs.service_id = s.service_id WHERE rs.room_type_id = $room_type_id";
+    $service_result = $conn->query($service_sql);
+    if ($service_result && $service_result->num_rows > 0) {
+        while ($row = $service_result->fetch_assoc()) {
+            $included_services[] = $row['service_name'];
+        }
     }
+} else {
+    $included_services = [];
 }
 // Fetch user details
 $user_sql = "SELECT first_name, middle_name, last_name, user_email, phone_number, address FROM tbl_guest WHERE guest_id = ?";
@@ -77,6 +81,16 @@ $reason_result = $conn->query($reason_sql);
 if ($reason_result && $reason_result->num_rows > 0) {
     while ($row = $reason_result->fetch_assoc()) {
         $reasons[] = $row;
+    }
+}
+// Fetch assigned room number if available
+$assigned_room_number = null;
+if (!empty($booking['assigned_room_id'])) {
+    $room_id = intval($booking['assigned_room_id']);
+    $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = $room_id";
+    $room_num_result = $conn->query($room_num_sql);
+    if ($room_num_result && $room_num_result->num_rows > 0) {
+        $assigned_room_number = $room_num_result->fetch_assoc()['room_number'];
     }
 }
 $conn->close();
@@ -227,106 +241,124 @@ $conn->close();
         });
         </script>
     <?php endif; ?>
-    <div class="row justify-content-center">
-        <div class="col-md-6 text-center">
-            <img src="../assets/rooms/<?php echo htmlspecialchars($image_file); ?>" alt="Room Image" class="img-fluid rounded mb-3" style="max-height:300px;object-fit:cover;">
-            <h4 class="text-warning mt-2"><?php echo htmlspecialchars($booking['type_name']); ?></h4>
-            <p class="mb-3"><?php echo htmlspecialchars($booking['description']); ?></p>
-        </div>
-        <div class="col-md-6">
-            <div class="user-details bg-dark rounded p-3 mb-3">
-               
-                <div><strong>Name:</strong> <?php echo htmlspecialchars(trim($first_name . ' ' . $middle_name . ' ' . $last_name)); ?></div>
-                <div><strong>Email:</strong> <?php echo htmlspecialchars($user_email); ?></div>
-                <div><strong>Phone:</strong> <?php echo htmlspecialchars($phone_number); ?></div>
-                <div><strong>Address:</strong> <?php echo htmlspecialchars($address); ?></div>
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+        <div class="details-container w-100" style="max-width: 900px;">
+            <div class="details-image">
+                <img src="../assets/rooms/<?php echo htmlspecialchars($image_file); ?>" alt="Room Image" class="img-fluid rounded mb-3" style="max-height:300px;object-fit:cover;">
+                <h4 class="text-warning mt-2"><?php echo htmlspecialchars($booking['type_name']); ?></h4>
+                <p class="mb-3"><?php echo htmlspecialchars($booking['description']); ?></p>
             </div>
-            <ul class="list-group list-group-flush mb-3">
-                <li class="list-group-item bg-dark text-light"><strong>Check-in:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['check_in'])); ?></li>
-                <li class="list-group-item bg-dark text-light"><strong>Check-out:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['check_out'])); ?></li>
-                <?php if (!empty($included_services)): ?>
-                <li class="list-group-item bg-dark text-light"><strong>Included Room Services:</strong> <?php echo htmlspecialchars(implode(', ', $included_services)); ?></li>
+            <div class="details-content">
+                <div class="user-details bg-dark rounded p-3 mb-3 w-100">
+                    <div><strong>Name:</strong> <?php echo htmlspecialchars(trim($first_name . ' ' . $middle_name . ' ' . $last_name)); ?></div>
+                    <div><strong>Email:</strong> <?php echo htmlspecialchars($user_email); ?></div>
+                    <div><strong>Phone:</strong> <?php echo htmlspecialchars($phone_number); ?></div>
+                    <div><strong>Address:</strong> <?php echo htmlspecialchars($address); ?></div>
+                </div>
+                <ul class="list-group list-group-flush mb-3 w-100">
+                    <li class="list-group-item bg-dark text-light"><strong>Check-in:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['check_in'])); ?></li>
+                    <li class="list-group-item bg-dark text-light"><strong>Check-out:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['check_out'])); ?></li>
+                    <?php if ($assigned_room_number): ?>
+                    <li class="list-group-item bg-dark text-light"><strong>Room Number:</strong> <?php echo htmlspecialchars($assigned_room_number); ?></li>
+                    <?php endif; ?>
+                    <?php if (!empty($included_services)): ?>
+                    <li class="list-group-item bg-dark text-light"><strong>Included Room Services:</strong> <?php echo htmlspecialchars(implode(', ', $included_services)); ?></li>
+                    <?php endif; ?>
+                    <?php if (!empty($booking['services'])): ?>
+                    <li class="list-group-item bg-dark text-light"><strong>Selected Services:</strong> <?php echo htmlspecialchars($booking['services']); ?></li>
+                    <?php endif; ?>
+                    <li class="list-group-item bg-dark text-light"><strong>Total Amount:</strong> ₱<?php echo number_format($total_amount, 2); ?></li>
+                    <li class="list-group-item bg-dark text-light"><strong>Reference Number:</strong> <?php echo htmlspecialchars($booking['reference_number'] ?? 'N/A'); ?></li>
+                    <li class="list-group-item bg-dark text-light"><strong>Paid via:</strong> <?php echo htmlspecialchars($booking['payment_method']); ?></li>
+                    <li class="list-group-item bg-dark text-light"><strong>Payment Status:</strong> <?php echo htmlspecialchars($booking['payment_status']); ?></li>
+                    <li class="list-group-item bg-dark text-light"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></li>
+                    <?php if ($booking['status'] === 'approved'): ?>
+                    <li class="list-group-item bg-dark text-success"><strong>Reservation Status:</strong> Approved by Admin</li>
+                    <?php elseif ($booking['status'] === 'pending'): ?>
+                    <li class="list-group-item bg-dark text-warning"><strong>Reservation Status:</strong> Pending Admin Approval</li>
+                    <?php elseif ($booking['status'] === 'completed'): ?>
+                    <li class="list-group-item bg-dark text-primary"><strong>Reservation Status:</strong> Completed</li>
+                    <?php elseif ($booking['status'] === 'cancelled'): ?>
+                    <li class="list-group-item bg-dark text-danger"><strong>Reservation Status:</strong> Cancelled</li>
+                    <?php elseif ($booking['status'] === 'cancellation_requested'): ?>
+                    <li class="list-group-item bg-dark text-info"><strong>Reservation Status:</strong> Cancellation Requested</li>
+                    <?php elseif ($booking['status'] === 'denied'): ?>
+                    <li class="list-group-item bg-dark text-secondary"><strong>Reservation Status:</strong> Cancellation Denied</li>
+                    <?php endif; ?>
+                </ul>
+                <a href="reservations.php" class="btn btn-warning mb-2">Back to My Reservations</a>
+                <?php if ($booking['status'] === 'cancellation_requested'): ?>
+                    <span class="badge bg-warning text-dark mb-2">Requested for Cancellation</span>
+                <?php elseif ($booking['status'] === 'cancelled'): ?>
+                    <span class="badge bg-danger mb-2">Cancelled</span>
+                <?php elseif ($booking['status'] === 'denied'): ?>
+                    <span class="badge bg-secondary mb-2">Cancellation Denied</span>
+                <?php elseif ($booking['status'] === 'completed'): ?>
+                    <span class="badge bg-success mb-2">Completed</span>
+                <?php else: ?>
+                    <button id="cancelBtn" class="btn btn-danger mb-2" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel Reservation</button>
                 <?php endif; ?>
-                <?php if (!empty($booking['services'])): ?>
-                <li class="list-group-item bg-dark text-light"><strong>Selected Services:</strong> <?php echo htmlspecialchars($booking['services']); ?></li>
-                <?php endif; ?>
-                <li class="list-group-item bg-dark text-light"><strong>Total Amount:</strong> ₱<?php echo number_format($total_amount, 2); ?></li>
-                <li class="list-group-item bg-dark text-light"><strong>Status:</strong> <?php echo htmlspecialchars($booking['payment_status']); ?></li>
-                <li class="list-group-item bg-dark text-light"><strong>Date Booked:</strong> <?php echo htmlspecialchars($booking['date_created']); ?></li>
-            </ul>
-            <a href="reservations.php" class="btn btn-warning mb-2">Back to My Reservations</a>
-            <?php if ($booking['status'] === 'cancellation_requested'): ?>
-                <span class="badge bg-warning text-dark mb-2">Requested for Cancellation</span>
-            <?php elseif ($booking['status'] === 'cancelled'): ?>
-                <span class="badge bg-danger mb-2">Cancelled</span>
-            <?php elseif ($booking['status'] === 'denied'): ?>
-                <span class="badge bg-secondary mb-2">Cancellation Denied</span>
-            <?php elseif ($booking['status'] === 'completed'): ?>
-                <span class="badge bg-success mb-2">Completed</span>
-            <?php else: ?>
-                <button id="cancelBtn" class="btn btn-danger mb-2" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel Reservation</button>
-            <?php endif; ?>
+            </div>
         </div>
     </div>
-</div>
-<!-- Cancel Modal -->
-<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
-      <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
-        <h4 class="modal-title w-100 text-center fw-bold text-warning" id="cancelModalLabel">Cancel Reservation</h4>
-        <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body text-center">
-        <p>Are you sure you want to cancel this reservation?</p>
-        <form method="POST" action="../functions/cancel_booking.php" id="cancelForm">
-            <input type="hidden" name="reservation_id" value="<?php echo $booking['reservation_id']; ?>">
-            <div class="mb-3 text-start">
-                <label for="reason_id" class="form-label">Reason for cancellation:</label>
-                <select class="form-select" id="reason_id" name="reason_id" required onchange="toggleOtherReason()">
-                    <option value="">Select a reason</option>
-                    <?php foreach ($reasons as $reason): ?>
-                        <option value="<?php echo $reason['reason_id']; ?>"><?php echo htmlspecialchars($reason['reason_text']); ?></option>
-                    <?php endforeach; ?>
-                    <option value="other">Other (please specify)</option>
-                </select>
-            </div>
-            <div class="mb-3 text-start" id="otherReasonDiv" style="display:none;">
-                <label for="other_reason" class="form-label">Other reason:</label>
-                <textarea class="form-control" id="other_reason" name="other_reason" rows="3" placeholder="Please provide your reason..."></textarea>
-            </div>
-            <button type="submit" class="btn btn-danger fw-bold">Yes, Cancel Reservation</button>
-            <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">No, Keep Reservation</button>
-        </form>
-        <script>
-        function toggleOtherReason() {
-            var select = document.getElementById('reason_id');
-            var otherDiv = document.getElementById('otherReasonDiv');
-            if (select.value === 'other') {
-                otherDiv.style.display = 'block';
-                document.getElementById('other_reason').setAttribute('required', 'required');
-            } else {
-                otherDiv.style.display = 'none';
-                document.getElementById('other_reason').removeAttribute('required');
+    <!-- Cancel Modal -->
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
+          <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
+            <h4 class="modal-title w-100 text-center fw-bold text-warning" id="cancelModalLabel">Cancel Reservation</h4>
+            <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p>Are you sure you want to cancel this reservation?</p>
+            <form method="POST" action="../functions/cancel_booking.php" id="cancelForm">
+                <input type="hidden" name="reservation_id" value="<?php echo $booking['reservation_id']; ?>">
+                <div class="mb-3 text-start">
+                    <label for="reason_id" class="form-label">Reason for cancellation:</label>
+                    <select class="form-select" id="reason_id" name="reason_id" required onchange="toggleOtherReason()">
+                        <option value="">Select a reason</option>
+                        <?php foreach ($reasons as $reason): ?>
+                            <option value="<?php echo $reason['reason_id']; ?>"><?php echo htmlspecialchars($reason['reason_text']); ?></option>
+                        <?php endforeach; ?>
+                        <option value="other">Other (please specify)</option>
+                    </select>
+                </div>
+                <div class="mb-3 text-start" id="otherReasonDiv" style="display:none;">
+                    <label for="other_reason" class="form-label">Other reason:</label>
+                    <textarea class="form-control" id="other_reason" name="other_reason" rows="3" placeholder="Please provide your reason..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger fw-bold">Yes, Cancel Reservation</button>
+                <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">No, Keep Reservation</button>
+            </form>
+            <script>
+            function toggleOtherReason() {
+                var select = document.getElementById('reason_id');
+                var otherDiv = document.getElementById('otherReasonDiv');
+                if (select.value === 'other') {
+                    otherDiv.style.display = 'block';
+                    document.getElementById('other_reason').setAttribute('required', 'required');
+                } else {
+                    otherDiv.style.display = 'none';
+                    document.getElementById('other_reason').removeAttribute('required');
+                }
             }
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            var cancelForm = document.getElementById('cancelForm');
-            if (cancelForm) {
-                cancelForm.addEventListener('submit', function() {
-                    var btn = document.querySelector('#cancelModal button[type="submit"]');
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.textContent = 'Cancelling...';
-                    }
-                });
-            }
-        });
-        </script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var cancelForm = document.getElementById('cancelForm');
+                if (cancelForm) {
+                    cancelForm.addEventListener('submit', function() {
+                        var btn = document.querySelector('#cancelModal button[type="submit"]');
+                        if (btn) {
+                            btn.disabled = true;
+                            btn.textContent = 'Cancelling...';
+                        }
+                    });
+                }
+            });
+            </script>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 
