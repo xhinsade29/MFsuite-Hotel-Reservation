@@ -6,11 +6,11 @@ if (!isset($_SESSION['guest_id'])) {
 }
 include('../functions/db_connect.php');
 $type_filter = isset($_GET['type']) ? trim($_GET['type']) : '';
-$where = '';
-$params = [];
-$types = '';
+$where = 'WHERE guest_id = ?';
+$params = [$_SESSION['guest_id']];
+$types = 'i';
 if ($type_filter !== '') {
-    $where .= ($where ? ' AND ' : 'WHERE ') . 'type = ?';
+    $where .= ' AND type = ?';
     $params[] = $type_filter;
     $types .= 's';
 }
@@ -88,7 +88,6 @@ $mycon->query("UPDATE user_notifications SET is_read = 1 WHERE guest_id = $guest
     <?php else: ?>
         <div class="alert alert-info">No notifications yet.</div>
     <?php endif; ?>
-    <a href="index.php" class="btn btn-outline-light mt-4">Back to Dashboard</a>
 </div>
 </body>
 </html> 

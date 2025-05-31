@@ -74,30 +74,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Store actual password (NOT RECOMMENDED for security reasons)
     $actual_password = $password;
 
+    // Generate a unique wallet_id
+    function generate_wallet_id() {
+        return bin2hex(random_bytes(16)); // 32-char hex string
+    }
+    $wallet_id = generate_wallet_id();
+    // Ensure uniqueness (very unlikely to collide, but check)
+    $exists = mysqli_query($mycon, "SELECT 1 FROM tbl_guest WHERE wallet_id = '$wallet_id' UNION SELECT 1 FROM tbl_admin WHERE wallet_id = '$wallet_id'");
+    while (mysqli_num_rows($exists) > 0) {
+        $wallet_id = generate_wallet_id();
+        $exists = mysqli_query($mycon, "SELECT 1 FROM tbl_guest WHERE wallet_id = '$wallet_id' UNION SELECT 1 FROM tbl_admin WHERE wallet_id = '$wallet_id'");
+    }
+
     // Insert new guest
-    $sql = "INSERT INTO tbl_guest (first_name, middle_name, last_name, phone_number, user_email, password, address, date_created) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO tbl_guest (first_name, middle_name, last_name, phone_number, user_email, password, address, wallet_id, date_created) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
     
     $stmt = mysqli_prepare($mycon, $sql);
-    mysqli_stmt_bind_param($stmt, "sssssss", $first_name, $middle_name, $last_name, $phone_number, $user_email, $actual_password, $address);
+    mysqli_stmt_bind_param($stmt, "ssssssss", $first_name, $middle_name, $last_name, $phone_number, $user_email, $actual_password, $address, $wallet_id);
 
     if (mysqli_stmt_execute($stmt)) {
-        // Get the new guest's ID
-        $guest_id = mysqli_insert_id($mycon);
-
-        // Set session variables with original values
-        $_SESSION['guest_id'] = $guest_id;
-        $_SESSION['first_name'] = $first_name;
-        $_SESSION['last_name'] = $last_name;
-        $_SESSION['user_email'] = $user_email;
-        $_SESSION['phone_number'] = $phone_number;
-
         // Set success message
         $_SESSION['success'] = "Registration successful! You may now log in.";
-        
         // Clear form data from session
         unset($_SESSION['form_data']);
-        
         // Redirect to login page
         header("Location: /pages/login.php");
         exit();

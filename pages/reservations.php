@@ -308,6 +308,12 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         <h1 class="text-center"><i class="fas fa-calendar-alt"></i> My Reservations</h1>
         
         <?php if (isset($_SESSION['guest_id'])): ?>
+            <div class="alert alert-secondary text-center mb-2">
+                <strong>Debug:</strong> Guest ID: <?php echo htmlspecialchars($_SESSION['guest_id']); ?> | Reservations found: <?php echo count($user_bookings); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['guest_id'])): ?>
         <div class="mb-5 w-100" style="max-width: 900px;">
             <h2 class="text-warning mb-3" style="font-size:1.3em;"><i class="bi bi-journal-bookmark"></i> My Bookings</h2>
             <!-- Sorting, Select All, and UI Delete Controls -->

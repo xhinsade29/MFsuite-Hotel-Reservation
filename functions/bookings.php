@@ -30,7 +30,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $check_out = isset($_POST['checkout_datetime']) ? $_POST['checkout_datetime'] : '';
     $payment_type_id = isset($_POST['payment_id']) ? intval($_POST['payment_id']) : 1;
     $amount = isset($_POST['reference_amount']) && $_POST['reference_amount'] !== '' ? floatval($_POST['reference_amount']) : (isset($_POST['total_amount']) ? floatval(str_replace(',', '', $_POST['total_amount'])) : 0);
-    $reference_number = isset($_POST['reference_number']) ? $_POST['reference_number'] : null;
+    // Generate a unique reference number
+    function generate_reference_number() {
+        return strtoupper(bin2hex(random_bytes(8)));
+    }
+    $reference_number = generate_reference_number();
     $payment_status = 'Pending';
     $payment_method = '';
     // Get payment method name
@@ -56,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt = $mycon->prepare("INSERT INTO tbl_reservation (guest_id, payment_id, check_in, check_out, admin_id, room_id) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("iissii", $guest_id, $payment_id, $check_in, $check_out, $admin_id, $room_type_id);
     if ($stmt->execute()) {
-        $_SESSION['success'] = "Reservation successful!";
+        $_SESSION['success'] = "Reservation successful!<br>Your Reference Number: <b>" . htmlspecialchars($reference_number) . "</b>";
         header("Location: ../pages/booking_form.php?success=1");
         exit();
     } else {

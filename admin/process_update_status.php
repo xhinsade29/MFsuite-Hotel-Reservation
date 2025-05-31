@@ -124,7 +124,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
             }
-            add_notification($guest_id, 'wallet', 'Your payment for the reservation has been approved.', $mycon);
+            // Notify for wallet top-up if payment method is a top-up type
+            $topup_methods = ['GCash', 'Bank Transfer', 'PayPal', 'Credit Card'];
+            if (in_array($payment_method, $topup_methods)) {
+                add_notification($guest_id, 'wallet', 'Your wallet top-up via ' . $payment_method . ' has been received and credited. Reference: ' . $ref, $mycon);
+            } else {
+                add_notification($guest_id, 'wallet', 'Your payment for the reservation has been approved.', $mycon);
+            }
             header("Location: reservations.php?msg=Payment+approved+successfully");
             exit();
         }

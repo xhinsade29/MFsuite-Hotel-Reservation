@@ -241,32 +241,6 @@ if ($room_type_id) {
   </div>
 </div>
 
-<!-- Reference Modal -->
-<div class="modal fade" id="referenceModal" tabindex="-1" aria-labelledby="referenceModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
-      <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
-        <h4 class="modal-title w-100 text-center fw-bold text-warning" id="referenceModalLabel">Enter Payment Reference</h4>
-        <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body text-center">
-        <div class="mb-3">
-          <label for="modal_reference_number" class="form-label">Reference Number</label>
-          <input type="text" class="form-control" id="modal_reference_number" placeholder="Enter reference number">
-        </div>
-        <div class="mb-3">
-          <label for="modal_reference_amount" class="form-label">Amount</label>
-          <input type="number" class="form-control" id="modal_reference_amount" placeholder="Enter amount" min="1">
-        </div>
-        <div class="d-flex justify-content-center gap-3 mt-4">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-warning fw-bold" id="saveReferenceBtn">Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/en.js"></script>
@@ -279,13 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var bookingForm = document.getElementById('bookingForm');
     var errorMsg = document.getElementById('formErrorMsg');
     var paymentSelect = document.getElementById('payment_id');
-    var referenceModal = new bootstrap.Modal(document.getElementById('referenceModal'));
-    var saveReferenceBtn = document.getElementById('saveReferenceBtn');
-    var modalReferenceNumber = document.getElementById('modal_reference_number');
-    var modalReferenceAmount = document.getElementById('modal_reference_amount');
-    var hiddenReferenceNumber = document.getElementById('reference_number');
-    var hiddenReferenceAmount = document.getElementById('reference_amount');
-    var lastPaymentType = '';
     var walletBalanceInput = document.getElementById('userWalletBalance');
     var totalAmountInput = document.querySelector('input[name="total_amount"]');
     var bookNowBtn = document.getElementById('openConfirmModalBtn');
@@ -361,72 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
         theme: "material_blue"
     });
 
-    // Show modal if non-cash payment is selected
-    paymentSelect.addEventListener('change', function() {
-        var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
-        var paymentName = selectedOption.getAttribute('data-name');
-        if (paymentName && paymentName !== 'cash') {
-            // Show modal for all non-cash payments
-            if (lastPaymentType !== paymentSelect.value) {
-                modalReferenceNumber.value = '';
-                modalReferenceAmount.value = '';
-                referenceModal.show();
-                lastPaymentType = paymentSelect.value;
-            }
-        } else {
-            // Clear hidden fields if cash
-            hiddenReferenceNumber.value = '';
-            hiddenReferenceAmount.value = '';
-        }
-    });
-
-    saveReferenceBtn.addEventListener('click', function() {
-        var totalAmount = parseFloat(totalAmountInput.value.replace(/,/g, ''));
-        var enteredAmount = parseFloat(modalReferenceAmount.value.trim());
-        if (!modalReferenceNumber.value.trim() || !modalReferenceAmount.value.trim()) {
-            modalReferenceNumber.classList.add('is-invalid');
-            modalReferenceAmount.classList.add('is-invalid');
-            return;
-        }
-        if (enteredAmount !== totalAmount) {
-            modalReferenceAmount.classList.add('is-invalid');
-            modalReferenceAmount.setCustomValidity('Amount must match the total amount.');
-            // Show toast instead of alert
-            var toastDiv = document.createElement('div');
-            toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
-            toastDiv.style.zIndex = 1100;
-            toastDiv.innerHTML = `<div id="customToastError" class="toast align-items-center text-bg-danger border-0 show" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body">The amount you entered must match the total amount (₱${totalAmount.toFixed(2)}).</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
-            document.body.appendChild(toastDiv);
-            var toastEl = document.getElementById('customToastError');
-            if (toastEl) {
-                var toast = new bootstrap.Toast(toastEl, { delay: 3500 });
-                toast.show();
-            }
-            return;
-        } else {
-            modalReferenceAmount.classList.remove('is-invalid');
-            modalReferenceAmount.setCustomValidity('');
-        }
-        hiddenReferenceNumber.value = modalReferenceNumber.value.trim();
-        hiddenReferenceAmount.value = modalReferenceAmount.value.trim();
-        modalReferenceNumber.classList.remove('is-invalid');
-        modalReferenceAmount.classList.remove('is-invalid');
-        referenceModal.hide();
-    });
-
-    // Prevent form submission if reference is required but not filled
-    bookingForm.addEventListener('submit', function(event) {
-        var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
-        var paymentName = selectedOption.getAttribute('data-name');
-        if (paymentName && paymentName !== 'cash') {
-            if (!hiddenReferenceNumber.value.trim() || !hiddenReferenceAmount.value.trim()) {
-                event.preventDefault();
-                referenceModal.show();
-                return false;
-            }
-        }
-    });
-
     function checkWalletSufficiency() {
         if (!walletBalanceInput || !totalAmountInput || !bookNowBtn) return;
         var wallet = parseFloat(walletBalanceInput.value);
@@ -450,11 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
     checkWalletSufficiency();
     // If total amount can change (e.g., with services), listen for changes
     totalAmountInput && totalAmountInput.addEventListener('input', checkWalletSufficiency);
-    // Optionally, listen for service selection changes if needed
-    // document.querySelectorAll('input[name="service_id[]"]').forEach(function(cb) {
-    //     cb.addEventListener('change', checkWalletSufficiency);
-    // });
-
     // Add JS to check room availability after date selection
     function checkRoomAvailability() {
         var checkin = document.getElementById('checkin_datetime').value;
