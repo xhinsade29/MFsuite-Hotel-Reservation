@@ -14,6 +14,22 @@ if (isset($_SESSION['guest_id'])) {
     $stmt->fetch();
     $stmt->close();
 }
+// Fetch guest name for profile display
+$display_name = 'Guest User';
+$avatar_name = 'Guest User';
+if (isset($_SESSION['guest_id'])) {
+    $guest_id = $_SESSION['guest_id'];
+    $sql = "SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ? LIMIT 1";
+    $stmt = $mycon->prepare($sql);
+    $stmt->bind_param("i", $guest_id);
+    $stmt->execute();
+    $stmt->bind_result($first_name, $last_name);
+    if ($stmt->fetch()) {
+        $display_name = trim($first_name . ' ' . $last_name);
+        $avatar_name = urlencode(trim($first_name . ' ' . $last_name));
+    }
+    $stmt->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -163,6 +179,63 @@ if (isset($_SESSION['guest_id'])) {
         body.light-mode .notification-empty, .light-mode .notification-empty {
             color: #bdbdbd !important;
         }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: relative; /* Ensure dropdown is positioned relative to this */
+        }
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 60px;
+            min-width: 180px;
+            background: #23234a;
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(31,38,135,0.18);
+            z-index: 3000;
+            padding: 0.5rem 0;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .profile-dropdown .dropdown-item {
+            display: block;
+            padding: 12px 22px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+        .profile-dropdown .dropdown-item:hover {
+            background: #ff8c00;
+            color: #fff;
+        }
+        .search-results-dropdown {
+            border: 1px solid #ffe5b4;
+            border-top: none;
+            padding: 0;
+        }
+        .search-results-dropdown .search-result-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid #ffe5b4;
+            background: #fff;
+            color: #23234a;
+            font-weight: 500;
+            transition: background 0.13s;
+        }
+        .search-results-dropdown .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-results-dropdown .search-result-item:hover {
+            background: #ffe5b4;
+            color: #ff8c00;
+        }
+        body.light-mode .search-results-dropdown {
+            background: #fff !important;
+            color: #23234a !important;
+        }
     </style>
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
@@ -178,9 +251,10 @@ if (isset($_SESSION['guest_id'])) {
         </div>
 
         <div class="nav-right">
-            <div class="search-box">
-                <input type="search" placeholder="Search rooms...">
+            <div class="search-box" style="position:relative;">
+                <input type="search" placeholder="Search rooms..." id="roomSearchInput" autocomplete="off">
                 <i class="bi bi-search"></i>
+                <div id="roomSearchResults" class="search-results-dropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#fff;color:#23234a;z-index:3001;border-radius:0 0 12px 12px;box-shadow:0 8px 32px rgba(31,38,135,0.10);max-height:320px;overflow-y:auto;"></div>
             </div>
             <a href="#" class="notifications <?php echo ($unread_count > 0) ? 'has-unread' : ''; ?>" id="notifBell" style="position:relative;">
                 <i class="bi bi-bell"></i>
@@ -188,12 +262,19 @@ if (isset($_SESSION['guest_id'])) {
                     <span class="badge" id="notifBadge"><?php echo $unread_count; ?></span>
                 <?php endif; ?>
             </a>
-            <button class="profile-trigger">
-                <img src="https://ui-avatars.com/api/?name=Guest+User&background=FF8C00&color=fff" 
+            <div style="position:relative;">
+            <button class="profile-trigger" id="profileDropdownBtn">
+                <img src="https://ui-avatars.com/api/?name=<?php echo $avatar_name; ?>&background=FF8C00&color=fff" 
                      alt="User" class="avatar">
-                <span class="username">Guest User</span>
+                <span class="username"><?php echo htmlspecialchars($display_name); ?></span>
                 <i class="bi bi-chevron-down"></i>
             </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="../pages/logout.php" class="dropdown-item">
+                    <i class="bi bi-box-arrow-right me-2"></i> Log Out
+                </a>
+            </div>
+            </div>
         </div>
     </div>
 </nav>
@@ -222,11 +303,30 @@ if (isset($_SESSION['guest_id'])) {
     <a href="../pages/privacy.php" class="<?php echo ($current_page == 'privacy.php') ? 'active' : ''; ?>">
         <i class="bi bi-shield-check"></i> Privacy
     </a>
-    <a href="../pages/logout.php" class="logout-btn">
-        <i class="bi bi-box-arrow-right"></i> Log Out
-    </a>
+    
 </aside>
 
+<!-- Toast Notification for Room Search -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 4000;">
+  <div class="toast align-items-center text-bg-success border-0" id="roomFoundToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000" style="display:none;">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle me-2"></i> Room type found!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+  <div class="toast align-items-center text-bg-danger border-0" id="roomNotFoundToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000" style="display:none;">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-x-circle me-2"></i> No room type found.
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 function toggleNotifDropdown(e) {
     e.stopPropagation();
@@ -257,6 +357,79 @@ document.getElementById('notifBell').addEventListener('click', function(e) {
             window.location.href = '../pages/notifications.php';
         });
 });
+
+// Profile dropdown logic
+const profileBtn = document.getElementById('profileDropdownBtn');
+const profileDropdown = document.getElementById('profileDropdown');
+if (profileBtn && profileDropdown) {
+    profileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+        if (profileDropdown.style.display === 'block') {
+            profileDropdown.style.display = 'none';
+        }
+    });
+}
+
+// Room type search logic
+const roomSearchInput = document.getElementById('roomSearchInput');
+const roomSearchResults = document.getElementById('roomSearchResults');
+const roomFoundToast = document.getElementById('roomFoundToast');
+const roomNotFoundToast = document.getElementById('roomNotFoundToast');
+function showToast(toastEl) {
+    if (!toastEl) return;
+    toastEl.style.display = 'block';
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+    setTimeout(() => { toastEl.style.display = 'none'; }, 2000);
+}
+if (roomSearchInput && roomSearchResults) {
+    let searchTimeout = null;
+    roomSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (searchTimeout) clearTimeout(searchTimeout);
+        if (query.length < 2) {
+            roomSearchResults.style.display = 'none';
+            roomSearchResults.innerHTML = '';
+            return;
+        }
+        searchTimeout = setTimeout(function() {
+            fetch('../pages/search_room_types.php?q=' + encodeURIComponent(query))
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        roomSearchResults.innerHTML = data.map(room =>
+                            `<div class='search-result-item' data-id='${room.room_type_id}'>
+                                <strong>${room.type_name}</strong><br>
+                                <span style='font-size:0.95em;color:#888;'>${room.description}</span>
+                            </div>`
+                        ).join('');
+                        roomSearchResults.style.display = 'block';
+                    } else {
+                        roomSearchResults.innerHTML = `<div class='search-result-item' style='color:#888;'>No results found.</div>`;
+                        roomSearchResults.style.display = 'block';
+                        showToast(roomNotFoundToast);
+                    }
+                });
+        }, 250);
+    });
+    roomSearchResults.addEventListener('click', function(e) {
+        const item = e.target.closest('.search-result-item');
+        if (item && item.dataset.id) {
+            showToast(roomFoundToast);
+            setTimeout(function() {
+                window.location.href = '../pages/booking_form.php?room_type_id=' + encodeURIComponent(item.dataset.id);
+            }, 1200);
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (!roomSearchResults.contains(e.target) && e.target !== roomSearchInput) {
+            roomSearchResults.style.display = 'none';
+        }
+    });
+}
 </script>
 
 </body>

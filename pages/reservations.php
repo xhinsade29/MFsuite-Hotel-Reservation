@@ -90,6 +90,53 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         }
     }
 }
+
+// Add endpoint for trash count
+if (isset($_GET['get_trash_count']) && $_GET['get_trash_count'] == 1) {
+    $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
+    $guest_id = $_SESSION['guest_id'] ?? 0;
+    $sql = "SELECT COUNT(*) as cnt FROM hidden_reservations WHERE guest_id = $guest_id";
+    $result = $conn->query($sql);
+    $row = $result ? $result->fetch_assoc() : ['cnt' => 0];
+    header('Content-Type: application/json');
+    echo json_encode(['trash_count' => (int)$row['cnt']]);
+    exit();
+}
+
+// Add endpoint for trash HTML (AJAX for trash modal)
+if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
+    // Only output the trashBookingList content (hidden bookings)
+    ob_start();
+    echo '<div class="container" id="trashBookingList" style="max-width:900px;padding:0;">';
+    if (count($hidden_bookings) > 0) {
+        foreach ($hidden_bookings as $booking) {
+            echo '<div class="booking-card position-relative" data-reservation-id="' . $booking['reservation_id'] . '">';
+            echo '<img src="../assets/rooms/' . htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif') . '" alt="Room Image">';
+            echo '<div class="booking-details">';
+            echo '<h4>' . htmlspecialchars($booking['type_name']) . '</h4>';
+            $status = strtolower($booking['reservation_status']);
+            $badgeClass = 'bg-secondary';
+            if ($status === 'pending') $badgeClass = 'bg-warning text-dark';
+            elseif ($status === 'completed') $badgeClass = 'bg-success';
+            elseif ($status === 'cancellation_requested') $badgeClass = 'bg-info text-dark';
+            elseif ($status === 'cancelled' || $status === 'denied') $badgeClass = 'bg-danger';
+            echo '<span class="badge ' . $badgeClass . ' mb-2">' . ucfirst(str_replace('_', ' ', $booking['reservation_status'])) . ' (Deleted)</span>';
+            echo '<div class="meta"><strong>Date Booked:</strong> ' . date('Y-m-d h:i A', strtotime($booking['date_created'])) . '</div>';
+            echo '<div class="meta"><strong>Number of Nights:</strong> ' . $booking['number_of_nights'] . '</div>';
+            echo '<div class="meta"><strong>Total Price:</strong> ₱' . number_format($booking['amount'], 2) . '</div>';
+            echo '<div class="d-flex align-items-center gap-2 mt-2">';
+            echo '<a href="reservation_details.php?id=' . $booking['reservation_id'] . '" class="btn btn-info btn-sm">View Details</a>';
+            echo '<button type="button" class="btn btn-success btn-sm restore-single-trash d-inline-flex align-items-center gap-1"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>';
+            echo '<button type="button" class="btn btn-danger btn-sm delete-single-trash d-inline-flex align-items-center gap-1"><i class="bi bi-trash"></i> Delete</button>';
+            echo '</div></div></div>';
+        }
+    } else {
+        echo '<div class="alert alert-info text-center">No deleted reservations.</div>';
+    }
+    echo '</div>';
+    echo ob_get_clean();
+    exit();
+}
 ?>
 
 <?php include '../components/user_navigation.php'; ?>
@@ -384,6 +431,30 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 padding: 18px 10px;
             }
         }
+        /* Remove any transform properties from trash modal and trash list */
+        #trashBookingList, #trashModal .modal-content, #trashModal .container, #trashModal .booking-card {
+            transform: none !important;
+        }
+        /* Keep reservation list and trash modal containers steady and aligned */
+        .content > .mb-5[style], #trashModal .container {
+            max-width: 900px !important;
+            width: 100% !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            position: static !important;
+            transition: none !important;
+            transform: none !important;
+        }
+        /* Remove any transition/transform from booking cards */
+        .booking-card {
+            transition: none !important;
+            transform: none !important;
+            animation: none !important;
+        }
+        /* Prevent modal from affecting underlying .content */
+        .modal-backdrop {
+            z-index: 1050 !important;
+        }
     </style>
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
@@ -525,10 +596,10 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
               </div>
               <div class="modal-body">
                 <form id="trashForm">
-                <div class="container py-3" id="trashBookingList">
+                <div class="container" id="trashBookingList" style="max-width:900px;padding:0;">
                     <?php if (count($hidden_bookings) > 0): ?>
                         <?php foreach ($hidden_bookings as $booking): ?>
-                        <div class="booking-card position-relative bg-dark-subtle" data-reservation-id="<?php echo $booking['reservation_id']; ?>">
+                        <div class="booking-card position-relative" data-reservation-id="<?php echo $booking['reservation_id']; ?>">
                             <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
                             <div class="booking-details">
                                 <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
@@ -563,12 +634,12 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
             </div>
           </div>
         </div>
-        <!-- Toast for permanent deletion -->
+        <!-- Toast for actions -->
         <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1200;">
           <div class="toast align-items-center text-bg-danger border-0" id="trashToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" style="display:none;">
             <div class="d-flex">
               <div class="toast-body">
-                <i class="bi bi-trash-fill me-2"></i> Deleted reservation(s) permanently.
+                <i class="bi bi-trash-fill me-2"></i> Reservation moved to trash.
               </div>
               <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
@@ -576,7 +647,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
           <div class="toast align-items-center text-bg-success border-0" id="restoreToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" style="display:none;">
             <div class="d-flex">
               <div class="toast-body">
-                <i class="bi bi-arrow-counterclockwise me-2"></i> Restored reservation(s) successfully.
+                <i class="bi bi-arrow-counterclockwise me-2"></i> Reservation restored successfully.
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>
+          <div class="toast align-items-center text-bg-danger border-0" id="permanentDeleteToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" style="display:none;">
+            <div class="d-flex">
+              <div class="toast-body">
+                <i class="bi bi-trash-fill me-2"></i> Reservation permanently deleted.
               </div>
               <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
@@ -622,31 +701,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
 
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
     <!-- Booking Success Modal -->
-    <div class="modal fade" id="bookingSuccessModal" tabindex="-1" aria-labelledby="bookingSuccessLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-success text-white">
-            <h5 class="modal-title" id="bookingSuccessLabel">Booking Successful!</h5>
-          </div>
-          <div class="modal-body">
-            Your booking was successful. Where would you like to go next?
-          </div>
-          <div class="modal-footer">
-            <a href="reservations.php" class="btn btn-primary">My Bookings</a>
-            <a href="../index.php" class="btn btn-secondary">Back to Home</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var modal = new bootstrap.Modal(document.getElementById('bookingSuccessModal'));
-        modal.show();
-        setTimeout(function() {
-          window.location.href = 'reservations.php';
-        }, 3000); // 3 seconds
-      });
-    </script>
+    <!-- REMOVE THIS MODAL AND SCRIPT -->
     <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -667,7 +722,52 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                     .then(response => response.text())
                     .then(data => {
                         if (data.trim() === 'success') {
-                            card.remove(); // Remove from UI
+                            // Move card to trash list in modal (real-time)
+                            var trashList = document.getElementById('trashBookingList');
+                            if (trashList) {
+                                // Clone the card and update its UI for trash
+                                var trashCard = card.cloneNode(true);
+                                // Remove the delete-booking-btn and add restore/delete trash buttons
+                                var delBtn = trashCard.querySelector('.delete-booking-btn');
+                                if (delBtn) delBtn.remove();
+                                // Remove the booking-checkbox if present
+                                var checkbox = trashCard.querySelector('.booking-checkbox');
+                                if (checkbox) checkbox.remove();
+                                // Add trash action buttons if not present
+                                var details = trashCard.querySelector('.booking-details');
+                                if (details && !trashCard.querySelector('.restore-single-trash')) {
+                                    var btns = document.createElement('div');
+                                    btns.className = 'd-flex align-items-center gap-2 mt-2';
+                                    btns.innerHTML = `
+                                        <a href="reservation_details.php?id=${reservationId}" class="btn btn-info btn-sm">View Details</a>
+                                        <button type="button" class="btn btn-success btn-sm restore-single-trash d-inline-flex align-items-center gap-1"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+                                        <button type="button" class="btn btn-danger btn-sm delete-single-trash d-inline-flex align-items-center gap-1"><i class="bi bi-trash"></i> Delete</button>
+                                    `;
+                                    details.appendChild(btns);
+                                }
+                                trashList.prepend(trashCard);
+                            }
+                            card.remove();
+                            // Show toast
+                            var toastEl = document.getElementById('trashToast');
+                            if (toastEl) {
+                                toastEl.style.display = '';
+                                var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 2000 });
+                                toast.show();
+                                setTimeout(function() { location.reload(); }, 1800);
+                            } else {
+                                location.reload();
+                            }
+                            // Update trash count badge in real time
+                            var trashBtnText = document.getElementById('trashBtnText');
+                            if (trashBtnText) {
+                                // Find the number in parentheses and increment it
+                                var match = trashBtnText.textContent.match(/\((\d+)\)/);
+                                if (match) {
+                                    var count = parseInt(match[1], 10) + 1;
+                                    trashBtnText.textContent = 'Trash (' + count + ')';
+                                }
+                            }
                         } else {
                             alert('Failed to delete reservation.');
                         }
@@ -689,9 +789,26 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 .then(response => response.text())
                 .then(data => {
                     if (data.trim() === 'success') {
-                        card.remove();
-                        // Optionally, reload the page to show restored booking in main list
-                        location.reload();
+                        // Show toast and reload page for real-time update
+                        var toastEl = document.getElementById('restoreToast');
+                        if (toastEl) {
+                            toastEl.style.display = '';
+                            var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 2000 });
+                            toast.show();
+                            setTimeout(function() { location.reload(); }, 1800);
+                        } else {
+                            location.reload();
+                        }
+                        // Update trash count badge in real time
+                        var trashBtnText = document.getElementById('trashBtnText');
+                        if (trashBtnText) {
+                            // Find the number in parentheses and decrement it
+                            var match = trashBtnText.textContent.match(/\((\d+)\)/);
+                            if (match) {
+                                var count = Math.max(0, parseInt(match[1], 10) - 1);
+                                trashBtnText.textContent = 'Trash (' + count + ')';
+                            }
+                        }
                     } else {
                         alert('Failed to restore reservation.');
                     }
@@ -780,6 +897,34 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         deleteSelectedBtn.disabled = true;
                         var modal = bootstrap.Modal.getInstance(confirmDeleteSelectedModal);
                         if (modal) modal.hide();
+
+                        // Update trash list in real time
+                        fetch('reservations.php?get_trash_html=1')
+                            .then(response => response.text())
+                            .then(html => {
+                                var trashList = document.getElementById('trashBookingList');
+                                if (trashList) trashList.innerHTML = html;
+                            });
+
+                        // Update trash count badge in real time
+                        var trashBtnText = document.getElementById('trashBtnText');
+                        if (trashBtnText) {
+                            var match = trashBtnText.textContent.match(/\((\d+)\)/);
+                            if (match) {
+                                var count = parseInt(match[1], 10) + ids.length;
+                                trashBtnText.textContent = 'Trash (' + count + ')';
+                            }
+                        }
+                        // Show toast for moving to trash (delete selected)
+                        var toastEl = document.getElementById('trashToast');
+                        if (toastEl) {
+                            toastEl.style.display = '';
+                            var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 2000 });
+                            toast.show();
+                            setTimeout(function() { location.reload(); }, 1800);
+                        } else {
+                            location.reload();
+                        }
                     });
                 });
             }
@@ -797,7 +942,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
               .then(response => response.text())
               .then(data => {
                 if (data.trim() === 'success') {
-                  location.reload(); // Refresh the page to update both lists
+                  var toastEl = document.getElementById('restoreToast');
+                  if (toastEl) {
+                    toastEl.style.display = '';
+                    var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 2000 });
+                    toast.show();
+                    setTimeout(function() { location.reload(); }, 1800);
+                  } else {
+                    location.reload();
+                  }
                 } else {
                   alert('Failed to restore reservation.');
                 }
@@ -814,7 +967,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
               .then(response => response.text())
               .then(data => {
                 if (data.trim() === 'success') {
-                  location.reload(); // Refresh the page to update both lists
+                  var toastEl = document.getElementById('permanentDeleteToast');
+                  if (toastEl) {
+                    toastEl.style.display = '';
+                    var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 2000 });
+                    toast.show();
+                    setTimeout(function() { location.reload(); }, 1800);
+                  } else {
+                    location.reload();
+                  }
                 } else {
                   alert('Failed to delete reservation.');
                 }

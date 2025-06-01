@@ -494,5 +494,12 @@ $conn->close();
       </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    setInterval(updateNotifTrashCount, 2000); // for every 2 seconds
+    var trashModal = document.getElementById('trashModal');
+    trashModal.addEventListener('hidden.bs.modal', function () {
+        document.body.focus(); // or focus another visible element
+    });
+    </script>
 </body>
 </html> 
