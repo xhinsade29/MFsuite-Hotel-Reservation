@@ -701,31 +701,7 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
 
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
     <!-- Booking Success Modal -->
-    <div class="modal fade" id="bookingSuccessModal" tabindex="-1" aria-labelledby="bookingSuccessLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-success text-white">
-            <h5 class="modal-title" id="bookingSuccessLabel">Booking Successful!</h5>
-          </div>
-          <div class="modal-body">
-            Your booking was successful. Where would you like to go next?
-          </div>
-          <div class="modal-footer">
-            <a href="reservations.php" class="btn btn-primary">My Bookings</a>
-            <a href="../index.php" class="btn btn-secondary">Back to Home</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var modal = new bootstrap.Modal(document.getElementById('bookingSuccessModal'));
-        modal.show();
-        setTimeout(function() {
-          window.location.href = 'reservations.php';
-        }, 3000); // 3 seconds
-      });
-    </script>
+    <!-- REMOVE THIS MODAL AND SCRIPT -->
     <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

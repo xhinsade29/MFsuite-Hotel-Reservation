@@ -14,6 +14,22 @@ if (isset($_SESSION['guest_id'])) {
     $stmt->fetch();
     $stmt->close();
 }
+// Fetch guest name for profile display
+$display_name = 'Guest User';
+$avatar_name = 'Guest User';
+if (isset($_SESSION['guest_id'])) {
+    $guest_id = $_SESSION['guest_id'];
+    $sql = "SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ? LIMIT 1";
+    $stmt = $mycon->prepare($sql);
+    $stmt->bind_param("i", $guest_id);
+    $stmt->execute();
+    $stmt->bind_result($first_name, $last_name);
+    if ($stmt->fetch()) {
+        $display_name = trim($first_name . ' ' . $last_name);
+        $avatar_name = urlencode(trim($first_name . ' ' . $last_name));
+    }
+    $stmt->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -163,6 +179,38 @@ if (isset($_SESSION['guest_id'])) {
         body.light-mode .notification-empty, .light-mode .notification-empty {
             color: #bdbdbd !important;
         }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: relative; /* Ensure dropdown is positioned relative to this */
+        }
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 60px;
+            min-width: 180px;
+            background: #23234a;
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(31,38,135,0.18);
+            z-index: 3000;
+            padding: 0.5rem 0;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .profile-dropdown .dropdown-item {
+            display: block;
+            padding: 12px 22px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+        .profile-dropdown .dropdown-item:hover {
+            background: #ff8c00;
+            color: #fff;
+        }
     </style>
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
@@ -188,12 +236,19 @@ if (isset($_SESSION['guest_id'])) {
                     <span class="badge" id="notifBadge"><?php echo $unread_count; ?></span>
                 <?php endif; ?>
             </a>
-            <button class="profile-trigger">
-                <img src="https://ui-avatars.com/api/?name=Guest+User&background=FF8C00&color=fff" 
+            <div style="position:relative;">
+            <button class="profile-trigger" id="profileDropdownBtn">
+                <img src="https://ui-avatars.com/api/?name=<?php echo $avatar_name; ?>&background=FF8C00&color=fff" 
                      alt="User" class="avatar">
-                <span class="username">Guest User</span>
+                <span class="username"><?php echo htmlspecialchars($display_name); ?></span>
                 <i class="bi bi-chevron-down"></i>
             </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="../pages/logout.php" class="dropdown-item">
+                    <i class="bi bi-box-arrow-right me-2"></i> Log Out
+                </a>
+            </div>
+            </div>
         </div>
     </div>
 </nav>
@@ -257,6 +312,21 @@ document.getElementById('notifBell').addEventListener('click', function(e) {
             window.location.href = '../pages/notifications.php';
         });
 });
+
+// Profile dropdown logic
+const profileBtn = document.getElementById('profileDropdownBtn');
+const profileDropdown = document.getElementById('profileDropdown');
+if (profileBtn && profileDropdown) {
+    profileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        profileDropdown.style.display = (profileDropdown.style.display === 'block') ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+        if (profileDropdown.style.display === 'block') {
+            profileDropdown.style.display = 'none';
+        }
+    });
+}
 </script>
 
 </body>
