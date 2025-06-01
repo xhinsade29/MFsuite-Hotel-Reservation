@@ -1,0 +1,114 @@
+<?php
+session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+include('../functions/db_connect.php');
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Store form data in session
+    $_SESSION['form_data'] = [
+        'firstname' => $_POST['firstname'],
+        'middlename' => $_POST['middlename'],
+        'lastname' => $_POST['lastname'],
+        'phone' => $_POST['phone'],
+        'email' => $_POST['email'],
+        'address' => $_POST['address']
+    ];
+
+    // Get form data
+    $first_name = mysqli_real_escape_string($mycon, $_POST['firstname']);
+    $middle_name = mysqli_real_escape_string($mycon, $_POST['middlename']);
+    $last_name = mysqli_real_escape_string($mycon, $_POST['lastname']);
+    $phone_number = mysqli_real_escape_string($mycon, $_POST['phone']);
+    $user_email = mysqli_real_escape_string($mycon, $_POST['email']);
+    $address = mysqli_real_escape_string($mycon, $_POST['address']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+
+    // Password validation
+    if (strlen($password) < 8) {
+        $_SESSION['error'] = "Password must be at least 8 characters long";
+        header("Location: register.php");
+        exit();
+    }
+
+    if (!preg_match("/[A-Z]/", $password)) {
+        $_SESSION['error'] = "Password must contain at least one uppercase letter";
+        header("Location: register.php");
+        exit();
+    }
+
+    if (!preg_match("/[a-z]/", $password)) {
+        $_SESSION['error'] = "Password must contain at least one lowercase letter";
+        header("Location: register.php");
+        exit();
+    }
+
+    if (!preg_match("/[0-9]/", $password)) {
+        $_SESSION['error'] = "Password must contain at least one number";
+        header("Location: register.php");
+        exit();
+    }
+
+    // Validate passwords match
+    if ($password !== $confirm_password) {
+        $_SESSION['error'] = "Passwords do not match";
+        header("Location: register.php");
+        exit();
+    }
+
+    // Check if email already exists
+    $check_email = "SELECT * FROM tbl_guest WHERE user_email = ?";
+    $stmt = mysqli_prepare($mycon, $check_email);
+    mysqli_stmt_bind_param($stmt, "s", $user_email);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    if ($result->num_rows > 0) {
+        $_SESSION['error'] = "Email already exists";
+        header("Location: register.php");
+        exit();
+    }
+
+    // Store actual password (NOT RECOMMENDED for security reasons)
+    $actual_password = $password;
+
+    // Insert new guest
+    $sql = "INSERT INTO tbl_guest (first_name, middle_name, last_name, phone_number, user_email, password, address, date_created) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+    
+    $stmt = mysqli_prepare($mycon, $sql);
+    mysqli_stmt_bind_param($stmt, "sssssss", $first_name, $middle_name, $last_name, $phone_number, $user_email, $actual_password, $address);
+
+    if (mysqli_stmt_execute($stmt)) {
+        // Get the new guest's ID
+        $guest_id = mysqli_insert_id($mycon);
+
+        // Set session variables with original values
+        $_SESSION['guest_id'] = $guest_id;
+        $_SESSION['first_name'] = $first_name;
+        $_SESSION['last_name'] = $last_name;
+        $_SESSION['user_email'] = $user_email;
+        $_SESSION['phone_number'] = $phone_number;
+
+        // Set success message
+        $_SESSION['success'] = "Registration successful! Welcome to MF Suites Hotel.";
+        
+        // Clear form data from session
+        unset($_SESSION['form_data']);
+        
+        // Redirect to index.php
+        header("Location: ../index.php");
+        exit();
+    } else {
+        $_SESSION['error'] = "Registration failed: " . mysqli_error($mycon);
+        error_log("Registration error: " . mysqli_error($mycon));
+        header("Location: register.php");
+        exit();
+    }
+} else {
+    header("Location: register.php");
+    exit();
+}
+?> 
