@@ -21,6 +21,15 @@ if ($cancellation_count > $_SESSION['last_cancellation_count']) {
     $show_cancellation_toast = true;
     $_SESSION['last_cancellation_count'] = $cancellation_count;
 }
+// Latest 5 reservations
+$recent_res_sql = "
+    SELECT r.status, g.first_name, g.last_name, r.check_in
+    FROM tbl_reservation r
+    LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id
+    ORDER BY r.date_created DESC
+    LIMIT 5
+";
+$recent_res = mysqli_query($mycon, $recent_res_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -222,6 +231,43 @@ if ($cancellation_count > $_SESSION['last_cancellation_count']) {
                 <span class="summary-label">Total Income</span>
                 <span class="summary-value" id="totalIncomeValue">₱<?php echo number_format($total_income, 2); ?></span>
             </div>
+        </div>
+    </div>
+    <!-- Recent Activities Section -->
+    <div class="table-section mb-4">
+        <div class="table-title d-flex align-items-center">
+            <i class="bi bi-clock-history me-2"></i> Recent Activities
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Guest</th>
+                        <th>Check-in Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    if ($recent_res && mysqli_num_rows($recent_res) > 0) {
+                        while ($row = mysqli_fetch_assoc($recent_res)) {
+                            echo '<tr>';
+                            echo '<td><span class="badge bg-'.(
+                                $row['status']=='approved'?'success':(
+                                $row['status']=='cancelled'?'danger':(
+                                $row['status']=='denied'?'warning text-dark':(
+                                $row['status']=='completed'?'primary':(
+                                $row['status']=='cancellation_requested'?'info text-dark':'secondary'))))).'">'.ucfirst($row['status']).'</span></td>';
+                            echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
+                            echo '<td>' . date('M d, Y', strtotime($row['check_in'])) . '</td>';
+                            echo '</tr>';
+                        }
+                    } else {
+                        echo '<tr><td colspan="3" class="text-center text-secondary">No recent reservations.</td></tr>';
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
     <!-- Modals for summary details -->
