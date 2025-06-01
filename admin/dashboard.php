@@ -112,37 +112,111 @@ if ($cancellation_count > $_SESSION['last_cancellation_count']) {
     $total_income = floatval($non_cash_income) + floatval($cash_income);
     if ($total_income === null) $total_income = 0;
     $pending_admin_approval = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'pending'"))[0];
+    // --- New quick stats ---
+    $todays_checkins = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(check_in) = CURDATE()"))[0];
+    $todays_checkouts = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(check_out) = CURDATE()"))[0];
+    $pending_reservations = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'pending'"))[0];
+    $completed_reservations = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'completed'"))[0];
+    $revenue_today = mysqli_fetch_row(mysqli_query($mycon, "SELECT SUM(amount) FROM tbl_payment WHERE payment_status = 'Paid' AND DATE(payment_created) = CURDATE()"))[0] ?? 0;
+    $revenue_month = mysqli_fetch_row(mysqli_query($mycon, "SELECT SUM(amount) FROM tbl_payment WHERE payment_status = 'Paid' AND YEAR(payment_created) = YEAR(CURDATE()) AND MONTH(payment_created) = MONTH(CURDATE())"))[0] ?? 0;
+    $cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'cancelled'"))[0];
+    $denied_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'denied'"))[0];
     ?>
+    <div class="mb-3 d-flex justify-content-end">
+      <select id="cardFilter" class="form-select w-auto" style="min-width:180px;">
+        <option value="all">Show All</option>
+        <option value="reservations" selected>Reservations</option>
+        <option value="revenue">Revenue</option>
+        <option value="rooms">Rooms</option>
+        <option value="requests">Requests</option>
+      </select>
+    </div>
     <div class="summary-cards">
-        <div class="summary-card clickable" id="availableRoomsCard">
+        <div class="summary-card rooms clickable" id="availableRoomsCard">
             <span class="summary-icon"><i class="bi bi-door-open-fill"></i></span>
             <div class="summary-info">
                 <span class="summary-label">Available Rooms</span>
                 <span class="summary-value" id="availableRoomsValue"><?php echo $available_rooms; ?></span>
             </div>
         </div>
-        <div class="summary-card clickable" id="occupiedRoomsCard">
+        <div class="summary-card rooms clickable" id="occupiedRoomsCard">
             <span class="summary-icon"><i class="bi bi-door-closed-fill"></i></span>
             <div class="summary-info">
                 <span class="summary-label">Occupied Rooms</span>
                 <span class="summary-value" id="occupiedRoomsValue"><?php echo $occupied_rooms; ?></span>
             </div>
         </div>
-        <div class="summary-card clickable" id="totalBookingsCard">
+        <div class="summary-card reservations">
+            <span class="summary-icon"><i class="bi bi-calendar2-check"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Today's Check-ins</span>
+                <span class="summary-value"><?php echo $todays_checkins; ?></span>
+            </div>
+        </div>
+        <div class="summary-card reservations">
+            <span class="summary-icon"><i class="bi bi-calendar2-x"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Today's Check-outs</span>
+                <span class="summary-value"><?php echo $todays_checkouts; ?></span>
+            </div>
+        </div>
+        <div class="summary-card reservations">
+            <span class="summary-icon"><i class="bi bi-hourglass-split"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Pending Reservations</span>
+                <span class="summary-value"><?php echo $pending_reservations; ?></span>
+            </div>
+        </div>
+        <div class="summary-card reservations">
+            <span class="summary-icon"><i class="bi bi-check-circle"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Completed Reservations</span>
+                <span class="summary-value"><?php echo $completed_reservations; ?></span>
+            </div>
+        </div>
+        <div class="summary-card revenue">
+            <span class="summary-icon"><i class="bi bi-cash"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Revenue Today</span>
+                <span class="summary-value">₱<?php echo number_format($revenue_today, 2); ?></span>
+            </div>
+        </div>
+        <div class="summary-card revenue">
+            <span class="summary-icon"><i class="bi bi-cash-coin"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Revenue This Month</span>
+                <span class="summary-value">₱<?php echo number_format($revenue_month, 2); ?></span>
+            </div>
+        </div>
+        <div class="summary-card requests">
+            <span class="summary-icon"><i class="bi bi-x-circle"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Cancelled Requests</span>
+                <span class="summary-value"><?php echo $cancelled_requests; ?></span>
+            </div>
+        </div>
+        <div class="summary-card requests">
+            <span class="summary-icon"><i class="bi bi-slash-circle"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Denied Requests</span>
+                <span class="summary-value"><?php echo $denied_requests; ?></span>
+            </div>
+        </div>
+        <div class="summary-card reservations clickable" id="totalBookingsCard">
             <span class="summary-icon"><i class="bi bi-calendar2-check-fill"></i></span>
             <div class="summary-info">
                 <span class="summary-label">Total Bookings</span>
                 <span class="summary-value" id="totalBookingsValue"><?php echo $total_bookings; ?></span>
             </div>
         </div>
-        <div class="summary-card clickable" id="totalGuestsCard">
+        <div class="summary-card reservations clickable" id="totalGuestsCard">
             <span class="summary-icon"><i class="bi bi-people-fill"></i></span>
             <div class="summary-info">
                 <span class="summary-label">Total Guests</span>
                 <span class="summary-value" id="totalGuestsValue"><?php echo $total_guests; ?></span>
             </div>
         </div>
-        <div class="summary-card clickable" id="totalIncomeCard">
+        <div class="summary-card revenue clickable" id="totalIncomeCard">
             <span class="summary-icon"><i class="bi bi-cash-stack"></i></span>
             <div class="summary-info">
                 <span class="summary-label">Total Income</span>
@@ -163,145 +237,6 @@ if ($cancellation_count > $_SESSION['last_cancellation_count']) {
           </div>
         </div>
       </div>
-    </div>
-    <div class="table-section mt-4">
-        <div class="table-title">Pending Cancellation Requests</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Reason</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $cancel_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, cr.reason_text FROM tbl_reservation r JOIN cancelled_reservation c ON r.reservation_id = c.reservation_id JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_cancellation_reason cr ON c.reason_id = cr.reason_id WHERE r.status = 'cancellation_requested' ORDER BY r.date_created DESC";
-            $cancel_res = mysqli_query($mycon, $cancel_sql);
-            if ($cancel_res && mysqli_num_rows($cancel_res) > 0) {
-                while ($row = mysqli_fetch_assoc($cancel_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['reason_text']) . '</td>';
-                    echo '<td>';
-                    echo '<form method="POST" action="process_cancellation.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form> ';
-                    echo '<form method="POST" action="process_cancellation.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<button type="submit" name="action" value="deny" class="btn btn-danger btn-sm">Deny</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="6" class="text-center text-secondary">No pending cancellation requests.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
-    </div>
-    <div class="table-section mt-4">
-        <div class="table-title">Pending Cash Payment Bookings</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Room</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Amount</th>
-                    <th>Reference #</th>
-                    <th>Payment Method</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $cash_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, rt.type_name, p.amount, p.reference_number, p.payment_method FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND r.status = 'pending' ORDER BY r.date_created DESC";
-            $cash_res = mysqli_query($mycon, $cash_sql);
-            if ($cash_res && mysqli_num_rows($cash_res) > 0) {
-                while ($row = mysqli_fetch_assoc($cash_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>₱' . number_format($row['amount'], 2) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['reference_number']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['payment_method']) . '</td>';
-                    echo '<td>';
-                    echo '<form method="POST" action="process_cash_approval.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="9" class="text-center text-secondary">No pending cash payment bookings.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
-    </div>
-    <div class="table-section mt-4">
-        <div class="table-title">Reservations Pending Admin Approval</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Room</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Payment Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $pending_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name, p.payment_status FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE r.status = 'pending' ORDER BY r.date_created DESC";
-            $pending_res = mysqli_query($mycon, $pending_sql);
-            if ($pending_res && mysqli_num_rows($pending_res) > 0) {
-                while ($row = mysqli_fetch_assoc($pending_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['payment_status']) . '</td>';
-                    echo '<td>';
-                    echo '<form method="POST" action="process_update_status.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<input type="hidden" name="action" value="approve_reservation">';
-                    echo '<button type="submit" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="7" class="text-center text-secondary">No reservations pending admin approval.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
     </div>
 </div>
 <script>
@@ -341,6 +276,25 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('totalIncomeCard').onclick = function() {
         fetchSummary('total_income', 'All Payments');
     };
+    document.getElementById('cardFilter').addEventListener('change', function() {
+        var value = this.value;
+        var cards = document.querySelectorAll('.summary-card');
+        if (value === 'all') {
+            cards.forEach(card => card.style.display = '');
+        } else {
+            cards.forEach(card => {
+                if (card.classList.contains(value)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    });
+    // Trigger filter on page load to apply default
+    window.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('cardFilter').dispatchEvent(new Event('change'));
+    });
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
