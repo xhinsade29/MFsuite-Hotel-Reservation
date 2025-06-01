@@ -269,8 +269,8 @@ mysqli_stmt_close($trans_stmt);
             <div class="col-lg-10">
                 <div class="card shadow">
                     <div class="card-header text-center">
-                        <img src="../assets/MFsuites_logo.png" alt="Hotel Logo" class="img-fluid" style="max-height: 100px;" />
-                        <h3 class="mt-3">Update Profile</h3>
+                        <!-- <img src="../assets/MFsuites_logo.png" alt="Hotel Logo" class="img-fluid" style="max-height: 100px;" /> -->
+                        <h3 class="mt-3">User Profile</h3>
                     </div>
                     <div class="card-body">
                         <!-- Wallet Balance and Actions -->
