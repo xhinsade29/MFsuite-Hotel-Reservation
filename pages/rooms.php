@@ -1,7 +1,7 @@
 <?php
 include('../functions/db_connect.php');
 
-// Fetch room types with their services
+// Fetch room types with their services and image
 $sql = "SELECT rt.*, 
         GROUP_CONCAT(
             CONCAT(s.service_name, '|', s.service_description) 
@@ -13,7 +13,7 @@ $sql = "SELECT rt.*,
         GROUP BY rt.room_type_id";
 $result = mysqli_query($mycon, $sql);
 
-// Map room types to their image files
+// Map room types to their image files (fallback)
 $room_images = [
     1 => 'standard.avif',      // Standard Room
     2 => 'deluxe1.jpg',        // Deluxe Room
@@ -477,15 +477,15 @@ $room_images = [
             <?php
             if ($result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    $image_file = $room_images[$row['room_type_id']] ?? 'standard.avif';
-                    
+                    // Use uploaded image if available, else fallback
+                    $image_file = !empty($row['image']) ? $row['image'] : ($room_images[$row['room_type_id']] ?? 'standard.avif');
                     echo '<div class="card">';
                     echo '<img src="../assets/rooms/' . htmlspecialchars($image_file) . '" alt="' . htmlspecialchars($row['type_name']) . '" class="card-image" onerror="this.src=\'../assets/rooms/standard.avif\'">';
                     echo '<div class="card-content">';
                     echo '<h3>' . htmlspecialchars($row['type_name']) . '</h3>';
                     echo '<p>' . htmlspecialchars($row['description']) . '</p>';
                     echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
-                    echo '<p class="price">₱' . number_format($row['room_price'], 2) . '</p>';
+                    echo '<p class="price">₱' . number_format($row['nightly_rate'], 2) . '</p>';
                     echo '<button class="see-details-btn mt-3" onclick="window.location.href=\'booking_form.php?room_type_id=' . urlencode($row['room_type_id']) . '\';">See Details</button>';
                     echo '</div></div>';
                 }
@@ -540,8 +540,6 @@ $room_images = [
         </div>
     </div>
 
-    <?php include('../components/footer.php'); ?>
-
     <!-- Bootstrap JS (required for modal) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -587,7 +585,7 @@ $room_images = [
             modalTitle.textContent = roomData.type_name;
             modalDescription.textContent = roomData.description;
             modalOccupancy.textContent = `Max Occupancy: ${roomData.max_occupancy}`;
-            modalPrice.textContent = `₱${parseFloat(roomData.room_price).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            modalPrice.textContent = `₱${parseFloat(roomData.nightly_rate).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
             // Display services with descriptions
             modalServices.innerHTML = '';
@@ -612,7 +610,7 @@ $room_images = [
 
             // Set booking form values
             document.getElementById('modalRoomTypeId').value = roomData.room_type_id;
-            document.getElementById('modalTotalAmountInput').value = parseFloat(roomData.room_price).toLocaleString('en-US', {minimumFractionDigits:2});
+            document.getElementById('modalTotalAmountInput').value = parseFloat(roomData.nightly_rate).toLocaleString('en-US', {minimumFractionDigits:2});
 
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';

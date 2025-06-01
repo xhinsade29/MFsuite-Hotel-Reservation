@@ -1,6 +1,3 @@
-
-
-
 <?php
 session_start();
 error_reporting(E_ALL);
@@ -25,6 +22,18 @@ $user = mysqli_fetch_assoc($result);
 
 // Get profile picture path
 $profile_pic = !empty($user['profile_picture']) ? '../uploads/profile_pictures/' . $user['profile_picture'] : '../assets/default_profile.png';
+
+// Fetch wallet transactions for the user
+$transactions = [];
+$trans_sql = "SELECT * FROM wallet_transactions WHERE guest_id = ? ORDER BY created_at DESC";
+$trans_stmt = mysqli_prepare($mycon, $trans_sql);
+mysqli_stmt_bind_param($trans_stmt, "i", $guest_id);
+mysqli_stmt_execute($trans_stmt);
+$trans_result = mysqli_stmt_get_result($trans_stmt);
+while ($row = mysqli_fetch_assoc($trans_result)) {
+    $transactions[] = $row;
+}
+mysqli_stmt_close($trans_stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -185,101 +194,241 @@ $profile_pic = !empty($user['profile_picture']) ? '../uploads/profile_pictures/'
 
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-lg-8 col-md-10">
+            <div class="col-lg-10">
                 <div class="card shadow">
                     <div class="card-header text-center">
                         <img src="../assets/MFsuites_logo.png" alt="Hotel Logo" class="img-fluid" style="max-height: 100px;" />
                         <h3 class="mt-3">Update Profile</h3>
                     </div>
                     <div class="card-body">
-                        <form action="process_update_profile.php" method="POST" enctype="multipart/form-data">
-                            <div class="text-center mb-4">
-                                <div class="profile-picture-container">
-                                    <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture" id="profile-preview">
-                                    <label class="profile-picture-upload">
-                                        <i class="bi bi-camera-fill text-white"></i>
-                                        <input type="file" name="profile_picture" accept="image/*" onchange="previewImage(this)">
-                                    </label>
+                        <!-- Wallet Balance and Actions -->
+                        <div class="mb-4 p-3 rounded d-flex align-items-center justify-content-between" style="background:#23234a;">
+                            <div>
+                                <div class="mb-1 text-light" style="font-size:0.98em;">
+                                    <i class="bi bi-credit-card-2-front me-1"></i> <strong>Wallet Number:</strong> <span class="text-info"><?php echo htmlspecialchars($user['wallet_id']); ?></span>
                                 </div>
+                                <h5 class="mb-0 text-warning">
+                                    <i class="bi bi-wallet-fill me-2"></i> Wallet Balance:
+                                    <span class="fw-bold">₱<?php echo number_format($user['wallet_balance'], 2); ?></span>
+                                </h5>
                             </div>
+                            <div>
+                                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#topupModal">
+                                    <i class="bi bi-plus-circle"></i> Top Up
+                                </button>
+                                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#walletHistoryModal">
+                                    <i class="bi bi-clock-history"></i> View History
+                                </button>
+                            </div>
+                        </div>
+                        <!-- End Wallet Balance and Actions -->
 
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">First Name</label>
-                                        <input type="text" class="form-control" name="firstname" value="<?php echo htmlspecialchars($user['first_name']); ?>" required>
+                        <!-- Top Up Modal -->
+                        <div class="modal fade" id="topupModal" tabindex="-1" aria-labelledby="topupModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content bg-dark text-light">
+                              <div class="modal-header border-0">
+                                <h5 class="modal-title text-warning" id="topupModalLabel"><i class="bi bi-wallet2 me-2"></i>Top Up Wallet</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <form action="process_topup.php" method="POST">
+                                <div class="modal-body">
+                                  <div class="mb-3 text-center" id="referenceNumberDisplay" style="display:none;">
+                                    <label class="form-label text-light mb-1" for="referenceNumberText">Reference Number</label>
+                                    <input type="text" class="form-control-plaintext text-info fs-5 fw-semibold text-center" id="referenceNumberText" readonly style="background:transparent; border:none; outline:none; box-shadow:none;">
+                                  </div>
+                                  <div class="mb-3">
+                                    <label for="topupAmount" class="form-label">Amount</label>
+                                    <input type="number" name="topup_amount" id="topupAmount" min="1" step="0.01" class="form-control" placeholder="Enter amount" required>
+                                  </div>
+                                  <div class="mb-3">
+                                    <label for="paymentMethod" class="form-label">Select Payment Method</label>
+                                    <select name="payment_method" id="paymentMethod" class="form-select" required onchange="updateReferenceNumber()">
+                                      <option value="">Select payment method</option>
+                                      <option value="GCash" <?php echo empty($user['gcash_number']) ? 'disabled' : ''; ?>>GCash</option>
+                                      <option value="Bank" <?php echo empty($user['bank_account_number']) ? 'disabled' : ''; ?>>Bank</option>
+                                      <option value="PayPal" <?php echo empty($user['paypal_email']) ? 'disabled' : ''; ?>>PayPal</option>
+                                      <option value="Credit Card" <?php echo empty($user['credit_card_number']) ? 'disabled' : ''; ?>>Credit Card</option>
+                                    </select>
+                                  </div>
+                                </div>
+                                <div class="modal-footer border-0">
+                                  <button type="submit" class="btn btn-success"><i class="bi bi-plus-circle"></i> Top Up</button>
+                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- End Top Up Modal -->
+
+                        <!-- Wallet History Modal -->
+                        <div class="modal fade" id="walletHistoryModal" tabindex="-1" aria-labelledby="walletHistoryModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content bg-dark text-light">
+                              <div class="modal-header border-0">
+                                <h5 class="modal-title text-info" id="walletHistoryModalLabel"><i class="bi bi-clock-history me-2"></i>Wallet Transaction History</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <div class="modal-body">
+                                <?php if (count($transactions) > 0): ?>
+                                <div class="table-responsive">
+                                  <table class="table table-dark table-striped table-bordered align-middle mb-0">
+                                    <thead>
+                                      <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Amount (₱)</th>
+                                        <th>Payment Method</th>
+                                        <th>Reference Number</th>
+                                        <th>Description</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <?php foreach ($transactions as $t): ?>
+                                      <tr>
+                                        <td><?php echo date('Y-m-d H:i', strtotime($t['created_at'])); ?></td>
+                                        <td><?php echo ucfirst($t['type']); ?></td>
+                                        <td class="text-<?php echo $t['type'] === 'topup' || $t['type'] === 'refund' ? 'success' : 'danger'; ?>">
+                                          <?php echo number_format($t['amount'], 2); ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($t['payment_method'] ?? '-'); ?></td>
+                                        <td><?php echo htmlspecialchars($t['reference_number'] ?? '-'); ?></td>
+                                        <td><?php echo htmlspecialchars($t['description']); ?></td>
+                                      </tr>
+                                      <?php endforeach; ?>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <?php else: ?>
+                                <div class="text-muted">No wallet transactions yet.</div>
+                                <?php endif; ?>
+                              </div>
+                              <div class="modal-footer border-0">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- End Wallet History Modal -->
+
+                        <div class="row">
+                            <!-- Left: User Info & Password -->
+                            <div class="col-md-6 border-end" style="padding-right:2rem;">
+                                <h4 class="mb-4 text-warning"><i class="bi bi-person-circle me-2"></i>User Information</h4>
+                                <form action="process_update_profile.php" method="POST" enctype="multipart/form-data">
+                                    <input type="hidden" name="update_type" value="user">
+                                    <div class="text-center mb-4">
+                                        <div class="profile-picture-container">
+                                            <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture" id="profile-preview">
+                                            <label class="profile-picture-upload">
+                                                <i class="bi bi-camera-fill text-white"></i>
+                                                <input type="file" name="profile_picture" accept="image/*" onchange="previewImage(this)">
+                                            </label>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Middle Name</label>
-                                        <input type="text" class="form-control" name="middlename" value="<?php echo htmlspecialchars($user['middle_name']); ?>">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label">First Name</label>
+                                                <input type="text" class="form-control" name="firstname" value="<?php echo htmlspecialchars($user['first_name']); ?>" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label">Middle Name</label>
+                                                <input type="text" class="form-control" name="middlename" value="<?php echo htmlspecialchars($user['middle_name']); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label">Last Name</label>
+                                                <input type="text" class="form-control" name="lastname" value="<?php echo htmlspecialchars($user['last_name']); ?>" required>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Last Name</label>
-                                        <input type="text" class="form-control" name="lastname" value="<?php echo htmlspecialchars($user['last_name']); ?>" required>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Phone Number</label>
+                                                <input type="tel" class="form-control" name="phone" value="<?php echo htmlspecialchars($user['phone_number']); ?>" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Email Address</label>
+                                                <input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($user['user_email']); ?>" required>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-control" name="phone" value="<?php echo htmlspecialchars($user['phone_number']); ?>" required>
+                                        <label class="form-label">Address</label>
+                                        <textarea class="form-control" name="address" rows="2" required><?php echo htmlspecialchars($user['address']); ?></textarea>
                                     </div>
-                                </div>
-                                <div class="col-md-6">
+                                    <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
+                                    <h5 class="mb-3 text-info"><i class="bi bi-key me-2"></i>Change Password</h5>
                                     <div class="mb-3">
-                                        <label class="form-label">Email Address</label>
-                                        <input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($user['user_email']); ?>" required>
+                                        <label class="form-label">Current Password</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" name="current_password" id="current_password">
+                                            <button class="btn" type="button" onclick="togglePassword('current_password')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">New Password</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" name="new_password" id="new_password">
+                                            <button class="btn" type="button" onclick="togglePassword('new_password')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Confirm New Password</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" name="confirm_password" id="confirm_password">
+                                            <button class="btn" type="button" onclick="togglePassword('confirm_password')">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid gap-2 mt-3">
+                                        <button type="submit" class="btn btn-primary">Update User Details</button>
+                                    </div>
+                                </form>
                             </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Address</label>
-                                <textarea class="form-control" name="address" rows="2" required><?php echo htmlspecialchars($user['address']); ?></textarea>
+                            <!-- Right: Payment Details -->
+                            <div class="col-md-6" style="padding-left:2rem;">
+                                <h4 class="mb-4 text-warning"><i class="bi bi-credit-card me-2"></i>Payment Methods</h4>
+                                <form action="process_update_profile.php" method="POST">
+                                    <input type="hidden" name="update_type" value="payment">
+                                    <div class="mb-3">
+                                        <label class="form-label">Bank Account Number</label>
+                                        <input type="text" class="form-control" name="bank_account_number" value="<?php echo htmlspecialchars($user['bank_account_number'] ?? ''); ?>">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">PayPal Email</label>
+                                        <input type="email" class="form-control" name="paypal_email" value="<?php echo htmlspecialchars($user['paypal_email'] ?? ''); ?>">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Credit Card Number</label>
+                                        <input type="text" class="form-control" name="credit_card_number" value="<?php echo htmlspecialchars($user['credit_card_number'] ?? ''); ?>">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">GCash Number</label>
+                                        <input type="text" class="form-control" name="gcash_number" value="<?php echo htmlspecialchars($user['gcash_number'] ?? ''); ?>">
+                                    </div>
+                                    <div class="d-grid gap-2 mt-3">
+                                        <button type="submit" class="btn btn-primary">Update Payment Details</button>
+                                    </div>
+                                </form>
                             </div>
-
-                            <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
-
-                            <h5 class="mb-3">Change Password</h5>
-                            <div class="mb-3">
-                                <label class="form-label">Current Password</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" name="current_password" id="current_password">
-                                    <button class="btn" type="button" onclick="togglePassword('current_password')">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">New Password</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" name="new_password" id="new_password">
-                                    <button class="btn" type="button" onclick="togglePassword('new_password')">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Confirm New Password</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" name="confirm_password" id="confirm_password">
-                                    <button class="btn" type="button" onclick="togglePassword('confirm_password')">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">Update Profile</button>
-                                <a href="../index.php" class="btn btn-outline-secondary">Back to Home</a>
-                            </div>
-                        </form>
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <a href="../index.php" class="btn btn-outline-secondary">Back to Home</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -307,6 +456,24 @@ $profile_pic = !empty($user['profile_picture']) ? '../uploads/profile_pictures/'
                     document.getElementById('profile-preview').src = e.target.result;
                 }
                 reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function generateReferenceNumber() {
+            // Generate a random 16-character hex string (8 bytes)
+            return Math.random().toString(16).substr(2, 8).toUpperCase() + Math.random().toString(16).substr(2, 8).toUpperCase();
+        }
+
+        function updateReferenceNumber() {
+            var select = document.getElementById('paymentMethod');
+            var display = document.getElementById('referenceNumberDisplay');
+            var text = document.getElementById('referenceNumberText');
+            if (select.value) {
+                text.value = generateReferenceNumber();
+                display.style.display = '';
+            } else {
+                display.style.display = 'none';
+                text.value = '';
             }
         }
 
