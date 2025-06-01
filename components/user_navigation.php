@@ -211,6 +211,31 @@ if (isset($_SESSION['guest_id'])) {
             background: #ff8c00;
             color: #fff;
         }
+        .search-results-dropdown {
+            border: 1px solid #ffe5b4;
+            border-top: none;
+            padding: 0;
+        }
+        .search-results-dropdown .search-result-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid #ffe5b4;
+            background: #fff;
+            color: #23234a;
+            font-weight: 500;
+            transition: background 0.13s;
+        }
+        .search-results-dropdown .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-results-dropdown .search-result-item:hover {
+            background: #ffe5b4;
+            color: #ff8c00;
+        }
+        body.light-mode .search-results-dropdown {
+            background: #fff !important;
+            color: #23234a !important;
+        }
     </style>
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
@@ -226,9 +251,10 @@ if (isset($_SESSION['guest_id'])) {
         </div>
 
         <div class="nav-right">
-            <div class="search-box">
-                <input type="search" placeholder="Search rooms...">
+            <div class="search-box" style="position:relative;">
+                <input type="search" placeholder="Search rooms..." id="roomSearchInput" autocomplete="off">
                 <i class="bi bi-search"></i>
+                <div id="roomSearchResults" class="search-results-dropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#fff;color:#23234a;z-index:3001;border-radius:0 0 12px 12px;box-shadow:0 8px 32px rgba(31,38,135,0.10);max-height:320px;overflow-y:auto;"></div>
             </div>
             <a href="#" class="notifications <?php echo ($unread_count > 0) ? 'has-unread' : ''; ?>" id="notifBell" style="position:relative;">
                 <i class="bi bi-bell"></i>
@@ -322,6 +348,51 @@ if (profileBtn && profileDropdown) {
     document.addEventListener('click', function(e) {
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
+        }
+    });
+}
+
+// Room type search logic
+const roomSearchInput = document.getElementById('roomSearchInput');
+const roomSearchResults = document.getElementById('roomSearchResults');
+if (roomSearchInput && roomSearchResults) {
+    let searchTimeout = null;
+    roomSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (searchTimeout) clearTimeout(searchTimeout);
+        if (query.length < 2) {
+            roomSearchResults.style.display = 'none';
+            roomSearchResults.innerHTML = '';
+            return;
+        }
+        searchTimeout = setTimeout(function() {
+            fetch('../pages/search_room_types.php?q=' + encodeURIComponent(query))
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        roomSearchResults.innerHTML = data.map(room =>
+                            `<div class='search-result-item' data-id='${room.room_type_id}'>
+                                <strong>${room.type_name}</strong><br>
+                                <span style='font-size:0.95em;color:#888;'>${room.description}</span>
+                            </div>`
+                        ).join('');
+                        roomSearchResults.style.display = 'block';
+                    } else {
+                        roomSearchResults.innerHTML = `<div class='search-result-item' style='color:#888;'>No results found.</div>`;
+                        roomSearchResults.style.display = 'block';
+                    }
+                });
+        }, 250);
+    });
+    roomSearchResults.addEventListener('click', function(e) {
+        const item = e.target.closest('.search-result-item');
+        if (item && item.dataset.id) {
+            window.location.href = '../pages/booking_form.php?room_type_id=' + encodeURIComponent(item.dataset.id);
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (!roomSearchResults.contains(e.target) && e.target !== roomSearchInput) {
+            roomSearchResults.style.display = 'none';
         }
     });
 }
