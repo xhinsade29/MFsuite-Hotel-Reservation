@@ -37,6 +37,8 @@ if ($amount > 0 && $payment_method !== '') {
         mysqli_stmt_execute($notif_stmt);
         mysqli_stmt_close($notif_stmt);
         $_SESSION['success'] = 'Wallet topped up successfully!<br>Your Reference Number: <b>' . htmlspecialchars($reference_number) . '</b>';
+        header('Location: update_profile.php?topup=success');
+        exit();
     } else {
         $_SESSION['error'] = 'Failed to top up wallet.';
     }

@@ -1,5 +1,6 @@
 <?php
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -50,6 +51,7 @@ mysqli_stmt_close($trans_stmt);
             --input-bg: rgb(0, 0, 0);
             --text-light: #ffffff;
             --text-muted: rgb(255, 255, 255);
+            --input-disabled-color: #ffa533;
         }
 
         body {
@@ -158,15 +160,74 @@ mysqli_stmt_close($trans_stmt);
         .toast-error {
             border-left: 4px solid #dc3545;
         }
+
+        .form-control:disabled, textarea.form-control:disabled {
+            background: var(--input-bg);
+            color: var(--input-disabled-color) !important;
+            opacity: 1;
+        }
+
+        body.light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .container, body.light-mode .card {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .form-label, body.light-mode label {
+            color: #23234a !important;
+        }
+        body.light-mode input, body.light-mode select, body.light-mode textarea {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode input:focus, body.light-mode select:focus, body.light-mode textarea:focus {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
+        }
+        body.light-mode .btn-primary, body.light-mode .btn-success, body.light-mode .btn-info {
+            background: linear-gradient(90deg, #ff8c00, #ffa533) !important;
+            color: #fff !important;
+            border: none !important;
+        }
+        body.light-mode .btn-outline-secondary {
+            border-color: #ff8c00 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .btn-outline-secondary:hover {
+            background: #ff8c00 !important;
+            color: #fff !important;
+        }
+        body.light-mode .alert-info {
+            background: #ffe5b4 !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .alert-danger {
+            background: #fff0e1 !important;
+            color: #c0392b !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .modal-content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .modal-header, body.light-mode .modal-footer {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+        }
+        /* End light mode overrides */
     </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
     <?php include '../components/user_navigation.php'; ?>
     
     <!-- Toast Container -->
     <div class="toast-container">
         <?php if (isset($_SESSION['success'])): ?>
-        <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+        <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" id="successToast">
             <div class="toast-header">
                 <i class="bi bi-check-circle-fill text-success me-2"></i>
                 <strong class="me-auto">Success</strong>
@@ -190,6 +251,17 @@ mysqli_stmt_close($trans_stmt);
             </div>
         </div>
         <?php endif; ?>
+        <!-- Toast for topup success via URL param -->
+        <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" id="topupToast" style="display:none;">
+            <div class="toast-header">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                Wallet topped up successfully!
+            </div>
+        </div>
     </div>
 
     <div class="container">
@@ -313,117 +385,75 @@ mysqli_stmt_close($trans_stmt);
                         <!-- End Wallet History Modal -->
 
                         <div class="row">
-                            <!-- Left: User Info & Password -->
+                            <!-- Left: User Info (Read-only) -->
                             <div class="col-md-6 border-end" style="padding-right:2rem;">
                                 <h4 class="mb-4 text-warning"><i class="bi bi-person-circle me-2"></i>User Information</h4>
-                                <form action="process_update_profile.php" method="POST" enctype="multipart/form-data">
-                                    <input type="hidden" name="update_type" value="user">
-                                    <div class="text-center mb-4">
-                                        <div class="profile-picture-container">
-                                            <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture" id="profile-preview">
-                                            <label class="profile-picture-upload">
-                                                <i class="bi bi-camera-fill text-white"></i>
-                                                <input type="file" name="profile_picture" accept="image/*" onchange="previewImage(this)">
-                                            </label>
+                                <div class="text-center mb-4">
+                                    <div class="profile-picture-container">
+                                        <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture" id="profile-preview">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">First Name</label>
+                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['first_name']); ?>" disabled>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">First Name</label>
-                                                <input type="text" class="form-control" name="firstname" value="<?php echo htmlspecialchars($user['first_name']); ?>" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">Middle Name</label>
-                                                <input type="text" class="form-control" name="middlename" value="<?php echo htmlspecialchars($user['middle_name']); ?>">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label class="form-label">Last Name</label>
-                                                <input type="text" class="form-control" name="lastname" value="<?php echo htmlspecialchars($user['last_name']); ?>" required>
-                                            </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Middle Name</label>
+                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['middle_name']); ?>" disabled>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Phone Number</label>
-                                                <input type="tel" class="form-control" name="phone" value="<?php echo htmlspecialchars($user['phone_number']); ?>" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label class="form-label">Email Address</label>
-                                                <input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($user['user_email']); ?>" required>
-                                            </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">Last Name</label>
+                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['last_name']); ?>" disabled>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Address</label>
-                                        <textarea class="form-control" name="address" rows="2" required><?php echo htmlspecialchars($user['address']); ?></textarea>
-                                    </div>
-                                    <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
-                                    <h5 class="mb-3 text-info"><i class="bi bi-key me-2"></i>Change Password</h5>
-                                    <div class="mb-3">
-                                        <label class="form-label">Current Password</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" name="current_password" id="current_password">
-                                            <button class="btn" type="button" onclick="togglePassword('current_password')">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Phone Number</label>
+                                            <input type="tel" class="form-control" value="<?php echo htmlspecialchars($user['phone_number']); ?>" disabled>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">New Password</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" name="new_password" id="new_password">
-                                            <button class="btn" type="button" onclick="togglePassword('new_password')">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Email Address</label>
+                                            <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['user_email']); ?>" disabled>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Confirm New Password</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" name="confirm_password" id="confirm_password">
-                                            <button class="btn" type="button" onclick="togglePassword('confirm_password')">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="d-grid gap-2 mt-3">
-                                        <button type="submit" class="btn btn-primary">Update User Details</button>
-                                    </div>
-                                </form>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" rows="2" disabled><?php echo htmlspecialchars($user['address']); ?></textarea>
+                                </div>
+                                <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
+                                <div class="alert alert-info mt-3">To update your profile, payment methods, or password, please go to <a href="settings.php" class="text-warning">Settings</a>.</div>
                             </div>
-                            <!-- Right: Payment Details -->
+                            <!-- Right: Payment Details (Read-only) -->
                             <div class="col-md-6" style="padding-left:2rem;">
                                 <h4 class="mb-4 text-warning"><i class="bi bi-credit-card me-2"></i>Payment Methods</h4>
-                                <form action="process_update_profile.php" method="POST">
-                                    <input type="hidden" name="update_type" value="payment">
-                                    <div class="mb-3">
-                                        <label class="form-label">Bank Account Number</label>
-                                        <input type="text" class="form-control" name="bank_account_number" value="<?php echo htmlspecialchars($user['bank_account_number'] ?? ''); ?>">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">PayPal Email</label>
-                                        <input type="email" class="form-control" name="paypal_email" value="<?php echo htmlspecialchars($user['paypal_email'] ?? ''); ?>">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Credit Card Number</label>
-                                        <input type="text" class="form-control" name="credit_card_number" value="<?php echo htmlspecialchars($user['credit_card_number'] ?? ''); ?>">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">GCash Number</label>
-                                        <input type="text" class="form-control" name="gcash_number" value="<?php echo htmlspecialchars($user['gcash_number'] ?? ''); ?>">
-                                    </div>
-                                    <div class="d-grid gap-2 mt-3">
-                                        <button type="submit" class="btn btn-primary">Update Payment Details</button>
-                                    </div>
-                                </form>
+                                <div class="mb-3">
+                                    <label class="form-label">Bank Account Number</label>
+                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['bank_account_number'] ?? ''); ?>" disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">PayPal Email</label>
+                                    <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['paypal_email'] ?? ''); ?>" disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Credit Card Number</label>
+                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['credit_card_number'] ?? ''); ?>" disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">GCash Number</label>
+                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['gcash_number'] ?? ''); ?>" disabled>
+                                </div>
+                                <div class="alert alert-info mt-3">To update your payment methods, please go to <a href="settings.php" class="text-warning">Settings</a>.</div>
                             </div>
                         </div>
                         <div class="d-grid gap-2 mt-4">
@@ -491,6 +521,39 @@ mysqli_stmt_close($trans_stmt);
                 toast.show();
             });
         });
+
+        // Show toast if ?topup=success is in the URL
+        document.addEventListener('DOMContentLoaded', function() {
+            var url = new URL(window.location.href);
+            if (url.searchParams.get('topup') === 'success' && !document.getElementById('successToast')) {
+                var topupToast = document.getElementById('topupToast');
+                if (topupToast) {
+                    topupToast.style.display = '';
+                    var toast = new bootstrap.Toast(topupToast, { autohide: true, delay: 3000 });
+                    toast.show();
+                }
+            }
+        });
+
+        function normalize_service_key($name) {
+            // Remove all non-alphanumeric, then remove spaces, then lowercase
+            return strtolower(str_replace(' ', '', trim(preg_replace('/[^a-zA-Z0-9 ]/', '', $name))));
+        }
+        $service_icons = [
+            'spa' => 'bi-spa',
+            'swimmingpool' => 'bi-water',
+            'restaurant' => 'bi-cup-straw',
+            'airportshuttle' => 'bi-bus-front',
+            'businesscenter' => 'bi-briefcase',
+            'concierge' => 'bi-person-badge',
+            'fitnesscenter' => 'bi-barbell',
+            'luggagestorage' => 'bi-suitcase',
+            'laundrydrycleaning' => 'bi-droplet',
+            'roomservice' => 'bi-door-open',
+            'housekeeping' => 'bi-bucket',
+            'conferenceroom' => 'bi-easel',
+            'wifi' => 'bi-wifi'
+        ];
     </script>
 </body>
 </html> 

@@ -1,5 +1,19 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
+include_once '../functions/db_connect.php';
 $current_page = basename($_SERVER['PHP_SELF']);
+$unread_count = 0;
+if (isset($_SESSION['guest_id'])) {
+    $guest_id = $_SESSION['guest_id'];
+    $sql = "SELECT COUNT(*) as cnt FROM user_notifications WHERE guest_id = ? AND is_read = 0";
+    $stmt = $mycon->prepare($sql);
+    $stmt->bind_param("i", $guest_id);
+    $stmt->execute();
+    $stmt->bind_result($unread_count);
+    $stmt->fetch();
+    $stmt->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,8 +26,146 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="../styles/user_navi_style.css">
+    <style>
+        /* Enhanced Notification Bell */
+        .notifications {
+            position: relative;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+        .notifications .bi-bell {
+            transition: color 0.2s, transform 0.2s;
+        }
+        .notifications.has-unread .bi-bell {
+            color: #ffa533;
+            animation: bell-shake 0.8s cubic-bezier(.36,.07,.19,.97) both infinite;
+        }
+        @keyframes bell-shake {
+            0%, 100% { transform: rotate(0); }
+            10%, 30%, 50%, 70% { transform: rotate(-15deg); }
+            20%, 40%, 60%, 80% { transform: rotate(15deg); }
+            90% { transform: rotate(-8deg); }
+        }
+        .notifications .badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: linear-gradient(90deg, #ff8c00 60%, #ffa533 100%);
+            color: #fff;
+            font-size: 0.78em;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(255,140,0,0.15);
+            border: 2px solid #23234a;
+        }
+        /* Notification Dropdown */
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            top: 38px;
+            right: 0;
+            min-width: 320px;
+            background: #23234a;
+            color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(31,38,135,0.18);
+            z-index: 2001;
+            padding: 0.5rem 0;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .notification-dropdown.active {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            transition: background 0.15s;
+        }
+        .notification-item:last-child { border-bottom: none; }
+        .notification-item:hover { background: rgba(255,140,0,0.07); }
+        .notification-icon {
+            font-size: 1.3em;
+            color: #ffa533;
+            margin-top: 2px;
+        }
+        .notification-content {
+            flex: 1;
+        }
+        .notification-title {
+            font-weight: 600;
+            color: #ffa533;
+            font-size: 1em;
+            margin-bottom: 2px;
+        }
+        .notification-time {
+            color: #bdbdbd;
+            font-size: 0.88em;
+        }
+        .notification-empty {
+            text-align: center;
+            color: #bdbdbd;
+            padding: 18px 0 10px 0;
+            font-size: 1em;
+        }
+        @media (max-width: 600px) {
+            .notification-dropdown { min-width: 90vw; right: -30vw; }
+        }
+        body.light-mode, .light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .navbar, .light-mode .navbar {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .sidebar, .light-mode .sidebar {
+            background: #f1f1f1 !important;
+            color: #23234a !important;
+        }
+        body.light-mode .sidebar a, .light-mode .sidebar a {
+            color: #23234a !important;
+        }
+        body.light-mode .sidebar a.active, .light-mode .sidebar a.active {
+            background: #ffe5b4 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .notifications, .light-mode .notifications {
+            color: #23234a !important;
+        }
+        body.light-mode .notifications .bi-bell, .light-mode .notifications .bi-bell {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .notification-dropdown, .light-mode .notification-dropdown {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4;
+        }
+        body.light-mode .notification-item, .light-mode .notification-item {
+            border-bottom: 1px solid #ffe5b4;
+        }
+        body.light-mode .notification-title, .light-mode .notification-title {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .notification-empty, .light-mode .notification-empty {
+            color: #bdbdbd !important;
+        }
+    </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
 
 <!-- HEADER -->
 <nav class="navbar">
@@ -30,10 +182,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <input type="search" placeholder="Search rooms...">
                 <i class="bi bi-search"></i>
             </div>
-            <button class="notifications">
+            <a href="#" class="notifications <?php echo ($unread_count > 0) ? 'has-unread' : ''; ?>" id="notifBell" style="position:relative;">
                 <i class="bi bi-bell"></i>
-                <span class="badge">2</span>
-            </button>
+                <?php if ($unread_count > 0): ?>
+                    <span class="badge" id="notifBadge"><?php echo $unread_count; ?></span>
+                <?php endif; ?>
+            </a>
             <button class="profile-trigger">
                 <img src="https://ui-avatars.com/api/?name=Guest+User&background=FF8C00&color=fff" 
                      alt="User" class="avatar">
@@ -72,6 +226,38 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <i class="bi bi-box-arrow-right"></i> Log Out
     </a>
 </aside>
+
+<script>
+function toggleNotifDropdown(e) {
+    e.stopPropagation();
+    var dropdown = document.getElementById('notifDropdown');
+    dropdown.classList.toggle('active');
+}
+document.addEventListener('click', function(e) {
+    var dropdown = document.getElementById('notifDropdown');
+    if (dropdown && dropdown.classList.contains('active')) {
+        dropdown.classList.remove('active');
+    }
+});
+
+document.getElementById('notifBell').addEventListener('click', function(e) {
+    e.preventDefault();
+    fetch('../pages/mark_notifications_read.php')
+        .then(response => response.text())
+        .then(data => {
+            if (data.trim() === 'success') {
+                var badge = document.getElementById('notifBadge');
+                if (badge) badge.remove();
+                window.location.href = '../pages/notifications.php';
+            } else {
+                window.location.href = '../pages/notifications.php';
+            }
+        })
+        .catch(() => {
+            window.location.href = '../pages/notifications.php';
+        });
+});
+</script>
 
 </body>
 </html>

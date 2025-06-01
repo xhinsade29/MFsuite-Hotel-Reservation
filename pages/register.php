@@ -1,5 +1,6 @@
 <?php
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ?>
@@ -154,7 +155,8 @@ ini_set('display_errors', 1);
     .strength-strong { width: 100%; background: #28a745; }
   </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
+
   <!-- Toast Container -->
   <div class="toast-container">
     <?php if (isset($_SESSION['success'])): ?>

@@ -1,3 +1,5 @@
+<?php session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -134,34 +136,31 @@
     }
   </style>
 </head>
-<body>
-  <!-- Toast Container -->
-  <div class="toast-container">
-    <?php if (isset($_SESSION['success'])): ?>
-    <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
-      <div class="toast-header">
-        <i class="bi bi-check-circle-fill text-success me-2"></i>
-        <strong class="me-auto">Success</strong>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
-      </div>
-    </div>
-    <?php endif; ?>
-    <?php if (isset($_SESSION['error'])): ?>
-    <div class="toast toast-error" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
-      <div class="toast-header">
-        <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
-        <strong class="me-auto">Error</strong>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
+
+<!-- Toast Notification -->
+<div aria-live="polite" aria-atomic="true" class="position-fixed top-0 end-0 p-3" style="z-index: 2000; min-width: 320px;">
+  <?php if (isset($_SESSION['success'])): ?>
+    <div class="toast align-items-center text-bg-success border-0 show" id="successToast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-check-circle me-2"></i> <?php echo $_SESSION['success']; unset($_SESSION['success']); ?>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
-    <?php endif; ?>
-  </div>
+  <?php endif; ?>
+  <?php if (isset($_SESSION['error'])): ?>
+    <div class="toast align-items-center text-bg-danger border-0 show" id="errorToast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-exclamation-triangle me-2"></i> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  <?php endif; ?>
+</div>
   <div class="container">
     <div class="row justify-content-center align-items-center min-vh-100">
       <div class="col-md-5 col-lg-4">
@@ -173,8 +172,8 @@
           </div>
           <form action="process_login.php" method="POST" id="loginForm" autocomplete="off">
             <div class="form-floating mb-3">
-              <input type="email" class="form-control" name="email" id="email" placeholder="Email address" required>
-              <label for="email"><i class="bi bi-envelope-at me-1"></i> Email address</label>
+              <input type="email" class="form-control" name="user_email" id="user_email" placeholder="Email address" required>
+              <label for="user_email"><i class="bi bi-envelope-at me-1"></i> Email address</label>
             </div>
             <div class="form-floating mb-3 position-relative">
               <input type="password" class="form-control" name="password" id="password" placeholder="Password" required>
@@ -184,7 +183,7 @@
               </button>
             </div>
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <a href="#" class="forgot-link">Forgot password?</a>
+              <a href="forgot_password.php" class="forgot-link">Forgot password?</a>
             </div>
             <button type="submit" class="btn btn-primary w-100 mb-2" id="loginBtn">
               Login
@@ -216,16 +215,17 @@
       var btn = document.getElementById('loginBtn');
       btn.classList.add('btn-loading');
     });
-    // Initialize all toasts
     document.addEventListener('DOMContentLoaded', function() {
-      var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-      var toastList = toastElList.map(function(toastEl) {
-        return new bootstrap.Toast(toastEl, {
-          autohide: true,
-          delay: 3000
-        });
-      });
-      toastList.forEach(toast => toast.show());
+      var successToast = document.getElementById('successToast');
+      if (successToast) {
+        var toast = new bootstrap.Toast(successToast, { delay: 3500 });
+        toast.show();
+      }
+      var errorToast = document.getElementById('errorToast');
+      if (errorToast) {
+        var toast = new bootstrap.Toast(errorToast, { delay: 3500 });
+        toast.show();
+      }
     });
   </script>
 </body>
