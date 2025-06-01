@@ -323,14 +323,14 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         <option value="date_asc">Oldest First</option>
                         <option value="status">Status</option>
                     </select>
-                    <div class="form-check ms-3">
-                        <input class="form-check-input" type="checkbox" id="selectAllBookings">
-                        <label class="form-check-label" for="selectAllBookings">Select All</label>
-                    </div>
-                    <button id="deleteSelectedBtn" class="btn btn-danger btn-sm ms-2" disabled>Delete Selected</button>
+                   
+                    <button type="button" class="btn btn-danger btn-sm ms-2" id="deleteSelectedBtn" disabled>Delete Selected</button>
                 </div>
-                <div class="text-end text-muted" style="font-size:0.95em;">* Deleting a booking here only hides it from your view</div>
+                <button id="showTrashBtn" class="btn btn-danger btn-sm ms-2 d-flex align-items-center gap-2" style="font-weight:600;font-size:1.1em;">
+                    <i class="bi bi-trash3-fill" style="font-size:1.1em;" id="trashBtnIcon"></i> <span id="trashBtnText">Trash (<?php echo count($hidden_bookings); ?>)</span>
+                </button>
             </div>
+          
             <?php if (count($user_bookings) > 0): ?>
             <div class="container py-5" id="bookingList">
                 <?php foreach ($user_bookings as $booking): ?>
@@ -430,30 +430,109 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         </div>
         <?php endif; ?>
 
-        <?php if (count($hidden_bookings) > 0): ?>
-        <button id="showHiddenBtn" class="btn btn-secondary mb-3">Show Hidden Reservations (<?php echo count($hidden_bookings); ?>)</button>
-        <div id="hiddenReservationsSection" style="display:none;max-width:900px;width:100%;">
-            <h2 class="text-muted mb-3" style="font-size:1.1em;">Hidden Reservations</h2>
-            <div class="container py-3">
-                <?php foreach ($hidden_bookings as $booking): ?>
-                <div class="booking-card position-relative bg-dark-subtle" data-reservation-id="<?php echo $booking['reservation_id']; ?>">
-                    <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
-                    <div class="booking-details">
-                        <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
-                        <span class="badge bg-secondary mb-2">
-                            <?php echo ucfirst(str_replace('_', ' ', $booking['reservation_status'])); ?> (Hidden)
-                        </span>
-                        <div class="meta"><strong>Date Booked:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['date_created'])); ?></div>
-                        <div class="d-flex align-items-center gap-2 mt-2">
-                            <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-info btn-sm">View Details</a>
-                            <button class="btn btn-success btn-sm restore-booking-btn">Restore</button>
+        <!-- Trash Modal -->
+        <div class="modal fade" id="trashModal" tabindex="-1" aria-labelledby="trashModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+              <div class="modal-header border-0">
+                <h5 class="modal-title text-danger" id="trashModalLabel"><i class="bi bi-trash3-fill me-2"></i>Trash</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="trashForm">
+                <div class="container py-3" id="trashBookingList">
+                    <?php if (count($hidden_bookings) > 0): ?>
+                        <?php foreach ($hidden_bookings as $booking): ?>
+                        <div class="booking-card position-relative bg-dark-subtle" data-reservation-id="<?php echo $booking['reservation_id']; ?>">
+                            <img src="../assets/rooms/<?php echo htmlspecialchars($room_images[$booking['room_id']] ?? 'standard.avif'); ?>" alt="Room Image">
+                            <div class="booking-details">
+                                <h4><?php echo htmlspecialchars($booking['type_name']); ?></h4>
+                                <?php
+                                $status = strtolower($booking['reservation_status']);
+                                $badgeClass = 'bg-secondary';
+                                if ($status === 'pending') $badgeClass = 'bg-warning text-dark';
+                                elseif ($status === 'completed') $badgeClass = 'bg-success';
+                                elseif ($status === 'cancellation_requested') $badgeClass = 'bg-info text-dark';
+                                elseif ($status === 'cancelled' || $status === 'denied') $badgeClass = 'bg-danger';
+                                ?>
+                                <span class="badge <?php echo $badgeClass; ?> mb-2">
+                                    <?php echo ucfirst(str_replace('_', ' ', $booking['reservation_status'])); ?> (Deleted)
+                                </span>
+                                <div class="meta"><strong>Date Booked:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['date_created'])); ?></div>
+                                <div class="meta"><strong>Number of Nights:</strong> <?php echo $booking['number_of_nights']; ?></div>
+                                <div class="meta"><strong>Total Price:</strong> ₱<?php echo number_format($booking['amount'], 2); ?></div>
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-info btn-sm">View Details</a>
+                                    <button type="button" class="btn btn-success btn-sm restore-single-trash d-inline-flex align-items-center gap-1"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+                                    <button type="button" class="btn btn-danger btn-sm delete-single-trash d-inline-flex align-items-center gap-1"><i class="bi bi-trash"></i> Delete</button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="alert alert-info text-center">No deleted reservations.</div>
+                    <?php endif; ?>
                 </div>
-                <?php endforeach; ?>
+                </form>
+              </div>
             </div>
+          </div>
         </div>
-        <?php endif; ?>
+        <!-- Toast for permanent deletion -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1200;">
+          <div class="toast align-items-center text-bg-danger border-0" id="trashToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" style="display:none;">
+            <div class="d-flex">
+              <div class="toast-body">
+                <i class="bi bi-trash-fill me-2"></i> Deleted reservation(s) permanently.
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>
+          <div class="toast align-items-center text-bg-success border-0" id="restoreToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" style="display:none;">
+            <div class="d-flex">
+              <div class="toast-body">
+                <i class="bi bi-arrow-counterclockwise me-2"></i> Restored reservation(s) successfully.
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>
+        </div>
+        <!-- Modal for confirmation -->
+        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+              <div class="modal-header border-0">
+                <h5 class="modal-title text-danger" id="confirmDeleteModalLabel"><i class="bi bi-exclamation-triangle"></i> Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure you want to permanently delete the selected reservation(s)? This action cannot be undone.
+              </div>
+              <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Yes, Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Add a confirmation modal for deleting selected bookings -->
+        <div class="modal fade" id="confirmDeleteSelectedModal" tabindex="-1" aria-labelledby="confirmDeleteSelectedModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+              <div class="modal-header border-0">
+                <h5 class="modal-title text-danger" id="confirmDeleteSelectedModalLabel"><i class="bi bi-exclamation-triangle"></i> Confirm Deletion</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure you want to delete the selected reservation(s)? This action will hide them from your bookings.
+              </div>
+              <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteSelectedBtn">Yes, Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
 
     <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
@@ -494,7 +573,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 e.preventDefault();
                 var card = btn.closest('.booking-card');
                 var reservationId = card.getAttribute('data-reservation-id');
-                if (confirm('Are you sure you want to hide this reservation?')) {
+                if (confirm('Are you sure you want to delete this reservation?')) {
                     fetch('hide_reservation.php', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -505,7 +584,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         if (data.trim() === 'success') {
                             card.remove(); // Remove from UI
                         } else {
-                            alert('Failed to hide reservation.');
+                            alert('Failed to delete reservation.');
                         }
                     });
                 }
@@ -534,86 +613,131 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 });
             });
         });
-        // Toggle hidden reservations section
-        var showHiddenBtn = document.getElementById('showHiddenBtn');
-        var hiddenSection = document.getElementById('hiddenReservationsSection');
-        if (showHiddenBtn && hiddenSection) {
-            showHiddenBtn.addEventListener('click', function() {
-                if (hiddenSection.style.display === 'none') {
-                    hiddenSection.style.display = 'block';
-                    showHiddenBtn.textContent = 'Hide Hidden Reservations';
-                } else {
-                    hiddenSection.style.display = 'none';
-                    showHiddenBtn.textContent = 'Show Hidden Reservations (<?php echo count($hidden_bookings); ?>)';
-                }
+        // Toggle deleted reservations section
+        var showTrashBtn = document.getElementById('showTrashBtn');
+        var trashModal = document.getElementById('trashModal');
+        if (showTrashBtn && trashModal) {
+            showTrashBtn.addEventListener('click', function() {
+                var modal = new bootstrap.Modal(trashModal);
+                modal.show();
             });
         }
         // Sorting
         var sortSelect = document.getElementById('sortSelect');
         var bookingList = document.getElementById('bookingList');
-        sortSelect.addEventListener('change', function() {
-            var cards = Array.from(bookingList.querySelectorAll('.booking-card'));
-            if (sortSelect.value === 'date_asc') {
-                cards.sort(function(a, b) {
-                    return new Date(a.dataset.date) - new Date(b.dataset.date);
-                });
-            } else if (sortSelect.value === 'date_desc') {
-                cards.sort(function(a, b) {
-                    return new Date(b.dataset.date) - new Date(a.dataset.date);
-                });
-            } else if (sortSelect.value === 'status') {
-                cards.sort(function(a, b) {
-                    return a.dataset.status.localeCompare(b.dataset.status);
-                });
-            }
-            cards.forEach(function(card) { bookingList.appendChild(card); });
-        });
-        // Select All and Delete Selected
-        var selectAll = document.getElementById('selectAllBookings');
-        var deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-        function updateDeleteBtn() {
-            var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
-            deleteSelectedBtn.disabled = checked.length === 0;
-        }
-        selectAll.addEventListener('change', function() {
-            var checkboxes = bookingList.querySelectorAll('.booking-checkbox');
-            checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
-            updateDeleteBtn();
-        });
-        bookingList.addEventListener('change', function(e) {
-            if (e.target.classList.contains('booking-checkbox')) {
-                var all = bookingList.querySelectorAll('.booking-checkbox');
-                var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
-                selectAll.checked = all.length === checked.length;
-                updateDeleteBtn();
-            }
-        });
-        deleteSelectedBtn.addEventListener('click', function() {
-            var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
-            checked.forEach(function(cb) {
-                var card = cb.closest('.booking-card');
-                var reservationId = card.getAttribute('data-reservation-id');
-                fetch('hide_reservation.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'reservation_id=' + encodeURIComponent(reservationId)
-                })
-                .then(response => response.text())
-                .then(data => {
-                    if (data.trim() === 'success') {
-                        card.remove();
-                    } else {
-                        alert('Failed to hide reservation: ' + reservationId);
-                    }
-                });
+        if (sortSelect && bookingList) {
+            sortSelect.addEventListener('change', function() {
+                var cards = Array.from(bookingList.querySelectorAll('.booking-card'));
+                if (sortSelect.value === 'date_asc') {
+                    cards.sort(function(a, b) {
+                        return new Date(a.dataset.date) - new Date(b.dataset.date);
+                    });
+                } else if (sortSelect.value === 'date_desc') {
+                    cards.sort(function(a, b) {
+                        return new Date(b.dataset.date) - new Date(a.dataset.date);
+                    });
+                } else if (sortSelect.value === 'status') {
+                    cards.sort(function(a, b) {
+                        return a.dataset.status.localeCompare(b.dataset.status);
+                    });
+                }
+                cards.forEach(function(card) { bookingList.appendChild(card); });
             });
-            updateDeleteBtn();
-        });
+        }
+        // Multi-select Delete Selected logic (no toggle)
+        var deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        var confirmDeleteSelectedModal = document.getElementById('confirmDeleteSelectedModal');
+        var confirmDeleteSelectedBtn = document.getElementById('confirmDeleteSelectedBtn');
+        if (bookingList && deleteSelectedBtn) {
+            // Enable/disable Delete Selected button based on checkbox selection
+            bookingList.addEventListener('change', function(e) {
+                if (e.target.classList.contains('booking-checkbox')) {
+                    var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
+                    deleteSelectedBtn.disabled = checked.length === 0;
+                }
+            });
+            // Show confirmation modal on Delete Selected click
+            deleteSelectedBtn.addEventListener('click', function() {
+                var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
+                if (checked.length === 0) return;
+                var modal = new bootstrap.Modal(confirmDeleteSelectedModal);
+                modal.show();
+            });
+            // Handle confirmed deletion
+            if (confirmDeleteSelectedBtn) {
+                confirmDeleteSelectedBtn.addEventListener('click', function() {
+                    var checked = bookingList.querySelectorAll('.booking-checkbox:checked');
+                    var ids = Array.from(checked).map(function(cb) {
+                        return cb.closest('.booking-card').getAttribute('data-reservation-id');
+                    });
+                    if (ids.length === 0) return;
+                    // Hide button to prevent double click
+                    deleteSelectedBtn.disabled = true;
+                    // Delete each selected booking
+                    var deletePromises = ids.map(function(reservationId) {
+                        return fetch('hide_reservation.php', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                            body: 'reservation_id=' + encodeURIComponent(reservationId)
+                        })
+                        .then(response => response.text())
+                        .then(data => {
+                            if (data.trim() === 'success') {
+                                var card = bookingList.querySelector('.booking-card[data-reservation-id="' + reservationId + '"]');
+                                if (card) card.remove();
+                            }
+                        });
+                    });
+                    Promise.all(deletePromises).then(function() {
+                        // After deletion, reset controls
+                        var checkboxes = bookingList.querySelectorAll('.booking-checkbox');
+                        checkboxes.forEach(function(cb) { cb.checked = false; });
+                        deleteSelectedBtn.disabled = true;
+                        var modal = bootstrap.Modal.getInstance(confirmDeleteSelectedModal);
+                        if (modal) modal.hide();
+                    });
+                });
+            }
+        }
+        if (document.getElementById('trashBookingList')) {
+          document.getElementById('trashBookingList').addEventListener('click', function(e) {
+            if (e.target.closest('.restore-single-trash')) {
+              var card = e.target.closest('.booking-card');
+              var reservationId = card.getAttribute('data-reservation-id');
+              fetch('restore_reservation.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'reservation_id=' + encodeURIComponent(reservationId)
+              })
+              .then(response => response.text())
+              .then(data => {
+                if (data.trim() === 'success') {
+                  location.reload(); // Refresh the page to update both lists
+                } else {
+                  alert('Failed to restore reservation.');
+                }
+              });
+            }
+            if (e.target.closest('.delete-single-trash')) {
+              var card = e.target.closest('.booking-card');
+              var reservationId = card.getAttribute('data-reservation-id');
+              fetch('delete_forever_reservations.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'reservation_ids=' + encodeURIComponent(JSON.stringify([reservationId]))
+              })
+              .then(response => response.text())
+              .then(data => {
+                if (data.trim() === 'success') {
+                  location.reload(); // Refresh the page to update both lists
+                } else {
+                  alert('Failed to delete reservation.');
+                }
+              });
+            }
+          });
+        }
     });
     </script>
 </body>
 </html>
-
-<?php
-$conn->close();
-?>

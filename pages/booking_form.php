@@ -256,6 +256,10 @@ if ($room_type_id) {
       </div>
       <div class="modal-body text-center">
         <p>Are you sure you want to book this room?</p>
+        <div class="mt-4 mb-4">
+          <h5 class="text-info">Reference Number:</h5>
+          <p class="fs-4 fw-bold text-white" id="cashModalReferenceNumberDisplay"></p>
+        </div>
         <div class="d-flex justify-content-center gap-3 mt-4">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="button" class="btn btn-warning fw-bold" id="confirmBookingBtnCash">Yes, Book Now</button>
@@ -426,7 +430,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Book Now button logic ---
     if (openBtn) {
         openBtn.addEventListener('click', function(e) {
-            console.log('Book Now button clicked');
             if (!bookingForm.checkValidity()) {
                 bookingForm.classList.add('was-validated');
                 errorMsg.textContent = 'Please fill in all required fields correctly.';
@@ -438,37 +441,34 @@ document.addEventListener('DOMContentLoaded', function() {
             var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
             var paymentName = selectedOption.getAttribute('data-name');
             var acc = selectedOption.getAttribute('data-acc');
-            // Generate a booking reference number
-            function generateBookingReferenceNumber() {
-                return 'BOOK' + Math.random().toString(16).substr(2, 8).toUpperCase() + Math.random().toString(16).substr(2, 4).toUpperCase();
-            }
-            // Always generate a reference number if not present
+            // Always generate a booking reference number
             var ref = referenceNumberInput && referenceNumberInput.value ? referenceNumberInput.value : generateBookingReferenceNumber();
-            if (referenceNumberInput) referenceNumberInput.value = ref;
+            referenceNumberInput.value = ref;
+            bookingModalReferenceNumberDisplay.textContent = ref;
+            // Show reference number in cash modal as well
+            var cashModalRefDisplay = document.getElementById('cashModalReferenceNumberDisplay');
+            if (cashModalRefDisplay) cashModalRefDisplay.textContent = ref;
+            // Show account info in modal if available (for non-cash)
+            var accountInfo = '';
+            if (paymentName === 'wallet') {
+                accountInfo = '<i class="bi bi-wallet2"></i> <strong>Wallet ID:</strong> <?php echo htmlspecialchars($wallet_id); ?>';
+            } else if (acc) {
+                var label = '';
+                if (paymentName === 'gcash') label = 'GCash Number';
+                else if (paymentName.indexOf('bank') !== -1) label = 'Bank Account Number';
+                else if (paymentName === 'paypal') label = 'PayPal Email';
+                else if (paymentName === 'credit card') label = 'Credit Card Number';
+                else label = 'Account Info';
+                accountInfo = '<i class="bi bi-info-circle"></i> <strong>' + label + ':</strong> ' + acc;
+            }
+            var modalAccInfo = document.getElementById('bookingModalAccountInfo');
+            if (modalAccInfo) {
+                modalAccInfo.innerHTML = accountInfo ? accountInfo : '';
+                modalAccInfo.style.display = accountInfo ? '' : 'none';
+            }
             if (paymentName === 'cash') {
-                bookingModalReferenceNumberDisplay.textContent = ref;
                 confirmModal.show();
             } else {
-                // Show account info in modal if available
-                var accountInfo = '';
-                if (paymentName === 'wallet') {
-                    accountInfo = '<i class="bi bi-wallet2"></i> <strong>Wallet ID:</strong> <?php echo htmlspecialchars($wallet_id); ?>';
-                } else if (acc) {
-                    var label = '';
-                    if (paymentName === 'gcash') label = 'GCash Number';
-                    else if (paymentName.indexOf('bank') !== -1) label = 'Bank Account Number';
-                    else if (paymentName === 'paypal') label = 'PayPal Email';
-                    else if (paymentName === 'credit card') label = 'Credit Card Number';
-                    else label = 'Account Info';
-                    accountInfo = '<i class="bi bi-info-circle"></i> <strong>' + label + ':</strong> ' + acc;
-                }
-                // Set reference number and account info in modal
-                bookingModalReferenceNumberDisplay.textContent = ref ? ref : '(No reference number entered)';
-                var modalAccInfo = document.getElementById('bookingModalAccountInfo');
-                if (modalAccInfo) {
-                    modalAccInfo.innerHTML = accountInfo ? accountInfo : '';
-                    modalAccInfo.style.display = accountInfo ? '' : 'none';
-                }
                 bookingPaymentDetailsModal.show();
             }
         });
@@ -500,91 +500,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         bookingForm.classList.add('was-validated');
     }, false);
-
-    // Add AJAX to fetch wallet reference number if Wallet is selected
-    function fetchWalletReferenceNumber(callback) {
-        fetch('../functions/get_wallet_reference.php')
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.reference_number) {
-                    callback(data.reference_number);
-                } else {
-                    callback('');
-                }
-            })
-            .catch(() => callback(''));
-    }
-
-    if (openBtn) {
-        openBtn.addEventListener('click', function(e) {
-            // Trigger validation before showing modal
-            if (!bookingForm.checkValidity()) {
-                bookingForm.classList.add('was-validated');
-                errorMsg.textContent = 'Please fill in all required fields correctly.';
-                errorMsg.classList.remove('d-none');
-                return;
-            } else {
-                errorMsg.classList.add('d-none');
-            }
-
-            var selectedOption = paymentSelect.options[paymentSelect.selectedIndex];
-            var paymentName = selectedOption.getAttribute('data-name');
-
-            if (paymentName === 'cash') {
-                referenceNumberInput.value = '';
-                confirmModal.show();
-            } else if (paymentName === 'wallet' || paymentName === 'top up' || paymentName === 'topup') {
-                // Fetch wallet reference number and show in modal
-                fetchWalletReferenceNumber(function(ref) {
-                    referenceNumberInput.value = ref;
-                    bookingModalReferenceNumberDisplay.textContent = ref ? ref : '(No wallet reference found)';
-                    bookingPaymentDetailsModal.show();
-                });
-            } else {
-                // Use the value entered by the user
-                var ref = referenceNumberInputField.value.trim();
-                referenceNumberInput.value = ref;
-                bookingModalReferenceNumberDisplay.textContent = ref ? ref : '(No reference number entered)';
-                bookingPaymentDetailsModal.show();
-            }
-        });
-    }
-
-    if (confirmBtnCash) {
-        confirmBtnCash.addEventListener('click', function(e) {
-            confirmModal.hide();
-            setTimeout(function() {
-                bookingForm.submit(); // Submit form for cash payment
-            }, 300);
-        });
-    }
-
-    if (confirmBtnPayment) {
-        confirmBtnPayment.addEventListener('click', function(e) {
-            bookingPaymentDetailsModal.hide();
-            setTimeout(function() {
-                bookingForm.submit(); // Submit form for non-cash payment
-            }, 300);
-        });
-    }
-
-    // Toast notification for successful booking/payment
-    if (window.location.search.includes('success=1')) {
-        setTimeout(function() {
-            successModal.show();
-            // Show toast
-            var toastDiv = document.createElement('div');
-            toastDiv.className = 'position-fixed bottom-0 end-0 p-3';
-            toastDiv.style.zIndex = 1100;
-            toastDiv.innerHTML = `<div id="customToast" class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true"><div class="d-flex"><div class="toast-body">Booking and payment successful!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
-            document.body.appendChild(toastDiv);
-            var toastEl = document.getElementById('customToast');
-            if (toastEl) {
-                var toast = new bootstrap.Toast(toastEl, { delay: 3500 });
-                toast.show();
-            }
-        }, 400);
-    }
 
     // Flatpickr initialization
     flatpickr("#checkin_datetime", {
@@ -747,7 +662,23 @@ document.addEventListener('DOMContentLoaded', function() {
      calculateNights();
      updateCheckoutFromNights();
 
-
+    // Add event listeners for confirmation buttons to submit the form
+    if (confirmBtnCash) {
+        confirmBtnCash.addEventListener('click', function(e) {
+            confirmModal.hide();
+            setTimeout(function() {
+                bookingForm.submit();
+            }, 300);
+        });
+    }
+    if (confirmBtnPayment) {
+        confirmBtnPayment.addEventListener('click', function(e) {
+            bookingPaymentDetailsModal.hide();
+            setTimeout(function() {
+                bookingForm.submit();
+            }, 300);
+        });
+    }
 });
 </script>
 </body>

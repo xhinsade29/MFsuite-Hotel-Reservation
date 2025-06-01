@@ -45,6 +45,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $requests = isset($_POST['requests']) ? $_POST['requests'] : ''; // Get special requests
     $reference_number = isset($_POST['reference_number']) && !empty($_POST['reference_number']) ? $_POST['reference_number'] : '';
 
+    // Always generate a unique reference number if not provided
+    if (empty($reference_number)) {
+        $reference_number = generate_reference_number();
+    }
+
     // Fetch nightly_rate from tbl_room_type
     $rate_res = $mycon->query("SELECT nightly_rate FROM tbl_room_type WHERE room_type_id = $room_type_id");
     $nightly_rate = 0;
@@ -63,14 +68,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // For now, assuming services are inclusions and not separately priced per booking.
     // If services are add-ons, fetch selected service IDs from POST and calculate additional cost.
 
-    $payment_status = 'Pending'; // Default
-    if (strtolower($payment_method) !== 'cash') {
-        $payment_status = 'Paid';
-    }
-
-    $reservation_status = 'pending'; // Default status
-    $assigned_room_id = NULL; // Default assigned room
-
     // Get payment method name and determine initial reservation status
     $payment_method = '';
     $ptype_res = $mycon->query("SELECT payment_name FROM tbl_payment_types WHERE payment_type_id = $payment_type_id");
@@ -78,9 +75,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $ptype_row = $ptype_res->fetch_assoc();
         $payment_method = $ptype_row['payment_name'];
 
-        // For wallet or top up payments, use the reference number from the latest wallet top-up (the one the guest entered)
-        if (in_array(strtolower($payment_method), ['wallet', 'top up', 'topup'])) {
-            // Check wallet balance
+        // WALLET DEDUCTION LOGIC
+        if (strtolower($payment_method) === 'wallet') {
+            // 1. Get current wallet balance
             $wallet_sql = "SELECT wallet_balance FROM tbl_guest WHERE guest_id = ?";
             $stmt_wallet = $mycon->prepare($wallet_sql);
             $stmt_wallet->bind_param("i", $guest_id);
@@ -89,84 +86,69 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt_wallet->fetch();
             $stmt_wallet->close();
 
+            // 2. Check if sufficient
             if ($wallet_balance < $amount) {
                 $_SESSION['error'] = 'Insufficient wallet balance to complete this booking.';
                 header("Location: ../pages/booking_form.php?room_type_id=" . $room_type_id);
                 exit();
             }
 
-            // Deduct from wallet
+            // 3. Deduct from wallet
             $update_wallet_sql = "UPDATE tbl_guest SET wallet_balance = wallet_balance - ? WHERE guest_id = ?";
             $stmt_update_wallet = $mycon->prepare($update_wallet_sql);
             $stmt_update_wallet->bind_param("di", $amount, $guest_id);
             $stmt_update_wallet->execute();
             $stmt_update_wallet->close();
 
-            // Log wallet payment
+            // 4. Log wallet payment
+            $desc = "Booking payment";
             $log_sql = "INSERT INTO wallet_transactions (guest_id, amount, type, description, reference_number) VALUES (?, ?, 'payment', ?, ?)";
-            $desc = 'Wallet payment for booking';
             $stmt_log = $mycon->prepare($log_sql);
             $stmt_log->bind_param("idss", $guest_id, $amount, $desc, $reference_number);
             $stmt_log->execute();
             $stmt_log->close();
-
-            // For wallet payments, use the reference number from the latest wallet top-up (the one the guest entered)
-            $wallet_ref_sql = "SELECT reference_number FROM tbl_payment WHERE payment_method = 'Wallet' AND payment_status = 'Paid' AND reference_number IS NOT NULL AND reference_number != '' AND amount > 0 AND guest_id = $guest_id ORDER BY payment_id DESC LIMIT 1";
-            $wallet_ref_result = $mycon->query($wallet_ref_sql);
-            if ($wallet_ref_result && $wallet_ref_result->num_rows > 0) {
-                $wallet_ref_row = $wallet_ref_result->fetch_assoc();
-                $reference_number = $wallet_ref_row['reference_number'];
-            }
         }
 
-        // If payment method is NOT Cash, attempt to auto-approve and assign room
+        // Set payment status after payment method is known
+        $payment_status = 'Pending'; // Default
         if (strtolower($payment_method) !== 'cash') {
-            // Find an available room of this type for the dates
-            // Query to find rooms of the correct type not booked during the requested period
+            $payment_status = 'Paid';
+            // Auto-approve and assign room if available
             $available_room_sql = "SELECT r.room_id FROM tbl_room r
                                    WHERE r.room_type_id = ?
-                                     AND r.status = 'available' -- Ensure the room itself is available/operational
+                                     AND r.status = 'available'
                                      AND NOT EXISTS (
                                          SELECT 1 FROM tbl_reservation res
                                          WHERE res.assigned_room_id = r.room_id
-                                           AND res.status IN ('pending', 'approved', 'completed') -- Consider these statuses as occupying the room
-                                           AND (
-                                                 (? < res.check_out AND ? > res.check_in) -- Check-in is before existing checkout AND Checkout is after existing check-in
-                                               )
+                                           AND res.status IN ('pending', 'approved', 'completed')
+                                           AND ((? < res.check_out AND ? > res.check_in))
                                      )
-                                   LIMIT 1"; // Get just one available room
-
+                                   LIMIT 1";
             $stmt_find_room = $mycon->prepare($available_room_sql);
-            // Bind parameters: i (room_type_id), s (check_out_db), s (check_in_db)
             $stmt_find_room->bind_param("iss", $room_type_id, $check_out_db, $check_in_db);
             $stmt_find_room->execute();
             $result_find_room = $stmt_find_room->get_result();
-
             if ($result_find_room && $result_find_room->num_rows > 0) {
                 $room_row = $result_find_room->fetch_assoc();
                 $assigned_room_id = $room_row['room_id'];
-                $reservation_status = 'approved'; // Auto-approve if room assigned
-
-                // Optionally update room status to 'occupied' or 'reserved' if auto-assigned? Or leave as 'available' until check-in?
-                // Leaving as 'available' might be better until check-in date, and a separate cron job/trigger handles status updates.
-
+                $reservation_status = 'approved';
             } else {
-                // No room found for the dates, keep pending status and let admin handle it.
-                // The front-end availability check should ideally prevent this, but this is a fallback.
-                 $reservation_status = 'pending'; // Keep pending
-                 $assigned_room_id = NULL; // No room assigned
-                 // Consider logging this event or notifying admin
+                // No room found for the dates, do not allow booking
+                $_SESSION['error'] = 'Sorry, this room type is fully booked for your selected dates.';
+                header("Location: ../pages/booking_form.php?room_type_id=" . $room_type_id);
+                exit();
             }
-             $stmt_find_room->close();
+            $stmt_find_room->close();
+        } else {
+            // Cash payment: pending, no room assigned
+            $reservation_status = 'pending';
+            $assigned_room_id = NULL;
         }
-         // If payment method is Cash, reservation_status remains 'pending' and assigned_room_id remains NULL
-
     } else {
         $_SESSION['error'] = "Invalid payment method.";
         header("Location: ../pages/booking_form.php?room_type_id=" . $room_type_id);
         exit();
     }
-
 
     // Insert payment record
     $stmt_payment = $mycon->prepare("INSERT INTO tbl_payment (amount, payment_method, payment_status, payment_type_id, reference_number) VALUES (?, ?, ?, ?, ?)");
@@ -189,13 +171,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $admin_id = $row['admin_id'];
     }
 
-    // Insert reservation
-    // Updated INSERT statement to include status and assigned_room_id (no requests)
-    $stmt = $mycon->prepare("INSERT INTO tbl_reservation (guest_id, payment_id, check_in, check_out, admin_id, room_id, number_of_nights, status, assigned_room_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-    // Bind parameters: iissiiisi (guest_id, payment_id, check_in_db, check_out_db, admin_id, room_type_id, number_of_nights, reservation_status, assigned_room_id)
-    $stmt->bind_param("iissiiisi", $guest_id, $payment_id, $check_in_db, $check_out_db, $admin_id, $room_type_id, $number_of_nights, $reservation_status, $assigned_room_id);
-
+    // Insert reservation with reference_number, handling NULL for assigned_room_id
+    if (is_null($assigned_room_id)) {
+        $sql = "INSERT INTO tbl_reservation (reference_number, guest_id, payment_id, check_in, check_out, admin_id, room_id, number_of_nights, status, assigned_room_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)";
+        $stmt = $mycon->prepare($sql);
+        $stmt->bind_param("siissiiis", $reference_number, $guest_id, $payment_id, $check_in_db, $check_out_db, $admin_id, $room_type_id, $number_of_nights, $reservation_status);
+    } else {
+        $sql = "INSERT INTO tbl_reservation (reference_number, guest_id, payment_id, check_in, check_out, admin_id, room_id, number_of_nights, status, assigned_room_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $mycon->prepare($sql);
+        $stmt->bind_param("siissiiisi", $reference_number, $guest_id, $payment_id, $check_in_db, $check_out_db, $admin_id, $room_type_id, $number_of_nights, $reservation_status, $assigned_room_id);
+    }
 
     if ($stmt->execute()) {
         $reservation_id = $mycon->insert_id; // Get the new reservation ID
@@ -242,6 +229,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['error'] = "Error creating reservation: " . $stmt->error;
         // Consider rolling back the payment insertion here if reservation insertion fails
         // $mycon->query("DELETE FROM tbl_payment WHERE payment_id = $payment_id"); // Simple rollback
+        file_put_contents(__DIR__ . '/booking_debug.log', date('c') . " ERROR: Failed to insert reservation. Ref: $reference_number\n", FILE_APPEND);
         header("Location: ../pages/booking_form.php?room_type_id=" . $room_type_id);
         exit();
     }
@@ -251,7 +239,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 } else {
     header("Location: ../pages/rooms.php");
     exit();
-}
+} 
 
 function generate_reference_number() {
     // Simple unique ID generator (can be improved)

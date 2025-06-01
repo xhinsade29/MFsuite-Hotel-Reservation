@@ -88,7 +88,7 @@ $mycon->query($auto_complete_sql);
                     <th>Action</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="reservationsTableBody">
             <?php
             $active_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, rt.type_name, rm.room_number, rm.status AS room_status, p.payment_status, p.payment_method FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE r.status IN ('pending','approved') ORDER BY r.date_created DESC";
             $active_res = mysqli_query($mycon, $active_sql);
@@ -410,7 +410,62 @@ function showCompleteModal(reservationId) {
     var completeModal = new bootstrap.Modal(document.getElementById('completeModal'));
     completeModal.show();
 }
+function refreshReservationsTable() {
+    fetch('ajax_reservations_table.php')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('reservationsTableBody').innerHTML = html;
+        });
+}
+setInterval(refreshReservationsTable, 10000);
+document.addEventListener('DOMContentLoaded', refreshReservationsTable);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Approve Payment (Cash)
+    document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('approve-payment-btn')) {
+            const reservationId = e.target.getAttribute('data-reservation-id');
+            if (confirm('Mark payment as received for this cash booking?')) {
+                fetch('process_update_status.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `reservation_id=${reservationId}&action=approve_payment`
+                })
+                .then(res => res.ok ? location.reload() : alert('Failed to approve payment.'));
+            }
+        }
+    });
+    // Approve Reservation (assign room)
+    document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('approve-reservation-btn')) {
+            const reservationId = e.target.getAttribute('data-reservation-id');
+            if (confirm('Approve reservation and assign a room?')) {
+                fetch('process_update_status.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `reservation_id=${reservationId}&action=approve_reservation`
+                })
+                .then(res => res.ok ? location.reload() : alert('Failed to approve reservation.'));
+            }
+        }
+    });
+    // Cancel Reservation (Cash)
+    document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('cancel-reservation-btn')) {
+            const reservationId = e.target.getAttribute('data-reservation-id');
+            if (confirm('Cancel this reservation?')) {
+                fetch('process_cancellation.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `reservation_id=${reservationId}&action=approve`
+                })
+                .then(res => res.ok ? location.reload() : alert('Failed to cancel reservation.'));
+            }
+        }
+    });
+});
+</script>
 </body>
 </html> 

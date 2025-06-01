@@ -21,6 +21,16 @@ $result = $conn->query($sql);
 if (!$result || $result->num_rows == 0) { die("Reservation not found."); }
 $booking = $result->fetch_assoc();
 
+// Ensure reference number is always available
+$reference_number = $booking['reference_number'] ?? '';
+if (empty($reference_number) && isset($booking['payment_id'])) {
+    $pay_sql = "SELECT reference_number FROM tbl_payment WHERE payment_id = " . intval($booking['payment_id']);
+    $pay_res = $conn->query($pay_sql);
+    if ($pay_res && $pay_res->num_rows > 0) {
+        $reference_number = $pay_res->fetch_assoc()['reference_number'];
+    }
+}
+
 // Fetch included room services for this room type
 $included_services = [];
 $room_type_id = $booking['room_type_id'];
@@ -35,12 +45,12 @@ if (!empty($room_type_id) && is_numeric($room_type_id)) {
 } else {
     $included_services = [];
 }
-// Fetch user details
-$user_sql = "SELECT first_name, middle_name, last_name, user_email, phone_number, address, bank_account_number, paypal_email, credit_card_number, gcash_number FROM tbl_guest WHERE guest_id = ?";
+// Fetch user details including wallet_id
+$user_sql = "SELECT first_name, middle_name, last_name, user_email, phone_number, address, bank_account_number, paypal_email, credit_card_number, gcash_number, wallet_id FROM tbl_guest WHERE guest_id = ?";
 $stmt_user = $conn->prepare($user_sql);
 $stmt_user->bind_param("i", $booking['guest_id']);
 $stmt_user->execute();
-$stmt_user->bind_result($first_name, $middle_name, $last_name, $user_email, $phone_number, $address, $bank_account_number, $paypal_email, $credit_card_number, $gcash_number);
+$stmt_user->bind_result($first_name, $middle_name, $last_name, $user_email, $phone_number, $address, $bank_account_number, $paypal_email, $credit_card_number, $gcash_number, $wallet_id);
 $stmt_user->fetch();
 $stmt_user->close();
 // Room images mapping
@@ -234,41 +244,7 @@ $conn->close();
 </head>
 <body>
     <?php include '../components/user_navigation.php'; ?>
-    <?php if ($show_cancel_notification): ?>
-    <div class="alert alert-info text-center">Your cancellation request has been sent. Please wait for admin approval.</div>
-    <!-- Toast notification -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
-      <div id="cancelToast" class="toast align-items-center text-bg-info border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-          <div class="toast-body">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            Your cancellation request has been sent!
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      </div>
-    </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var toastEl = document.getElementById('cancelToast');
-        if (toastEl) {
-            var toast = new bootstrap.Toast(toastEl, { delay: 2000 });
-            toast.show();
-            setTimeout(function() {
-                window.location.reload();
-            }, 2000); // Refresh after toast
-        }
-        // Auto-close modal if open
-        var cancelModal = document.getElementById('cancelModal');
-        if (cancelModal) {
-            var modal = bootstrap.Modal.getInstance(cancelModal);
-            if (modal) { modal.hide(); }
-        }
-    });
-    </script>
-    <?php endif; ?>
     <?php if ($booking['status'] === 'cancellation_requested'): ?>
-        <!-- Recurring toast notification only -->
         <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
           <div id="cancelToast" class="toast align-items-center text-bg-info border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -286,6 +262,12 @@ $conn->close();
             if (toastEl) {
                 var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
                 toast.show();
+            }
+            // Auto-close modal if open
+            var cancelModal = document.getElementById('cancelModal');
+            if (cancelModal) {
+                var modal = bootstrap.Modal.getInstance(cancelModal);
+                if (modal) { modal.hide(); }
             }
         });
         </script>
@@ -331,7 +313,7 @@ $conn->close();
                     <div class="divider"></div>
                     <div class="details-section">
                         <div class="section-title"><i class="bi bi-calendar-check icon"></i>Reservation Information</div>
-                        <div class="info-row"><strong>Reference Number:</strong>&nbsp;<?php echo htmlspecialchars($booking['reference_number'] ?? '-'); ?></div>
+                        <div class="info-row"><strong>Reference Number:</strong>&nbsp;<?php echo htmlspecialchars($reference_number ?: '-'); ?></div>
                         <div class="info-row"><strong>Check-in:</strong>&nbsp;<?php echo date('Y-m-d h:i A', strtotime($booking['check_in'])); ?></div>
                         <div class="info-row"><strong>Check-out:</strong>&nbsp;<?php echo date('Y-m-d h:i A', strtotime($booking['check_out'])); ?></div>
                         <?php if ($assigned_room_number): ?>
@@ -385,6 +367,10 @@ $conn->close();
                             $acc_info = $paypal_email ?: '-';
                         } elseif (strpos($pm, 'credit') !== false) {
                             $acc_info = $credit_card_number ?: '-';
+                        } elseif ($pm === 'wallet') {
+                            $acc_info = $wallet_id ? $wallet_id : 'Paid via Wallet';
+                        } elseif ($pm === 'cash') {
+                            $acc_info = 'Pay at front desk';
                         }
                         ?>
                         <div class="info-row"><strong>Account Info:</strong>&nbsp;<?php echo htmlspecialchars($acc_info); ?></div>

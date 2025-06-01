@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_in = $row['check_in'];
             $check_out = $row['check_out'];
             $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.room_id NOT IN (
-                SELECT res.room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.room_id IS NOT NULL
+                SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
             ) LIMIT 1";
             $stmt_find = mysqli_prepare($mycon, $find_room_sql);
             mysqli_stmt_bind_param($stmt_find, "iss", $room_type_id, $check_out, $check_in);
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $assigned_room_id = null;
             if (mysqli_stmt_fetch($stmt_find)) {
                 mysqli_stmt_close($stmt_find);
-                $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = ?, room_id = ? WHERE reservation_id = ?");
+                $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = ?, assigned_room_id = ? WHERE reservation_id = ?");
                 mysqli_stmt_bind_param($stmt, "sii", $approved_status, $assigned_room_id, $reservation_id);
                 mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (in_array($payment_method, $topup_methods)) {
                 add_notification($guest_id, 'wallet', 'Your wallet top-up via ' . $payment_method . ' has been received and credited. Reference: ' . $ref, $mycon);
             } else {
-                add_notification($guest_id, 'wallet', 'Your payment for the reservation has been approved.', $mycon);
+            add_notification($guest_id, 'wallet', 'Your payment for the reservation has been approved.', $mycon);
             }
             header("Location: reservations.php?msg=Payment+approved+successfully");
             exit();

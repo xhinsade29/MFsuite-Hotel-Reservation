@@ -19,12 +19,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reason_id = $conn->insert_id;
             $stmt->close();
         }
-        // Insert into cancelled_reservation
-        $canceled_by = 'Guest';
-        $stmt = $conn->prepare("INSERT INTO cancelled_reservation (reservation_id, admin_id, canceled_by, reason_id, date_canceled) VALUES (?, NULL, ?, ?, NOW())");
-        $stmt->bind_param("isi", $reservation_id, $canceled_by, $reason_id);
-        $stmt->execute();
-        $stmt->close();
+        // Check if a cancellation request already exists for this reservation
+        $check_sql = "SELECT COUNT(*) as cnt FROM cancelled_reservation WHERE reservation_id = ?";
+        $check_stmt = $conn->prepare($check_sql);
+        $check_stmt->bind_param("i", $reservation_id);
+        $check_stmt->execute();
+        $check_stmt->bind_result($existing_cnt);
+        $check_stmt->fetch();
+        $check_stmt->close();
+        if ($existing_cnt == 0) {
+            // Insert into cancelled_reservation
+            $canceled_by = 'Guest';
+            $stmt = $conn->prepare("INSERT INTO cancelled_reservation (reservation_id, admin_id, canceled_by, reason_id, date_canceled) VALUES (?, NULL, ?, ?, NOW())");
+            $stmt->bind_param("isi", $reservation_id, $canceled_by, $reason_id);
+            $stmt->execute();
+            $stmt->close();
+        }
         // Update reservation: set status to 'cancellation_requested' regardless of current status
         $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'cancellation_requested' WHERE reservation_id = ?");
         $stmt->bind_param("i", $reservation_id);
