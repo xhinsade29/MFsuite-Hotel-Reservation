@@ -30,6 +30,32 @@ $recent_res_sql = "
     LIMIT 5
 ";
 $recent_res = mysqli_query($mycon, $recent_res_sql);
+// Latest 5 cancellation requests
+$cancellation_notif_sql = "
+    SELECT r.reservation_id, g.first_name, g.last_name, r.check_in, r.status, r.date_created
+    FROM tbl_reservation r
+    LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id
+    WHERE r.status = 'cancellation_requested'
+    ORDER BY r.date_created DESC
+    LIMIT 5
+";
+$cancellation_notifs = mysqli_query($mycon, $cancellation_notif_sql);
+// Latest 5 new guest sign-ups
+$new_guests_sql = "
+    SELECT first_name, last_name, date_created
+    FROM tbl_guest
+    ORDER BY date_created DESC
+    LIMIT 5
+";
+$new_guests = mysqli_query($mycon, $new_guests_sql);
+// Latest 5 new admin sign-ups
+$new_admins_sql = "
+    SELECT username, full_name, date_created
+    FROM tbl_admin
+    ORDER BY date_created DESC
+    LIMIT 5
+";
+$new_admins = mysqli_query($mycon, $new_admins_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -268,6 +294,64 @@ $recent_res = mysqli_query($mycon, $recent_res_sql);
                     ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+    <!-- Notifications Section -->
+    <div class="table-section mb-4">
+        <div class="table-title d-flex align-items-center">
+            <i class="bi bi-bell me-2"></i> Notifications
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="border rounded-3 p-3 h-100 bg-dark-subtle">
+                    <h6 class="fw-bold text-warning mb-3"><i class="bi bi-x-octagon me-1"></i> Recent Cancellation Requests</h6>
+                    <ul class="list-group list-group-flush">
+                        <?php
+                        if ($cancellation_notifs && mysqli_num_rows($cancellation_notifs) > 0) {
+                            while ($row = mysqli_fetch_assoc($cancellation_notifs)) {
+                                echo '<li class="list-group-item bg-transparent text-light">';
+                                echo '<span class="badge bg-danger me-2">Cancellation</span>';
+                                echo '<b>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</b> requested cancellation for <b>#' . $row['reservation_id'] . '</b> (' . date('M d, Y', strtotime($row['check_in'])) . ')';
+                                echo '<span class="text-muted float-end" style="font-size:0.9em">' . date('M d, Y h:i A', strtotime($row['date_created'])) . '</span>';
+                                echo '</li>';
+                            }
+                        } else {
+                            echo '<li class="list-group-item bg-transparent text-secondary">No recent cancellation requests.</li>';
+                        }
+                        ?>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="border rounded-3 p-3 h-100 bg-dark-subtle">
+                    <h6 class="fw-bold text-warning mb-3"><i class="bi bi-person-plus me-1"></i> Recent Sign-ups</h6>
+                    <ul class="list-group list-group-flush mb-2">
+                        <?php
+                        if ($new_guests && mysqli_num_rows($new_guests) > 0) {
+                            while ($row = mysqli_fetch_assoc($new_guests)) {
+                                echo '<li class="list-group-item bg-transparent text-light">';
+                                echo '<span class="badge bg-info me-2">Guest</span>';
+                                echo '<b>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</b> signed up';
+                                echo '<span class="text-muted float-end" style="font-size:0.9em">' . date('M d, Y h:i A', strtotime($row['date_created'])) . '</span>';
+                                echo '</li>';
+                            }
+                        }
+                        if ($new_admins && mysqli_num_rows($new_admins) > 0) {
+                            while ($row = mysqli_fetch_assoc($new_admins)) {
+                                echo '<li class="list-group-item bg-transparent text-light">';
+                                echo '<span class="badge bg-primary me-2">Admin</span>';
+                                echo '<b>' . htmlspecialchars($row['full_name'] ?: $row['username']) . '</b> registered as admin';
+                                echo '<span class="text-muted float-end" style="font-size:0.9em">' . date('M d, Y h:i A', strtotime($row['date_created'])) . '</span>';
+                                echo '</li>';
+                            }
+                        }
+                        if ((!$new_guests || mysqli_num_rows($new_guests) == 0) && (!$new_admins || mysqli_num_rows($new_admins) == 0)) {
+                            echo '<li class="list-group-item bg-transparent text-secondary">No recent sign-ups.</li>';
+                        }
+                        ?>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
     <!-- Modals for summary details -->
