@@ -133,7 +133,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <?php endif; ?>
 <div class="container py-5">
-    <h2 class="mb-4 text-warning"><i class="bi bi-bell-fill"></i> My Notifications</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-4 text-warning"><i class="bi bi-bell-fill"></i> My Notifications</h2>
+        <span class="badge bg-danger" id="notifTrashBadge" style="font-size:1em;display:inline-block;vertical-align:middle;">
+            Trash (<span id="notifTrashCount">0</span>)
+        </span>
+    </div>
     <form class="row g-3 mb-4" method="get">
         <div class="col-md-4">
             <select name="type" class="form-select">
@@ -272,5 +277,17 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="alert alert-info">No notifications yet.</div>
     <?php endif; ?>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch trash count from reservations page or via AJAX
+    fetch('reservations.php?get_trash_count=1')
+        .then(response => response.json())
+        .then(data => {
+            if (data && typeof data.trash_count !== 'undefined') {
+                document.getElementById('notifTrashCount').textContent = data.trash_count;
+            }
+        });
+});
+</script>
 </body>
 </html> 
