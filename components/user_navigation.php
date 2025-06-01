@@ -277,9 +277,7 @@ if (isset($_SESSION['guest_id'])) {
     <a href="../pages/privacy.php" class="<?php echo ($current_page == 'privacy.php') ? 'active' : ''; ?>">
         <i class="bi bi-shield-check"></i> Privacy
     </a>
-    <a href="../pages/logout.php" class="logout-btn">
-        <i class="bi bi-box-arrow-right"></i> Log Out
-    </a>
+    
 </aside>
 
 <script>
