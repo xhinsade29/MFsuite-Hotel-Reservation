@@ -1,5 +1,6 @@
 <?php
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
 if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
 
@@ -120,13 +121,65 @@ $conn->close();
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Reservation Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: linear-gradient(135deg, #23234a 0%, #1e1e2f 100%); color: #fff; font-family: 'Segoe UI', Arial, sans-serif; }
+        body.light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .details-container, body.light-mode .details-image, body.light-mode .details-content, body.light-mode .card-modern {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .details-image img {
+            box-shadow: 0 4px 18px rgba(255,140,0,0.10);
+        }
+        body.light-mode .inclusions-card {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .inclusions-card h6,
+        body.light-mode .section-title {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .badge {
+            background: #ffe5b4 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .alert-danger {
+            background: #fff0e1 !important;
+            color: #c0392b !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .alert-success {
+            background: #eaffea !important;
+            color: #27ae60 !important;
+            border: 1px solid #b3ffb3 !important;
+        }
+        body.light-mode .modal-content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .modal-header, body.light-mode .modal-footer {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .btn-outline-light {
+            border-color: #ff8c00 !important;
+            color: #23234a !important;
+            background: #fff !important;
+        }
+        body.light-mode .btn-outline-light:hover {
+            background: #ff8c00 !important;
+            color: #fff !important;
+            border-color: #ff8c00 !important;
+        }
         .details-container {
             display: flex;
             flex-direction: row;
@@ -242,7 +295,7 @@ $conn->close();
         }
     </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
     <?php include '../components/user_navigation.php'; ?>
     <?php if ($booking['status'] === 'cancellation_requested'): ?>
         <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">

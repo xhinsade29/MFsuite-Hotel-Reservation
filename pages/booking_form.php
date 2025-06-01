@@ -1,6 +1,7 @@
 <?php
 include('../functions/db_connect.php');
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 $room_type_id = isset($_GET['room_type_id']) ? intval($_GET['room_type_id']) : 0;
 $room = null;
 $services = [];
@@ -109,6 +110,85 @@ if ($room_type_id) {
     <title>Book Room</title>
     <style>
         body { background: #1e1e2f; color: #fff; }
+        /* Light mode overrides */
+        body.light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .booking-container {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .booking-room-details {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .booking-room-details h2,
+        body.light-mode .booking-room-details .price {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .booking-room-details .service-item {
+            background: #f1f1f1 !important;
+            color: #23234a !important;
+        }
+        body.light-mode .booking-room-details .service-name {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .booking-room-details .service-description {
+            color: #666 !important;
+        }
+        body.light-mode .booking-form-section {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .form-label, body.light-mode label {
+            color: #23234a !important;
+        }
+        body.light-mode input, body.light-mode select, body.light-mode textarea {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode input:focus, body.light-mode select:focus, body.light-mode textarea:focus {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
+        }
+        body.light-mode .btn-primary, body.light-mode .btn-warning {
+            background: linear-gradient(90deg, #ff8c00, #ffa533) !important;
+            color: #fff !important;
+            border: none !important;
+        }
+        body.light-mode .btn-outline-secondary {
+            border-color: #ff8c00 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .btn-outline-secondary:hover {
+            background: #ff8c00 !important;
+            color: #fff !important;
+        }
+        body.light-mode .alert-info {
+            background: #ffe5b4 !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .alert-danger {
+            background: #fff0e1 !important;
+            color: #c0392b !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .modal-content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .modal-header, body.light-mode .modal-footer {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode #bookingModalReferenceNumberDisplay,
+        body.light-mode #cashModalReferenceNumberDisplay {
+            color: #23234a !important;
+        }
+        /* End light mode overrides */
         .booking-container { display: flex; flex-wrap: wrap; gap: 32px; max-width: 1200px; margin: 40px auto; background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); padding: 0; }
         .booking-room-details { flex: 1.2; min-width: 340px; background: #18182f; border-radius: 16px 0 0 16px; padding: 36px 32px; display: flex; flex-direction: column; align-items: flex-start; }
         .booking-room-details h2 { color: #FF8C00; font-weight: 700; margin-bottom: 12px; }
@@ -124,7 +204,7 @@ if ($room_type_id) {
         @media (max-width: 991px) { .booking-container { flex-direction: column; border-radius: 16px; } .booking-room-details, .booking-form-section { border-radius: 16px 16px 0 0; min-width: unset; padding: 24px 12px; } }
     </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
 <?php include('../components/user_navigation.php'); ?>
 
 <div class="booking-container">
@@ -294,23 +374,18 @@ if ($room_type_id) {
 </div>
 </div>
 
-<!-- Booking Success Modal -->
-<div class="modal fade" id="successBookingModal" tabindex="-1" aria-labelledby="successBookingModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
-      <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
-        <h4 class="modal-title w-100 text-center fw-bold text-success" id="successBookingModalLabel">Booking Successful!</h4>
-        <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body text-center">
-        <p>Your booking has been placed successfully.</p>
-        <div class="d-flex justify-content-center gap-3 mt-4">
-          <a href="reservations.php" class="btn btn-success">Go to Reservations</a>
-          <a href="rooms.php" class="btn btn-outline-light">Back to Rooms</a>
+<!-- Toast Container for booking success -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000; min-width: 320px;">
+    <div class="toast toast-success" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000" id="bookingSuccessToast" style="display:none;">
+        <div class="toast-header">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
-      </div>
+        <div class="toast-body">
+            Your reservation was placed successfully!
+        </div>
     </div>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -320,7 +395,6 @@ if ($room_type_id) {
 document.addEventListener('DOMContentLoaded', function() {
     var confirmModal = new bootstrap.Modal(document.getElementById('confirmBookingModal'));
     var bookingPaymentDetailsModal = new bootstrap.Modal(document.getElementById('bookingPaymentDetailsModal'));
-    var successModal = new bootstrap.Modal(document.getElementById('successBookingModal'));
     var openBtn = document.getElementById('openConfirmModalBtn');
     var confirmBtnCash = document.getElementById('confirmBookingBtnCash');
     var confirmBtnPayment = document.getElementById('confirmBookingBtnPayment');
@@ -678,6 +752,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 bookingForm.submit();
             }, 300);
         });
+    }
+
+    // Show toast if ?booking=success is in the URL
+    var url = new URL(window.location.href);
+    if (url.searchParams.get('booking') === 'success') {
+        var toastEl = document.getElementById('bookingSuccessToast');
+        if (toastEl) {
+            toastEl.style.display = '';
+            var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 3000 });
+            toast.show();
+        }
     }
 });
 </script>

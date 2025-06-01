@@ -1,5 +1,7 @@
 <?php
+session_start();
 include('../functions/db_connect.php');
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 
 // Fetch room types with their services and image
 $sql = "SELECT rt.*, 
@@ -53,6 +55,109 @@ $room_images = [
             display: flex;
             flex-direction: column;
         }
+
+        /* Light mode overrides */
+        body.light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode h1,
+        body.light-mode h3,
+        body.light-mode h2 {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .card {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+            box-shadow: 0 4px 20px rgba(255,140,0,0.07);
+        }
+        body.light-mode .card:hover {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 10px 30px rgba(255,140,0,0.13);
+        }
+        body.light-mode .card .price {
+            color: #ff8c00 !important;
+            border-top: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .card .occupancy {
+            color: #666 !important;
+        }
+        body.light-mode .see-details-btn {
+            background: linear-gradient(90deg, #ff8c00, #ffa533);
+            color: #fff;
+        }
+        body.light-mode .see-details-btn:hover, body.light-mode .see-details-btn:focus {
+            background: linear-gradient(90deg, #e67c00, #ffb366);
+            color: #fff;
+        }
+        body.light-mode .modal-content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .modal-details.booking-form {
+            background: #f7f7fa !important;
+            border-left: 2px solid #ffe5b4 !important;
+        }
+        body.light-mode .modal-details.booking-form h4 {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .modal-details.booking-form .form-label {
+            color: #23234a !important;
+        }
+        body.light-mode .modal-details.booking-form .form-control {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .modal-details.booking-form .form-control:focus {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
+        }
+        body.light-mode .modal-details.booking-form button.btn-primary {
+            background: linear-gradient(90deg, #ff8c00, #ffa533);
+            color: #fff;
+        }
+        body.light-mode .modal-details.booking-form button.btn-primary:hover {
+            background: linear-gradient(90deg, #e67c00, #ffb366);
+        }
+        body.light-mode .service-item {
+            background-color: #f1f1f1 !important;
+            color: #23234a !important;
+        }
+        body.light-mode .service-name {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .service-description {
+            color: #23234a !important;
+        }
+        body.light-mode .gallery-main {
+            background: #f7f7fa !important;
+        }
+        body.light-mode .gallery-thumbnail {
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .gallery-nav {
+            background: #ffe5b4 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .gallery-counter {
+            background: #ffe5b4 !important;
+            color: #23234a !important;
+        }
+        body.light-mode .occupancy, body.light-mode .services-list, body.light-mode .gallery-counter, body.light-mode .modal-details, body.light-mode .modal-details.booking-form, body.light-mode .modal-details.booking-form .form-label, body.light-mode .modal-details.booking-form .form-control, body.light-mode .modal-details.booking-form .form-control:focus {
+            color: #23234a !important;
+        }
+        body.light-mode .card-content,
+        body.light-mode .card p,
+        body.light-mode .service-description {
+            color: #23234a !important;
+        }
+        /* End light mode overrides */
 
         .content {
             margin-left: var(--sidebar-width);
@@ -468,8 +573,8 @@ $room_images = [
         }
     </style>
 </head>
-<body>
-    <?php include('../components/user_navigation.php'); ?>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
+   <?php include('../components/user_navigation.php'); ?>
     
     <div class="content">
         <h1>Room Types</h1>

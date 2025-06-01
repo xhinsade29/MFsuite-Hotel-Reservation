@@ -1,5 +1,6 @@
 <?php
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 
 // Database connection
 $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
@@ -117,6 +118,90 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
             color: var(--text-light);
             padding-top: var(--header-height);
         }
+
+        /* Light mode overrides */
+        body.light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode h1,
+        body.light-mode h2,
+        body.light-mode h4 {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .booking-card {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+            box-shadow: 0 4px 20px rgba(255,140,0,0.07);
+        }
+        body.light-mode .booking-card .booking-details h4 {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .booking-card .desc {
+            color: #666 !important;
+        }
+        body.light-mode .booking-card .badge {
+            background: #ffe5b4 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .btn-primary, body.light-mode .btn-info {
+            background: linear-gradient(90deg, #ff8c00, #ffa533) !important;
+            color: #fff !important;
+            border: none !important;
+        }
+        body.light-mode .btn-outline-secondary, body.light-mode .btn-outline-light {
+            border-color: #ff8c00 !important;
+            color: #ff8c00 !important;
+        }
+        body.light-mode .btn-outline-secondary:hover, body.light-mode .btn-outline-light:hover {
+            background: #ff8c00 !important;
+            color: #fff !important;
+        }
+        body.light-mode .alert-info {
+            background: #ffe5b4 !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .modal-content {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode .modal-header, body.light-mode .modal-footer {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .form-label, body.light-mode label {
+            color: #23234a !important;
+        }
+        body.light-mode input, body.light-mode select, body.light-mode textarea {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode input:focus, body.light-mode select:focus, body.light-mode textarea:focus {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
+        }
+        body.light-mode, body.light-mode .booking-card, body.light-mode .booking-details, body.light-mode .meta, body.light-mode .alert-info, body.light-mode .modal-content, body.light-mode .modal-header, body.light-mode .modal-footer, body.light-mode .form-label, body.light-mode label, body.light-mode input, body.light-mode select, body.light-mode textarea {
+            color: #23234a !important;
+        }
+        body.light-mode .form-check-input:checked {
+            background-color: #23234a !important;
+            border-color: #23234a !important;
+        }
+        body.light-mode .form-check-input {
+            border: 1.5px solid #23234a !important;
+        }
+        body.light-mode .modal-content .booking-card, body.light-mode .modal-content .booking-details {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        /* End light mode overrides */
 
         .content {
             margin-left: var(--sidebar-width);
@@ -301,7 +386,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
         }
     </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
     <?php include '../components/user_navigation.php'; ?>
     
     <div class="content d-flex flex-column align-items-center justify-content-center">

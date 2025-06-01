@@ -202,27 +202,32 @@ include 'functions/db_connect.php';
                 $services_result = mysqli_query($mycon, $services_sql);
                 function normalize_service_key($name) {
                     // Remove all non-alphanumeric, then remove spaces, then lowercase
-                    return strtolower(str_replace(' ', '', trim(preg_replace('/[^a-zA-Z0-9 ]/', '', $name))));
+                    $name = preg_replace('/&/', 'and', $name); // Replace & with 'and'
+                    $name = preg_replace('/[^a-zA-Z0-9 ]/', '', $name); // Remove non-alphanumeric except space
+                    $name = strtolower(str_replace(' ', '', trim($name)));
+                    return $name;
                 }
                 $service_icons = [
-                    'spa' => 'bi-spa',
-                    'swimmingpool' => 'bi-water',
-                    'restaurant' => 'bi-cup-straw',
-                    'airportshuttle' => 'bi-bus-front',
-                    'businesscenter' => 'bi-briefcase',
-                    'concierge' => 'bi-person-badge',
-                    'fitnesscenter' => 'bi-barbell',
-                    'luggagestorage' => 'bi-suitcase',
-                    'laundrydrycleaning' => 'bi-droplet',
-                    'roomservice' => 'bi-door-open',
-                    'housekeeping' => 'bi-bucket',
-                    'conferenceroom' => 'bi-easel',
-                    'wifi' => 'bi-wifi'
+                    'roomservice' => 'bi-door-open', // Room Service
+                    'housekeepingservice' => 'bi-bucket', // Housekeeping Service
+                    'laundryanddrycleaning' => 'bi-droplet', // Laundry & Dry Cleaning
+                    'conciergeservice' => 'bi-person-badge', // Concierge Service
+                    'airportshuttleservice' => 'bi-bus-front', // Airport Shuttle Service
+                    'wifiaccess' => 'bi-wifi', // Wi-Fi Access
+                    'restaurantandbar' => 'bi-cup-straw', // Restaurant & Bar
+                    'fitnesscenter' => 'bi-barbell', // Fitness Center
+                    'swimmingpool' => 'bi-water', // Swimming Pool
+                    'spaandwellnesscenter' => 'bi-spa', // Spa & Wellness Center
+                    'businesscenter' => 'bi-briefcase', // Business Center
+                    'meetingandconferencerooms' => 'bi-easel', // Meeting & Conference Rooms
+                    'luggagestorage' => 'bi-suitcase', // Luggage Storage
                 ];
                 if ($services_result && $services_result->num_rows > 0) {
                     while ($service = $services_result->fetch_assoc()) {
                         $key = normalize_service_key($service['service_name']);
                         $icon = $service_icons[$key] ?? 'bi-star';
+                        // Debug output for troubleshooting
+                        echo '<!-- Service: '.htmlspecialchars($service['service_name']).' | Key: '.htmlspecialchars($key).' | Icon: '.htmlspecialchars($icon).' -->';
                         echo '<div class="service-card">';
                         echo '<i class="bi ' . htmlspecialchars($icon) . '" style="font-size:2.5rem;color:#ffa533;margin-bottom:18px;"></i>';
                         echo '<h5>' . htmlspecialchars($service['service_name']) . '</h5>';

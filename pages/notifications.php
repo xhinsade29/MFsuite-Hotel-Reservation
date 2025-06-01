@@ -1,5 +1,6 @@
 <?php
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 if (!isset($_SESSION['guest_id'])) {
     header('Location: login.php');
     exit();
@@ -26,9 +27,6 @@ while ($row = mysqli_fetch_assoc($result)) {
     $notifications[] = $row;
 }
 mysqli_stmt_close($stmt);
-// Mark all as read for the current user only
-$guest_id = $_SESSION['guest_id'];
-$mycon->query("UPDATE user_notifications SET is_read = 1 WHERE guest_id = $guest_id");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -39,15 +37,79 @@ $mycon->query("UPDATE user_notifications SET is_read = 1 WHERE guest_id = $guest
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #1e1e2f; color: #fff; }
+        /* Light mode overrides */
+        body.light-mode {
+            background: #f8f9fa !important;
+            color: #23234a !important;
+        }
+        body.light-mode .container {
+            background: #fff !important;
+            color: #23234a !important;
+        }
+        body.light-mode h2 {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .notif-card {
+            background: #f7f7fa !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+            box-shadow: 0 4px 20px rgba(255,140,0,0.07);
+        }
+        body.light-mode .notif-unread-new {
+            border-left: 5px solid #ff8c00 !important;
+            background: linear-gradient(90deg, #ffe5b4 80%, #fff 100%) !important;
+            box-shadow: 0 4px 18px rgba(255,140,0,0.10);
+        }
+        body.light-mode .notif-type-reservation {
+            color: #ff8c00 !important;
+        }
+        body.light-mode .notif-type-wallet {
+            color: #00c896 !important;
+        }
+        body.light-mode .notif-type-profile {
+            color: #1e90ff !important;
+        }
+        body.light-mode .notif-date {
+            color: #888 !important;
+        }
+        body.light-mode .badge {
+            background: linear-gradient(90deg,#ff8c00 60%,#ffa533 100%) !important;
+            color: #fff !important;
+        }
+        body.light-mode .alert-info {
+            background: #ffe5b4 !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .btn-primary {
+            background: linear-gradient(90deg, #ff8c00, #ffa533) !important;
+            color: #fff !important;
+            border: none !important;
+        }
+        body.light-mode .form-select, body.light-mode input, body.light-mode textarea {
+            background: #fff !important;
+            color: #23234a !important;
+            border: 1px solid #ffe5b4 !important;
+        }
+        body.light-mode .form-select:focus, body.light-mode input:focus, body.light-mode textarea:focus {
+            border-color: #ff8c00 !important;
+            box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
+        }
+        /* End light mode overrides */
         .notif-card { background: #23234a; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); margin-bottom: 18px; }
         .notif-type-reservation { color: #FF8C00; }
         .notif-type-wallet { color: #00c896; }
         .notif-type-profile { color: #1e90ff; }
         .notif-date { font-size: 0.95em; color: #bdbdbd; }
-        .notif-unread { border-left: 4px solid #FF8C00; }
+        .notif-unread-new {
+            border-left: 5px solid #FF8C00;
+            background: linear-gradient(90deg, #2d2d5a 80%, #23234a 100%);
+            box-shadow: 0 4px 18px rgba(255,140,0,0.10);
+            position: relative;
+        }
     </style>
 </head>
-<body>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
 <?php include '../components/user_navigation.php'; ?>
 <?php if (isset($_SESSION['success'])): ?>
 <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1200;">
@@ -85,6 +147,19 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="submit" class="btn btn-primary">Filter</button>
         </div>
     </form>
+    <?php
+    $unread_count = 0;
+    foreach ($notifications as $notif) {
+        if (!$notif['is_read']) $unread_count++;
+    }
+    ?>
+    <?php if ($unread_count > 0): ?>
+        <div class="mb-3">
+            <span class="badge" style="background:linear-gradient(90deg,#ff8c00 60%,#ffa533 100%);color:#fff;font-size:1em;padding:8px 18px;border-radius:16px;box-shadow:0 2px 8px rgba(255,140,0,0.15);font-weight:600;letter-spacing:1px;">
+                <?php echo $unread_count; ?> New Notification<?php echo $unread_count > 1 ? 's' : ''; ?>
+            </span>
+        </div>
+    <?php endif; ?>
     <?php if (count($notifications) > 0): ?>
         <form method="post" action="delete_notifications.php" id="deleteNotifsForm">
         <div class="mb-3 d-flex align-items-center gap-2">
@@ -168,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         </script>
         <?php foreach ($notifications as $notif): ?>
-        <div class="notif-card p-4 mb-3 <?php if(!$notif['is_read']) echo 'notif-unread'; ?> d-flex align-items-start">
+        <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?>">
             <div class="form-check me-3 mt-2">
                 <input class="form-check-input notif-checkbox" type="checkbox" name="notif_ids[]" value="<?php echo $notif['user_notication_id']; ?>">
             </div>

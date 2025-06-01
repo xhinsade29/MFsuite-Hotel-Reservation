@@ -1,5 +1,6 @@
 <?php
 session_start();
+$theme_preference = $_SESSION['theme_preference'] ?? 'dark';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reservation_id = intval($_POST['reservation_id'] ?? 0);
@@ -40,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("i", $reservation_id);
         $stmt->execute();
         $stmt->close();
+
+        // Add notification for the user
+        include_once '../functions/notify.php';
+        $notif_msg = "Your cancellation request for reservation #$reservation_id has been submitted.";
+        add_notification($guest_id, 'reservation', $notif_msg, $conn);
+
         $conn->close();
         // Redirect back to details with notification
         header("Location: reservation_details.php?id=$reservation_id&cancel=requested");
@@ -48,4 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 // If invalid, redirect to reservations page
 header("Location: reservations.php");
-exit(); 
+exit();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
+<?php include '../components/user_navigation.php'; ?> 
