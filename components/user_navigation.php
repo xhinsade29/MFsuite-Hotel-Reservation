@@ -306,6 +306,27 @@ if (isset($_SESSION['guest_id'])) {
     
 </aside>
 
+<!-- Toast Notification for Room Search -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 4000;">
+  <div class="toast align-items-center text-bg-success border-0" id="roomFoundToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000" style="display:none;">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle me-2"></i> Room type found!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+  <div class="toast align-items-center text-bg-danger border-0" id="roomNotFoundToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="2000" style="display:none;">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-x-circle me-2"></i> No room type found.
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 function toggleNotifDropdown(e) {
     e.stopPropagation();
@@ -355,6 +376,15 @@ if (profileBtn && profileDropdown) {
 // Room type search logic
 const roomSearchInput = document.getElementById('roomSearchInput');
 const roomSearchResults = document.getElementById('roomSearchResults');
+const roomFoundToast = document.getElementById('roomFoundToast');
+const roomNotFoundToast = document.getElementById('roomNotFoundToast');
+function showToast(toastEl) {
+    if (!toastEl) return;
+    toastEl.style.display = 'block';
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+    setTimeout(() => { toastEl.style.display = 'none'; }, 2000);
+}
 if (roomSearchInput && roomSearchResults) {
     let searchTimeout = null;
     roomSearchInput.addEventListener('input', function() {
@@ -380,6 +410,7 @@ if (roomSearchInput && roomSearchResults) {
                     } else {
                         roomSearchResults.innerHTML = `<div class='search-result-item' style='color:#888;'>No results found.</div>`;
                         roomSearchResults.style.display = 'block';
+                        showToast(roomNotFoundToast);
                     }
                 });
         }, 250);
@@ -387,7 +418,10 @@ if (roomSearchInput && roomSearchResults) {
     roomSearchResults.addEventListener('click', function(e) {
         const item = e.target.closest('.search-result-item');
         if (item && item.dataset.id) {
-            window.location.href = '../pages/booking_form.php?room_type_id=' + encodeURIComponent(item.dataset.id);
+            showToast(roomFoundToast);
+            setTimeout(function() {
+                window.location.href = '../pages/booking_form.php?room_type_id=' + encodeURIComponent(item.dataset.id);
+            }, 1200);
         }
     });
     document.addEventListener('click', function(e) {
