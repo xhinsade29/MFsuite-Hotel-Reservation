@@ -25,17 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("isi", $reservation_id, $canceled_by, $reason_id);
         $stmt->execute();
         $stmt->close();
-        // Update reservation: set status to 'cancellation_requested' only if currently 'pending'
-        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'cancellation_requested' WHERE reservation_id = ? AND status = 'pending'");
+        // Update reservation: set status to 'cancellation_requested' regardless of current status
+        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'cancellation_requested' WHERE reservation_id = ?");
         $stmt->bind_param("i", $reservation_id);
         $stmt->execute();
         $stmt->close();
         $conn->close();
         // Redirect back to details with notification
-        header("Location: /pages/reservation_details.php?id=$reservation_id&cancel=requested");
+        header("Location: reservation_details.php?id=$reservation_id&cancel=requested");
         exit();
     }
 }
 // If invalid, redirect to reservations page
-header("Location: /pages/reservations.php");
+header("Location: reservations.php");
 exit(); 

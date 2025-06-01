@@ -5,6 +5,22 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['rol
     exit();
 }
 include '../functions/db_connect.php';
+// Count new cancellation requests
+$cancellation_count = 0;
+$cancellation_sql = "SELECT COUNT(*) as cnt FROM tbl_reservation WHERE status = 'cancellation_requested'";
+$cancellation_res = mysqli_query($mycon, $cancellation_sql);
+if ($cancellation_res && $row = mysqli_fetch_assoc($cancellation_res)) {
+    $cancellation_count = (int)$row['cnt'];
+}
+// Show toast if new requests since last visit
+if (!isset($_SESSION['last_cancellation_count'])) {
+    $_SESSION['last_cancellation_count'] = $cancellation_count;
+}
+$show_cancellation_toast = false;
+if ($cancellation_count > $_SESSION['last_cancellation_count']) {
+    $show_cancellation_toast = true;
+    $_SESSION['last_cancellation_count'] = $cancellation_count;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

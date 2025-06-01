@@ -37,6 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
 
+        // Notify user if cancellation is approved
+        if ($action === 'approve') {
+            add_notification($guest_id, 'reservation', 'Your reservation cancellation has been approved by the admin.', $mycon);
+        }
+
         // If approved and eligible for refund
         if ($action === 'approve' && $payment_status === 'Paid' && $payment_method !== 'Cash') {
             // Refund logic (same as above)

@@ -485,7 +485,7 @@ $room_images = [
                     echo '<h3>' . htmlspecialchars($row['type_name']) . '</h3>';
                     echo '<p>' . htmlspecialchars($row['description']) . '</p>';
                     echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
-                    echo '<p class="price">₱' . number_format($row['room_price'], 2) . '</p>';
+                    echo '<p class="price">₱' . number_format($row['nightly_rate'], 2) . '</p>';
                     echo '<button class="see-details-btn mt-3" onclick="window.location.href=\'booking_form.php?room_type_id=' . urlencode($row['room_type_id']) . '\';">See Details</button>';
                     echo '</div></div>';
                 }
@@ -585,7 +585,7 @@ $room_images = [
             modalTitle.textContent = roomData.type_name;
             modalDescription.textContent = roomData.description;
             modalOccupancy.textContent = `Max Occupancy: ${roomData.max_occupancy}`;
-            modalPrice.textContent = `₱${parseFloat(roomData.room_price).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            modalPrice.textContent = `₱${parseFloat(roomData.nightly_rate).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
             // Display services with descriptions
             modalServices.innerHTML = '';
@@ -610,7 +610,7 @@ $room_images = [
 
             // Set booking form values
             document.getElementById('modalRoomTypeId').value = roomData.room_type_id;
-            document.getElementById('modalTotalAmountInput').value = parseFloat(roomData.room_price).toLocaleString('en-US', {minimumFractionDigits:2});
+            document.getElementById('modalTotalAmountInput').value = parseFloat(roomData.nightly_rate).toLocaleString('en-US', {minimumFractionDigits:2});
 
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';

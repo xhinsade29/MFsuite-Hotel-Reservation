@@ -373,7 +373,7 @@ while ($row = $services_result->fetch_assoc()) {
                   <img src="<?php echo $img; ?>" alt="Room Image" class="img-fluid rounded-top" style="width:100%;height:180px;object-fit:cover;">
                   <div class="p-3">
                     <h5 class="card-title text-warning"><?php echo htmlspecialchars($room['type_name']); ?></h5>
-                    <h6 class="card-subtitle mb-2">₱<?php echo number_format($room['room_price'], 2); ?></h6>
+                    <h6 class="card-subtitle mb-2">₱<?php echo number_format(isset($room['room_price']) ? $room['room_price'] : (isset($room['nightly_rate']) ? $room['nightly_rate'] : 0), 2); ?></h6>
                     <div class="mb-1"><i class="bi bi-people"></i> Max Occupancy: <?php echo htmlspecialchars($room['max_occupancy']); ?></div>
                     <p class="card-text"><?php echo htmlspecialchars($room['description']); ?></p>
                     <button class="btn btn-info btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#roomModal<?php echo $room['room_type_id']; ?>">View Rooms</button>
@@ -399,7 +399,7 @@ while ($row = $services_result->fetch_assoc()) {
                               </div>
                               <div class="mb-3">
                                 <label class="form-label">Room Price</label>
-                                <input type="number" name="room_price" value="<?php echo $room['room_price']; ?>" class="form-control form-control-sm" min="1" step="0.01" required>
+                                <input type="number" name="room_price" value="<?php echo isset($room['room_price']) ? $room['room_price'] : (isset($room['nightly_rate']) ? $room['nightly_rate'] : ''); ?>" class="form-control form-control-sm" min="1" step="0.01" required>
                               </div>
                               <div class="mb-3">
                                 <label class="form-label">Max Occupancy</label>

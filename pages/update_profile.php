@@ -314,7 +314,8 @@ mysqli_stmt_close($trans_stmt);
 
                         <div class="row">
                             <!-- Left: User Info & Password -->
-                            <div class="col-md-6 border-end">
+                            <div class="col-md-6 border-end" style="padding-right:2rem;">
+                                <h4 class="mb-4 text-warning"><i class="bi bi-person-circle me-2"></i>User Information</h4>
                                 <form action="process_update_profile.php" method="POST" enctype="multipart/form-data">
                                     <input type="hidden" name="update_type" value="user">
                                     <div class="text-center mb-4">
@@ -365,7 +366,7 @@ mysqli_stmt_close($trans_stmt);
                                         <textarea class="form-control" name="address" rows="2" required><?php echo htmlspecialchars($user['address']); ?></textarea>
                                     </div>
                                     <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
-                                    <h5 class="mb-3">Change Password</h5>
+                                    <h5 class="mb-3 text-info"><i class="bi bi-key me-2"></i>Change Password</h5>
                                     <div class="mb-3">
                                         <label class="form-label">Current Password</label>
                                         <div class="input-group">
@@ -393,13 +394,14 @@ mysqli_stmt_close($trans_stmt);
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="d-grid gap-2">
+                                    <div class="d-grid gap-2 mt-3">
                                         <button type="submit" class="btn btn-primary">Update User Details</button>
                                     </div>
                                 </form>
                             </div>
                             <!-- Right: Payment Details -->
-                            <div class="col-md-6">
+                            <div class="col-md-6" style="padding-left:2rem;">
+                                <h4 class="mb-4 text-warning"><i class="bi bi-credit-card me-2"></i>Payment Methods</h4>
                                 <form action="process_update_profile.php" method="POST">
                                     <input type="hidden" name="update_type" value="payment">
                                     <div class="mb-3">
@@ -418,7 +420,7 @@ mysqli_stmt_close($trans_stmt);
                                         <label class="form-label">GCash Number</label>
                                         <input type="text" class="form-control" name="gcash_number" value="<?php echo htmlspecialchars($user['gcash_number'] ?? ''); ?>">
                                     </div>
-                                    <div class="d-grid gap-2">
+                                    <div class="d-grid gap-2 mt-3">
                                         <button type="submit" class="btn btn-primary">Update Payment Details</button>
                                     </div>
                                 </form>

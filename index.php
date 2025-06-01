@@ -39,12 +39,50 @@ include 'functions/db_connect.php';
         .room-card .price { color: #FF8C00; font-weight: 600; font-size: 1.1em; margin-bottom: 10px; }
         .room-card .btn { width: 100%; }
         .services-section { background: #23234a; padding: 80px 0; }
-        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; }
-        .service-card { background: #1a1a2e; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); padding: 32px 22px; text-align: center; transition: all 0.3s; border: 1px solid rgba(255,255,255,0.06); }
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 36px 32px;
+            margin-bottom: 0;
+        }
+        .service-card {
+            background: #1a1a2e;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            padding: 36px 26px 32px 26px;
+            text-align: center;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.06);
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
         .service-card:hover { transform: translateY(-6px); border-color: #ffa533; }
         .service-card img { width: 60px; height: 60px; object-fit: cover; border-radius: 50%; margin-bottom: 16px; }
         .service-card h5 { color: #ffa533; font-weight: 600; margin-bottom: 8px; }
         .service-card p { color: #bdbdbd; font-size: 0.98em; }
+        @media (max-width: 991px) {
+            .services-grid {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 28px 18px;
+            }
+            .service-card {
+                min-height: 260px;
+                padding: 28px 12px 24px 12px;
+            }
+        }
+        @media (max-width: 600px) {
+            .services-grid {
+                grid-template-columns: 1fr;
+                gap: 18px 0;
+            }
+            .service-card {
+                min-height: unset;
+                padding: 18px 6px 18px 6px;
+            }
+        }
         .offers-section { background: #1a1a2e; padding: 80px 0; }
         .offers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 32px; }
         .offer-card { background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); overflow: hidden; text-align: center; }
@@ -143,7 +181,7 @@ include 'functions/db_connect.php';
                         echo '<h4>' . htmlspecialchars($row['type_name']) . '</h4>';
                         echo '<div class="desc">' . htmlspecialchars($row['description']) . '</div>';
                         echo '<div class="occupancy"><i class="bi bi-people"></i> Max Occupancy: ' . htmlspecialchars($row['max_occupancy']) . '</div>';
-                        echo '<div class="price">₱' . number_format($row['room_price'], 2) . '</div>';
+                        echo '<div class="price">₱' . (isset($row['nightly_rate']) ? number_format($row['nightly_rate'], 2) : 'N/A') . '</div>';
                         echo '<a href="pages/booking_form.php?room_type_id=' . urlencode($row['room_type_id']) . '" class="btn btn-warning mt-2"><i class="bi bi-calendar-check"></i> Book Now</a>';
                         echo '</div></div>';
                     }
@@ -162,30 +200,31 @@ include 'functions/db_connect.php';
                 <?php
                 $services_sql = "SELECT * FROM tbl_services";
                 $services_result = mysqli_query($mycon, $services_sql);
-                $service_images = [
-                    'spa' => 'spa.avif',
-                    'swimming pool' => 'pool.avif',
-                    'restaurant' => 'restaurant.avif',
-                    'airport shuttle' => 'Airport_Shuttle_Service.avif',
-                    'business center' => 'Business_Center.jpg',
-                    'concierge' => 'Concierge_Service.avif',
-                    'fitness center' => 'fitness.jpg',
-                    'luggage storage' => 'Luggage_storage.jpg',
-                    'laundry & dry cleaning' => 'laundry_dry.jpg',
-                    'room service' => 'room_service.jpg',
-                    'housekeeping' => 'house_keeping.avif',
-                    'conference room' => 'conference.jpg',
-                    'wifi' => 'wifi.jpg'
-                ];
                 function normalize_service_key($name) {
-                    return strtolower(trim(preg_replace('/[^a-zA-Z0-9 ]/', '', $name)));
+                    // Remove all non-alphanumeric, then remove spaces, then lowercase
+                    return strtolower(str_replace(' ', '', trim(preg_replace('/[^a-zA-Z0-9 ]/', '', $name))));
                 }
+                $service_icons = [
+                    'spa' => 'bi-spa',
+                    'swimmingpool' => 'bi-water',
+                    'restaurant' => 'bi-cup-straw',
+                    'airportshuttle' => 'bi-bus-front',
+                    'businesscenter' => 'bi-briefcase',
+                    'concierge' => 'bi-person-badge',
+                    'fitnesscenter' => 'bi-barbell',
+                    'luggagestorage' => 'bi-suitcase',
+                    'laundrydrycleaning' => 'bi-droplet',
+                    'roomservice' => 'bi-door-open',
+                    'housekeeping' => 'bi-bucket',
+                    'conferenceroom' => 'bi-easel',
+                    'wifi' => 'bi-wifi'
+                ];
                 if ($services_result && $services_result->num_rows > 0) {
                     while ($service = $services_result->fetch_assoc()) {
                         $key = normalize_service_key($service['service_name']);
-                        $img = $service_images[$key] ?? 'service.png';
+                        $icon = $service_icons[$key] ?? 'bi-star';
                         echo '<div class="service-card">';
-                        echo '<img src="assets/services/' . htmlspecialchars($img) . '" alt="' . htmlspecialchars($service['service_name']) . '" onerror="this.src=\'assets/services/service.png\'">';
+                        echo '<i class="bi ' . htmlspecialchars($icon) . '" style="font-size:2.5rem;color:#ffa533;margin-bottom:18px;"></i>';
                         echo '<h5>' . htmlspecialchars($service['service_name']) . '</h5>';
                         echo '<p>' . htmlspecialchars($service['service_description']) . '</p>';
                         echo '</div>';

@@ -15,6 +15,14 @@ $sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.date_created, r.stat
         JOIN tbl_cancellation_reason cr ON c.reason_id = cr.reason_id
         WHERE r.status = 'pending' ORDER BY r.date_created DESC";
 $result = $conn->query($sql);
+
+// Count new cancellation requests
+$cancellation_count = 0;
+$count_sql = "SELECT COUNT(*) as cnt FROM tbl_reservation WHERE status = 'cancellation_requested'";
+$count_res = $conn->query($count_sql);
+if ($count_res && $row = $count_res->fetch_assoc()) {
+    $cancellation_count = (int)$row['cnt'];
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -24,7 +32,11 @@ $result = $conn->query($sql);
 </head>
 <body class="bg-dark text-light">
 <div class="container mt-5">
-    <h2 class="mb-4 text-warning">Pending Cancellation Requests</h2>
+    <h2 class="mb-4 text-warning">Pending Cancellation Requests
+      <?php if ($cancellation_count > 0): ?>
+        <span class="badge bg-danger ms-2"><?php echo $cancellation_count; ?></span>
+      <?php endif; ?>
+    </h2>
     <?php if (isset($_GET['msg'])): ?>
         <div class="alert alert-success"> <?php echo htmlspecialchars($_GET['msg']); ?> </div>
     <?php endif; ?>

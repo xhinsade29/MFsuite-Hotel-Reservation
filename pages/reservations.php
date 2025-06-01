@@ -33,7 +33,7 @@ $room_images = [
 ];
 if (isset($_SESSION['guest_id'])) {
     $guest_id = $_SESSION['guest_id'];
-    $sql = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.room_price, 
+    $sql = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.nightly_rate, 
                    GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
                    p.payment_status, p.payment_method, p.amount, rt.room_type_id
             FROM tbl_reservation r
@@ -58,7 +58,7 @@ if (isset($_SESSION['guest_id'])) {
 $hidden_bookings = [];
 if (isset($_SESSION['guest_id'])) {
     $guest_id = $_SESSION['guest_id'];
-    $sql_hidden = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.room_price, 
+    $sql_hidden = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.nightly_rate, 
                    GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
                    p.payment_status, p.payment_method, p.amount, rt.room_type_id
             FROM tbl_reservation r
@@ -306,11 +306,9 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     
     <div class="content d-flex flex-column align-items-center justify-content-center">
         <h1 class="text-center"><i class="fas fa-calendar-alt"></i> My Reservations</h1>
-        
+
         <?php if (isset($_SESSION['guest_id'])): ?>
-            <div class="alert alert-secondary text-center mb-2">
-                <strong>Debug:</strong> Guest ID: <?php echo htmlspecialchars($_SESSION['guest_id']); ?> | Reservations found: <?php echo count($user_bookings); ?>
-            </div>
+            <!-- Removed Debug message -->
         <?php endif; ?>
 
         <?php if (isset($_SESSION['guest_id'])): ?>
@@ -355,7 +353,17 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                 } else {
                     $included_services = [];
                 }
-                $total_amount = $booking['room_price'];
+                $check_in = isset($booking['check_in']) ? $booking['check_in'] : '';
+                $check_out = isset($booking['check_out']) ? $booking['check_out'] : '';
+                $nightly_rate = isset($booking['nightly_rate']) ? $booking['nightly_rate'] : (isset($booking['room_price']) ? $booking['room_price'] : 0);
+                $number_of_nights = 1;
+                if ($check_in && $check_out) {
+                    $in = new DateTime($check_in);
+                    $out = new DateTime($check_out);
+                    $diff = $in->diff($out);
+                    $number_of_nights = max(1, $diff->days);
+                }
+                $total_amount = $nightly_rate * $number_of_nights;
                 // Get selected service names for this booking
                 $service_names = [];
                 if (!empty($booking['services'])) {
@@ -372,6 +380,16 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         while ($row = $service_price_result->fetch_assoc()) {
                             $total_amount += $row['service_price'];
                         }
+                    }
+                }
+                // Fetch assigned room number if available
+                $assigned_room_number = null;
+                if (!empty($booking['assigned_room_id'])) {
+                    $room_id = intval($booking['assigned_room_id']);
+                    $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = $room_id";
+                    $room_num_result = $conn->query($room_num_sql);
+                    if ($room_num_result && $room_num_result->num_rows > 0) {
+                        $assigned_room_number = $room_num_result->fetch_assoc()['room_number'];
                     }
                 }
                 ?>
@@ -393,7 +411,12 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
                         <span class="badge <?php echo $badgeClass; ?> mb-2">
                             <?php echo ucfirst(str_replace('_', ' ', $booking['reservation_status'])); ?>
                         </span>
+                        <?php if ($assigned_room_number): ?>
+                        <div class="meta"><strong>Room Number:</strong> <?php echo htmlspecialchars($assigned_room_number); ?></div>
+                        <?php endif; ?>
                         <div class="meta"><strong>Date Booked:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['date_created'])); ?></div>
+                        <div class="meta"><strong>Number of Nights:</strong> <?php echo $number_of_nights; ?></div>
+                        <div class="meta"><strong>Total Price:</strong> ₱<?php echo number_format($total_amount, 2); ?></div>
                         <div class="d-flex align-items-center gap-2 mt-2">
                             <a href="reservation_details.php?id=<?php echo $booking['reservation_id']; ?>" class="btn btn-info btn-sm">View Details</a>
                         </div>
