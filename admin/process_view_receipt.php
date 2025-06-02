@@ -12,23 +12,41 @@ if (!$payment_id) {
     exit;
 }
 
-$sql = "SELECT p.amount, p.payment_method, p.payment_status, p.reference_number, p.created_at, r.reservation_id, r.guest_id, CONCAT(g.first_name, ' ', IFNULL(g.middle_name, ''), ' ', g.last_name) AS guest_name, g.email as guest_email FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE p.payment_id = ? LIMIT 1";
+$sql = "SELECT p.amount, p.payment_method, p.payment_status, p.reference_number, p.created_at, r.reservation_id, r.guest_id, CONCAT(g.first_name, ' ', IFNULL(g.middle_name, ''), ' ', g.last_name) AS guest_name, g.user_email as guest_email FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE p.payment_id = ? LIMIT 1";
 $stmt = $mycon->prepare($sql);
 $stmt->bind_param('i', $payment_id);
 $stmt->execute();
 $stmt->bind_result($amount, $payment_method, $payment_status, $reference_number, $created_at, $reservation_id, $guest_id, $guest_name, $guest_email);
 if ($stmt->fetch()) {
-    echo '<div class="container-fluid">';
-    echo '<div class="row mb-3"><div class="col"><h4 class="fw-bold text-warning mb-0">MF Suites Hotel Payment Receipt</h4></div></div>';
-    echo '<div class="row mb-2"><div class="col-md-6"><strong>Guest:</strong> ' . htmlspecialchars($guest_name) . '<br><strong>Email:</strong> ' . htmlspecialchars($guest_email) . '</div>';
-    echo '<div class="col-md-6"><strong>Reservation ID:</strong> ' . htmlspecialchars($reservation_id) . '<br><strong>Reference #:</strong> ' . htmlspecialchars($reference_number) . '</div></div>';
-    echo '<div class="row mb-2"><div class="col-md-6"><strong>Payment Method:</strong> ' . htmlspecialchars($payment_method) . '</div>';
-    echo '<div class="col-md-6"><strong>Status:</strong> <span class="badge bg-'.($payment_status=='Paid'?'success':($payment_status=='Pending'?'warning text-dark':'danger')).'">' . htmlspecialchars($payment_status) . '</span></div></div>';
-    echo '<div class="row mb-2"><div class="col-md-6"><strong>Amount Paid:</strong> <span class="text-success">₱' . number_format($amount,2) . '</span></div>';
-    echo '<div class="col-md-6"><strong>Date of Payment:</strong> ' . date('M d, Y h:i A', strtotime($created_at)) . '</div></div>';
-    echo '<hr class="my-3">';
-    echo '<div class="row"><div class="col text-end text-secondary" style="font-size:0.95em;">This is an electronically generated receipt. Thank you for your payment!</div></div>';
+    echo '<div class="d-flex justify-content-center align-items-center" style="min-height:60vh;">';
+    echo '<div class="card shadow-lg border-0" style="max-width:480px;width:100%;border-radius:22px;background:#fff;">';
+    echo '<div class="card-body p-4">';
+    echo '<div class="text-center mb-3">'
+        .'<div class="mb-2" style="font-size:2.5rem;color:#ffa533;"><i class="bi bi-receipt"></i></div>'
+        .'<div class="fw-bold" style="font-size:1.7rem;color:#23234a;letter-spacing:1px;">MF Suites Hotel</div>'
+        .'<div class="text-secondary" style="font-size:1.1rem;">Payment Receipt</div>'
+    .'</div>';
+    echo '<hr style="border-top:2px dashed #ffa533;opacity:.5;">';
+    echo '<div class="row mb-2 g-2">';
+    echo '<div class="col-6 small text-secondary">Guest</div><div class="col-6 fw-semibold">' . htmlspecialchars($guest_name) . '</div>';
+    echo '<div class="col-6 small text-secondary">Email</div><div class="col-6">' . htmlspecialchars($guest_email) . '</div>';
+    echo '<div class="col-6 small text-secondary">Reservation ID</div><div class="col-6">' . htmlspecialchars($reservation_id) . '</div>';
+    echo '<div class="col-6 small text-secondary">Reference #</div><div class="col-6">' . htmlspecialchars($reference_number) . '</div>';
+    echo '<div class="col-6 small text-secondary">Payment Method</div><div class="col-6">' . htmlspecialchars($payment_method) . '</div>';
+    echo '<div class="col-6 small text-secondary">Status</div><div class="col-6"><span class="badge bg-'.($payment_status=='Paid'?'success':($payment_status=='Pending'?'warning text-dark':'danger')).' px-3 py-2" style="font-size:1em;">' . htmlspecialchars($payment_status) . '</span></div>';
+    echo '<div class="col-6 small text-secondary">Date</div><div class="col-6">' . date('M d, Y h:i A', strtotime($created_at)) . '</div>';
     echo '</div>';
+    echo '<hr style="border-top:2px dashed #ffa533;opacity:.5;">';
+    echo '<div class="text-center mb-3">'
+        .'<div class="small text-secondary">Amount Paid</div>'
+        .'<div class="fw-bold text-success" style="font-size:2.2rem;">₱' . number_format($amount,2) . '</div>'
+    .'</div>';
+    echo '<div class="text-center mb-3">'
+        .'<img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=MFsuiteReceipt-'.$payment_id.'" alt="QR Code" class="rounded-3 border" style="background:#fff;" />'
+        .'<div class="small text-secondary mt-2">Scan for authenticity</div>'
+    .'</div>';
+    echo '<div class="text-center text-secondary small" style="font-size:0.98em;">This is an electronically generated receipt.<br>Thank you for your payment!</div>';
+    echo '</div></div></div>';
 } else {
     echo '<div class="alert alert-danger">Payment not found.</div>';
 }

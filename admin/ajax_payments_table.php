@@ -93,8 +93,9 @@ if ($res && $res->num_rows > 0) {
         echo '<td>' . htmlspecialchars($row['payment_status']) . '</td>';
         echo '<td>' . date('M d, Y H:i', strtotime($row['created_at'])) . '</td>';
         echo '<td>';
-        echo '<button class="btn btn-sm btn-outline-info me-1 view-receipt-btn" data-payment-id="' . htmlspecialchars($row['payment_id']) . '" data-reservation-id="' . htmlspecialchars($row['reservation_id']) . '" data-guest-id="' . htmlspecialchars($row['guest_id']) . '">View Receipt</button>';
-        echo '<button class="btn btn-sm btn-outline-secondary resend-confirmation-btn" data-payment-id="' . htmlspecialchars($row['payment_id']) . '" data-reservation-id="' . htmlspecialchars($row['reservation_id']) . '" data-guest-id="' . htmlspecialchars($row['guest_id']) . '">Re-send Confirmation</button>';
+        if ($row['payment_status'] === 'Paid' || $row['payment_status'] === 'Refunded') {
+            echo '<button class="btn btn-sm btn-outline-info me-1 view-receipt-btn" data-payment-id="' . htmlspecialchars($row['payment_id']) . '" data-reservation-id="' . htmlspecialchars($row['reservation_id']) . '" data-guest-id="' . htmlspecialchars($row['guest_id']) . '">View Receipt</button>';
+        }
         echo '</td>';
         echo '</tr>';
     }

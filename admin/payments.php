@@ -227,23 +227,26 @@ $admin_id = $_SESSION['admin_id'];
                         </div>
                     </div>
                 </form>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover table-striped table-bordered align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th data-sort="reservation_id">Reservation ID <span class="sort-icon" id="sort-icon-reservation_id"></span></th>
-                                <th data-sort="guest_name">Guest Name <span class="sort-icon" id="sort-icon-guest_name"></span></th>
-                                <th data-sort="payment_method">Payment Method <span class="sort-icon" id="sort-icon-payment_method"></span></th>
-                                <th data-sort="amount">Amount Paid <span class="sort-icon" id="sort-icon-amount"></span></th>
-                                <th data-sort="payment_status">Payment Status <span class="sort-icon" id="sort-icon-payment_status"></span></th>
-                                <th data-sort="created_at">Date of Payment <span class="sort-icon" id="sort-icon-created_at"></span></th>
-                                <th>Options</th>
-                            </tr>
-                        </thead>
-                        <tbody id="paymentsTableBody">
-                            <!-- AJAX loaded rows here -->
-                        </tbody>
-                    </table>
+                <div class="d-flex justify-content-center mb-4">
+                    <div style="width:100%;max-width:1100px;">
+                     
+                        <table class="table table-dark table-hover table-striped table-bordered modern-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th data-sort="reservation_id">Reservation ID <span class="sort-icon" id="sort-icon-reservation_id"></span></th>
+                                    <th data-sort="guest_name">Guest Name <span class="sort-icon" id="sort-icon-guest_name"></span></th>
+                                    <th data-sort="payment_method">Payment Method <span class="sort-icon" id="sort-icon-payment_method"></span></th>
+                                    <th data-sort="amount">Amount Paid <span class="sort-icon" id="sort-icon-amount"></span></th>
+                                    <th data-sort="payment_status">Payment Status <span class="sort-icon" id="sort-icon-payment_status"></span></th>
+                                    <th data-sort="created_at">Date of Payment <span class="sort-icon" id="sort-icon-created_at"></span></th>
+                                    <th>Options</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody">
+                                <!-- AJAX loaded rows here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
