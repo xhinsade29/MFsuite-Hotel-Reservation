@@ -55,6 +55,9 @@
         <a href="payments.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'payments.php') ? 'active' : ''; ?>">
             <i class="bi bi-credit-card-fill"></i> Payments
         </a>
+        <a href="reports.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reports.php') ? 'active' : ''; ?>">
+            <i class="bi bi-bar-chart-fill"></i> Reports
+        </a>
     </nav>
     <div class="admin-profile">
         <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['username'] ?? 'Admin User'); ?>&background=FF8C00&color=fff" alt="Admin User" class="admin-avatar">
