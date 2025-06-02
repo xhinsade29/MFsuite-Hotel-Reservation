@@ -74,17 +74,6 @@ if ($admin_result && $admin_result->num_rows > 0) {
     $row = $admin_result->fetch_assoc();
     $admin_id = $row['admin_id'];
 }
-// Fetch admin payment accounts
-$admin_payment_accounts = [];
-$sql = "SELECT account_type, account_number, account_email FROM admin_payment_accounts WHERE admin_id = ? ORDER BY account_type, account_id";
-$stmt = $mycon->prepare($sql);
-$stmt->bind_param('i', $admin_id);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $admin_payment_accounts[$row['account_type']][] = $row;
-}
-$stmt->close();
 // After fetching $room, add PHP check for room availability
 $room_fully_booked = false;
 if ($room_type_id) {
@@ -287,17 +276,21 @@ if ($room_type_id) {
                                 $pname = strtolower($ptype['payment_name']);
                                 $disabled = false;
                                 $acc_display = '';
-                                if (isset($admin_payment_accounts[$pname]) && count($admin_payment_accounts[$pname]) > 0) {
-                                    $acc = $admin_payment_accounts[$pname][0];
-                                    if ($pname === 'paypal') {
-                                        $acc_display = $acc['account_email'];
-                                        $disabled = empty($acc_display);
-                                    } else {
-                                        $acc_display = $acc['account_number'];
-                                        $disabled = empty($acc_display);
-                                    }
-                                } else {
-                                    $disabled = true;
+                                if ($pname === 'gcash') {
+                                    $disabled = empty($user_payment['gcash_number']);
+                                    $acc_display = $user_payment['gcash_number'];
+                                } elseif (strpos($pname, 'bank') !== false) {
+                                    $disabled = empty($user_payment['bank_account_number']);
+                                    $acc_display = $user_payment['bank_account_number'];
+                                } elseif ($pname === 'paypal') {
+                                    $disabled = empty($user_payment['paypal_email']);
+                                    $acc_display = $user_payment['paypal_email'];
+                                } elseif ($pname === 'credit card') {
+                                    $disabled = empty($user_payment['credit_card_number']);
+                                    $acc_display = $user_payment['credit_card_number'];
+                                } elseif ($pname === 'wallet') {
+                                    $disabled = ($wallet_balance === null || $wallet_balance <= 0);
+                                    $acc_display = 'Wallet Balance: ₱' . number_format($wallet_balance, 2);
                                 }
                             ?>
                                 <option value="<?php echo $ptype['payment_type_id']; ?>" data-name="<?php echo htmlspecialchars($pname); ?>" data-acc="<?php echo htmlspecialchars($acc_display); ?>" <?php echo $disabled ? 'disabled' : ''; ?>><?php echo htmlspecialchars($ptype['payment_name']); ?></option>
