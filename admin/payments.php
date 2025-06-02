@@ -12,121 +12,241 @@ $admin_id = $_SESSION['admin_id'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Payments & Revenue</title>
+   
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        .modern-table-wrapper {
-            background: rgba(255,255,255,0.03);
-            border-radius: 20px;
-            box-shadow: 0 2px 16px rgba(255,140,0,0.07);
-            padding: 24px 16px 16px 16px;
-            margin-bottom: 0;
+        body { background: #1e1e2f; color: #fff; font-family: 'Poppins', sans-serif; }
+        .payments-container { margin-left: 240px; padding: 40px 24px 24px 24px; }
+        .payments-title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; }
+        .summary-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 40px;
+            justify-content: flex-start;
         }
-        .modern-table {
-            border-radius: 18px !important;
-            overflow: hidden;
-            box-shadow: 0 2px 12px rgba(255,140,0,0.06);
-            font-size: 1.08em;
+        .summary-card {
             background: #23234a;
-        }
-        .modern-table th, .modern-table td {
-            border: none !important;
-            background: transparent !important;
-            vertical-align: middle;
-            font-size: 1.07em;
-            color: #fff;
-        }
-        .modern-table thead th {
-            background: rgba(255,140,0,0.08) !important;
-            color: #ffa533;
-            font-weight: 600;
-            font-size: 1.12em;
-            letter-spacing: 0.5px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+            padding: 18px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 180px;
+            flex: 1 1 120px;
+            max-width: 220px;
             cursor: pointer;
-            user-select: none;
+            transition: box-shadow 0.2s, transform 0.2s;
         }
-        .modern-table tbody tr {
-            background: transparent !important;
+        .summary-card:hover { box-shadow: 0 8px 32px #ffa53333; transform: translateY(-2px) scale(1.02); }
+        .summary-icon { font-size: 1.5rem; color: #FF8C00; background: rgba(255,140,0,0.08); border-radius: 8px; padding: 8px; display: flex; align-items: center; justify-content: center; }
+        .summary-info { display: flex; flex-direction: column; }
+        .summary-label { color: #bdbdbd; font-size: 0.95em; }
+        .summary-value { color: #ffa533; font-size: 1.2rem; font-weight: 700; }
+        .big-summary-table-card .card-body { padding: 2rem 1.2rem; }
+        .big-summary-table-card .fs-5 { font-size: 1.5rem !important; }
+        .big-summary-table-card table { font-size: 1em; }
+        .big-summary-table-card th, .big-summary-table-card td { padding: 0.7em 0.8em !important; font-size: 1em; }
+        .big-summary-table-card thead th { font-size: 1.08em; }
+        .modal-content.bg-dashboard { background: #23234a !important; color: #fff; border-radius: 18px; box-shadow: 0 8px 32px #ffa53322; }
+        .modal-header.dashboard-modal-header { border: none; background: transparent; justify-content: center; }
+        .modal-title.dashboard-modal-title { color: #ffa533; font-size: 2rem; font-weight: 700; letter-spacing: 1px; width: 100%; text-align: center; }
+        .dashboard-modal-table { background: #f8f9fa; border-radius: 12px; box-shadow: 0 2px 12px #ffa53311; }
+        .dashboard-modal-table th { background: #ffe5c2; color: #23234a; font-weight: 600; }
+        .dashboard-modal-table td { color: #23234a; }
+        .dashboard-modal-table tr:nth-child(even) { background: #fff; }
+        .dashboard-modal-table tr:nth-child(odd) { background: #f8f9fa; }
+        .dashboard-modal-table th, .dashboard-modal-table td { vertical-align: middle; }
+        @media (max-width: 1200px) {
+            .payments-container { margin-left: 70px; padding: 18px 4px; }
+            .summary-cards { gap: 18px; }
         }
-        .modern-table tbody tr:hover {
-            background: rgba(255,140,0,0.07) !important;
-        }
-        .sort-icon {
-            font-size: 0.9em;
-            margin-left: 4px;
+        @media (max-width: 900px) {
+            .summary-cards { flex-direction: column; gap: 18px; }
+            .summary-card { max-width: 100%; min-width: 0; }
         }
     </style>
 </head>
 <body>
 <?php include './sidebar.php'; ?>
 <div class="container py-4">
-    <h2 class="mb-4">All Payments & Revenue</h2>
-    <!-- Filter/Search Form UI -->
-    <form class="row g-3 align-items-end mb-4" id="paymentsFilterForm">
-        <div class="col-md-2">
-            <label for="filter_method" class="form-label">Payment Method</label>
-            <select class="form-select" id="filter_method" name="payment_method">
-                <option value="">All</option>
-                <option value="Cash">Cash</option>
-                <option value="GCash">GCash</option>
-                <option value="PayPal">PayPal</option>
-                <option value="Bank">Bank</option>
-                <option value="Credit Card">Credit Card</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label for="filter_status" class="form-label">Status</label>
-            <select class="form-select" id="filter_status" name="payment_status">
-                <option value="">All</option>
-                <option value="Paid">Paid</option>
-                <option value="Pending">Pending</option>
-                <option value="Failed">Failed</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label for="filter_date_from" class="form-label">Date From</label>
-            <input type="date" class="form-control" id="filter_date_from" name="date_from">
-        </div>
-        <div class="col-md-2">
-            <label for="filter_date_to" class="form-label">Date To</label>
-            <div class="input-group">
-                <input type="date" class="form-control" id="filter_date_to" name="date_to">
-                <button type="submit" class="btn btn-primary ms-2">Filter</button>
+   
+    <!-- Summary metrics -->
+    <?php
+    // Summary metrics
+    $summary = [
+        'total_transactions' => 0,
+        'total_revenue' => 0,
+        'todays_revenue' => 0,
+        'total_refunded' => 0,
+    ];
+    // Total transactions
+    $res = $mycon->query("SELECT COUNT(*) as cnt FROM tbl_payment");
+    if ($res && $row = $res->fetch_assoc()) $summary['total_transactions'] = $row['cnt'];
+    // Total revenue (Paid only)
+    $res = $mycon->query("SELECT SUM(amount) as total FROM tbl_payment WHERE payment_status = 'Paid'");
+    if ($res && $row = $res->fetch_assoc()) $summary['total_revenue'] = $row['total'] ?: 0;
+    // Today's revenue (Paid only)
+    $res = $mycon->query("SELECT SUM(amount) as total FROM tbl_payment WHERE payment_status = 'Paid' AND DATE(created_at) = CURDATE()");
+    if ($res && $row = $res->fetch_assoc()) $summary['todays_revenue'] = $row['total'] ?: 0;
+    // Total refunded
+    $res = $mycon->query("SELECT SUM(amount) as total FROM tbl_payment WHERE payment_status = 'Refunded'");
+    if ($res && $row = $res->fetch_assoc()) $summary['total_refunded'] = $row['total'] ?: 0;
+    ?>
+    <h2 class="payments-title text-center">All Payments & Revenue</h2>
+    <div class="payments-container">
+        <div class="summary-cards">
+            <div class="summary-card" id="card-transactions" style="cursor:pointer;">
+                <span class="summary-icon"><i class="bi bi-receipt"></i></span>
+                <div class="summary-info">
+                    <span class="summary-label">Total Transactions</span>
+                    <span class="summary-value"><?php echo number_format($summary['total_transactions']); ?></span>
+                </div>
+            </div>
+            <div class="summary-card" id="card-revenue" style="cursor:pointer;">
+                <span class="summary-icon"><i class="bi bi-cash-coin"></i></span>
+                <div class="summary-info">
+                    <span class="summary-label">Total Revenue</span>
+                    <span class="summary-value">₱<?php echo number_format($summary['total_revenue'], 2); ?></span>
+                </div>
+            </div>
+            <div class="summary-card" id="card-today" style="cursor:pointer;">
+                <span class="summary-icon"><i class="bi bi-calendar-day"></i></span>
+                <div class="summary-info">
+                    <span class="summary-label">Today's Revenue</span>
+                    <span class="summary-value">₱<?php echo number_format($summary['todays_revenue'], 2); ?></span>
+                </div>
+            </div>
+            <div class="summary-card" id="card-refunded" style="cursor:pointer;">
+                <span class="summary-icon"><i class="bi bi-arrow-counterclockwise"></i></span>
+                <div class="summary-info">
+                    <span class="summary-label">Total Refunded</span>
+                    <span class="summary-value">₱<?php echo number_format($summary['total_refunded'], 2); ?></span>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <label for="filter_search" class="form-label">Search (Guest or Reservation ID)</label>
-            <input type="text" class="form-control" id="filter_search" name="search" placeholder="Guest name or Reservation ID">
+        <!-- Summary Tables -->
+        <div class="mb-4">
+            <div class="card bg-dark text-light rounded-4 shadow mb-4 big-summary-table-card w-100" id="transactions-table">
+                <div class="card-body">
+                    <div class="fs-5 fw-bold mb-3 text-warning">Total Transactions</div>
+                    <table class="table table-dark table-hover table-striped table-bordered align-middle mb-0 w-100">
+                        <thead><tr><th>Status</th><th>Count</th></tr></thead><tbody>
+                        <tr><td><span class='badge bg-success'>Paid</span></td><td><?php $r=$mycon->query("SELECT COUNT(*) as cnt FROM tbl_payment WHERE payment_status='Paid'"); $row=$r->fetch_assoc(); echo number_format($row['cnt']); ?></td></tr>
+                        <tr><td><span class='badge bg-warning text-dark'>Pending</span></td><td><?php $r=$mycon->query("SELECT COUNT(*) as cnt FROM tbl_payment WHERE payment_status='Pending'"); $row=$r->fetch_assoc(); echo number_format($row['cnt']); ?></td></tr>
+                        <tr><td><span class='badge bg-danger'>Failed</span></td><td><?php $r=$mycon->query("SELECT COUNT(*) as cnt FROM tbl_payment WHERE payment_status='Failed'"); $row=$r->fetch_assoc(); echo number_format($row['cnt']); ?></td></tr>
+                        <tr><td><span class='badge bg-info text-dark'>Refunded</span></td><td><?php $r=$mycon->query("SELECT COUNT(*) as cnt FROM tbl_payment WHERE payment_status='Refunded'"); $row=$r->fetch_assoc(); echo number_format($row['cnt']); ?></td></tr>
+                        </tbody></table>
+                </div>
+            </div>
+            <div class="card bg-dark text-light rounded-4 shadow mb-4 big-summary-table-card w-100" id="revenue-table">
+                <div class="card-body">
+                    <div class="fs-5 fw-bold mb-3 text-success">Total Revenue</div>
+                    <div class='mb-3'>Sum of all successful (Paid) payments.</div>
+                    <table class="table table-dark table-hover table-striped table-bordered align-middle mb-0 w-100">
+                        <thead><tr><th>Guest</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead><tbody>
+                        <?php $res = $mycon->query("SELECT p.amount, p.payment_method, p.created_at, CONCAT(g.first_name, ' ', g.last_name) as guest FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE p.payment_status = 'Paid' ORDER BY p.created_at DESC LIMIT 20");
+                        while($row = $res->fetch_assoc()): ?>
+                        <tr><td><?php echo htmlspecialchars($row['guest']); ?></td><td>₱<?php echo number_format($row['amount'],2); ?></td><td><?php echo htmlspecialchars($row['payment_method']); ?></td><td><?php echo date('M d, Y h:i A', strtotime($row['created_at'])); ?></td></tr>
+                        <?php endwhile; ?>
+                        </tbody></table>
+                </div>
+            </div>
+            <div class="card bg-dark text-light rounded-4 shadow mb-4 big-summary-table-card w-100" id="today-table">
+                <div class="card-body">
+                    <div class="fs-5 fw-bold mb-3 text-primary">Today's Revenue</div>
+                    <div class='mb-3'>Total revenue received today from Paid payments.</div>
+                    <table class="table table-dark table-hover table-striped table-bordered align-middle mb-0 w-100">
+                        <thead><tr><th>Guest</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead><tbody>
+                        <?php $res = $mycon->query("SELECT p.amount, p.payment_method, p.created_at, CONCAT(g.first_name, ' ', g.last_name) as guest FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE p.payment_status = 'Paid' AND DATE(p.created_at) = CURDATE() ORDER BY p.created_at DESC LIMIT 20");
+                        while($row = $res->fetch_assoc()): ?>
+                        <tr><td><?php echo htmlspecialchars($row['guest']); ?></td><td>₱<?php echo number_format($row['amount'],2); ?></td><td><?php echo htmlspecialchars($row['payment_method']); ?></td><td><?php echo date('M d, Y h:i A', strtotime($row['created_at'])); ?></td></tr>
+                        <?php endwhile; ?>
+                        </tbody></table>
+                </div>
+            </div>
+            <div class="card bg-dark text-light rounded-4 shadow mb-4 big-summary-table-card w-100" id="refunded-table">
+                <div class="card-body">
+                    <div class="fs-5 fw-bold mb-3 text-danger">Total Refunded</div>
+                    <div class='mb-3'>Sum of all refunded payments.</div>
+                    <table class="table table-dark table-hover table-striped table-bordered align-middle mb-0 w-100">
+                        <thead><tr><th>Guest</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead><tbody>
+                        <?php $res = $mycon->query("SELECT p.amount, p.payment_method, p.created_at, CONCAT(g.first_name, ' ', g.last_name) as guest FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE p.payment_status = 'Refunded' ORDER BY p.created_at DESC LIMIT 20");
+                        while($row = $res->fetch_assoc()): ?>
+                        <tr><td><?php echo htmlspecialchars($row['guest']); ?></td><td>₱<?php echo number_format($row['amount'],2); ?></td><td><?php echo htmlspecialchars($row['payment_method']); ?></td><td><?php echo date('M d, Y h:i A', strtotime($row['created_at'])); ?></td></tr>
+                        <?php endwhile; ?>
+                        </tbody></table>
+                </div>
+            </div>
+            <button class="btn btn-warning fw-bold mb-4 w-100" id="toggleHistoryBtn">Show Transaction History</button>
         </div>
-    </form>
-    <div class="modern-table-wrapper mb-4">
-        <?php
-        // Total revenue
-        $total_sql = "SELECT SUM(amount) as total FROM tbl_payment WHERE payment_status = 'Paid'";
-        $total_res = $mycon->query($total_sql);
-        $total_revenue = 0;
-        if ($total_res && $row = $total_res->fetch_assoc()) {
-            $total_revenue = $row['total'] ?: 0;
-        }
-        echo '<div class="fs-4 fw-bold text-success mb-3">Total Revenue: ₱' . number_format($total_revenue, 2) . '</div>';
-        ?>
-        <table class="table modern-table mb-0">
-            <thead>
-                <tr>
-                    <th data-sort="reservation_id">Reservation ID <span class="sort-icon" id="sort-icon-reservation_id"></span></th>
-                    <th data-sort="guest_name">Guest Name <span class="sort-icon" id="sort-icon-guest_name"></span></th>
-                    <th data-sort="payment_method">Payment Method <span class="sort-icon" id="sort-icon-payment_method"></span></th>
-                    <th data-sort="amount">Amount Paid <span class="sort-icon" id="sort-icon-amount"></span></th>
-                    <th data-sort="payment_status">Payment Status <span class="sort-icon" id="sort-icon-payment_status"></span></th>
-                    <th data-sort="created_at">Date of Payment <span class="sort-icon" id="sort-icon-created_at"></span></th>
-                    <th>Options</th>
-                </tr>
-            </thead>
-            <tbody id="paymentsTableBody">
-                <!-- AJAX loaded rows here -->
-            </tbody>
-        </table>
+    </div>
+    <!-- Filter/Search Form UI -->
+    <div id="transactionHistorySection" style="display:none;">
+        <div class="card bg-dark text-light rounded-4 shadow mb-4">
+            <div class="card-body">
+                <form class="row g-3 align-items-end mb-3" id="paymentsFilterForm">
+                    <div class="col-md-2">
+                        <label for="filter_method" class="form-label">Payment Method</label>
+                        <select class="form-select form-select-sm rounded-3" id="filter_method" name="payment_method">
+                            <option value="">All</option>
+                            <option value="Cash">Cash</option>
+                            <option value="GCash">GCash</option>
+                            <option value="PayPal">PayPal</option>
+                            <option value="Bank">Bank</option>
+                            <option value="Credit Card">Credit Card</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_status" class="form-label">Status</label>
+                        <select class="form-select form-select-sm rounded-3" id="filter_status" name="payment_status">
+                            <option value="">All</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_date_from" class="form-label">Date From</label>
+                        <input type="date" class="form-control form-control-sm rounded-3" id="filter_date_from" name="date_from">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_date_to" class="form-label">Date To</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control form-control-sm rounded-3" id="filter_date_to" name="date_to">
+                            <button type="submit" class="btn btn-warning btn-sm ms-2 rounded-3">Filter</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filter_search" class="form-label">Search (Guest or Reservation ID)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-0"><i class="bi bi-search text-warning"></i></span>
+                            <input type="text" class="form-control form-control-sm rounded-end-3" id="filter_search" name="search" placeholder="Guest name or Reservation ID">
+                        </div>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover table-striped table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th data-sort="reservation_id">Reservation ID <span class="sort-icon" id="sort-icon-reservation_id"></span></th>
+                                <th data-sort="guest_name">Guest Name <span class="sort-icon" id="sort-icon-guest_name"></span></th>
+                                <th data-sort="payment_method">Payment Method <span class="sort-icon" id="sort-icon-payment_method"></span></th>
+                                <th data-sort="amount">Amount Paid <span class="sort-icon" id="sort-icon-amount"></span></th>
+                                <th data-sort="payment_status">Payment Status <span class="sort-icon" id="sort-icon-payment_status"></span></th>
+                                <th data-sort="created_at">Date of Payment <span class="sort-icon" id="sort-icon-created_at"></span></th>
+                                <th>Options</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <!-- AJAX loaded rows here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <!-- View Receipt Modal -->
@@ -250,6 +370,33 @@ $(function() {
             toast.show();
             btn.prop('disabled', false);
         });
+    });
+
+    // Toggle transaction history section
+    $('#toggleHistoryBtn').on('click', function() {
+        const section = $('#transactionHistorySection');
+        if (section.is(':visible')) {
+            section.slideUp(200);
+            $(this).text('Show Transaction History');
+        } else {
+            section.slideDown(200);
+            $(this).text('Hide Transaction History');
+            loadPaymentsTable(currentSortBy, currentSortDir);
+        }
+    });
+
+    // Card click scroll to table
+    $('#card-transactions').on('click', function() {
+        document.getElementById('transactions-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('#card-revenue').on('click', function() {
+        document.getElementById('revenue-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('#card-today').on('click', function() {
+        document.getElementById('today-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('#card-refunded').on('click', function() {
+        document.getElementById('refunded-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 });
 </script>
