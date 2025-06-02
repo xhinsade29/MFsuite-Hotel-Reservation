@@ -6,9 +6,24 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['rol
 }
 include '../functions/db_connect.php';
 
-// Handle add, edit, delete actions for services only
+// Handle AJAX delete
+if (isset($_POST['ajax_delete_service'])) {
+    $service_id = intval($_POST['service_id']);
+    if ($service_id) {
+        // Only need to delete from tbl_services; ON DELETE CASCADE will handle tbl_room_services
+        $stmt = $mycon->prepare("DELETE FROM tbl_services WHERE service_id=?");
+        $stmt->bind_param('i', $service_id);
+        $stmt->execute();
+        $stmt->close();
+        echo json_encode(['status' => 'success']);
+        exit;
+    }
+    echo json_encode(['status' => 'error']);
+    exit;
+}
+// Handle add, edit actions for services only
 $msg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_delete_service'])) {
     // Add Service
     if (isset($_POST['add_service'])) {
         $service_name = trim($_POST['service_name']);
@@ -36,24 +51,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo "<script>setTimeout(function(){ showAdminToast('Service updated!', 'success'); }, 500);</script>";
         }
     }
-    // Delete Service
-    if (isset($_POST['delete_service'])) {
-        $service_id = intval($_POST['service_id']);
-        if ($service_id) {
-            $stmt = $mycon->prepare("DELETE FROM tbl_services WHERE service_id=?");
-            $stmt->bind_param('i', $service_id);
-            $stmt->execute();
-            $stmt->close();
-            $msg = 'Service deleted!';
-            echo "<script>setTimeout(function(){ showAdminToast('Service deleted!', 'success'); }, 500);</script>";
-        }
-    }
 }
 // Fetch all services into array
 $services_result = $mycon->query("SELECT * FROM tbl_services ORDER BY service_name ASC");
 $services = [];
 while ($row = $services_result->fetch_assoc()) {
     $services[] = $row;
+}
+// Icon mapping based on keywords
+function get_service_icon($name) {
+    $name = strtolower($name);
+    if (strpos($name, 'wifi') !== false) return 'bi-wifi';
+    if (strpos($name, 'pool') !== false) return 'bi-water';
+    if (strpos($name, 'spa') !== false) return 'bi-flower1';
+    if (strpos($name, 'parking') !== false) return 'bi-car-front-fill';
+    if (strpos($name, 'breakfast') !== false) return 'bi-cup-hot';
+    if (strpos($name, 'gym') !== false || strpos($name, 'fitness') !== false) return 'bi-barbell';
+    if (strpos($name, 'tv') !== false) return 'bi-tv';
+    if (strpos($name, 'laundry') !== false) return 'bi-basket';
+    if (strpos($name, 'restaurant') !== false) return 'bi-egg-fried';
+    if (strpos($name, 'bar') !== false) return 'bi-cup-straw';
+    if (strpos($name, 'shuttle') !== false) return 'bi-bus-front';
+    if (strpos($name, 'room service') !== false) return 'bi-bell-fill';
+    if (strpos($name, 'aircon') !== false || strpos($name, 'ac') !== false) return 'bi-snow';
+    if (strpos($name, 'pet') !== false) return 'bi-paw';
+    if (strpos($name, 'safe') !== false) return 'bi-shield-lock';
+    if (strpos($name, 'conference') !== false) return 'bi-people';
+    if (strpos($name, 'massage') !== false) return 'bi-emoji-smile';
+    if (strpos($name, 'coffee') !== false) return 'bi-cup-hot';
+    if (strpos($name, 'hair') !== false) return 'bi-scissors';
+    if (strpos($name, 'sauna') !== false) return 'bi-droplet-half';
+    if (strpos($name, 'playground') !== false) return 'bi-joystick';
+    if (strpos($name, 'bicycle') !== false) return 'bi-bicycle';
+    if (strpos($name, 'elevator') !== false) return 'bi-arrow-up-square';
+    if (strpos($name, 'concierge') !== false) return 'bi-person-badge';
+    return 'bi-stars'; // default
 }
 ?>
 <!DOCTYPE html>
@@ -71,8 +103,8 @@ while ($row = $services_result->fetch_assoc()) {
         .service-cards { display: flex; flex-wrap: wrap; gap: 28px; }
         .service-card { background: #23234a; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); padding: 28px 22px 22px 22px; min-width: 260px; max-width: 340px; flex: 1 1 260px; display: flex; flex-direction: column; align-items: flex-start; position: relative; transition: box-shadow 0.2s; }
         .service-card:hover { box-shadow: 0 8px 32px rgba(255,140,0,0.13); }
-        .service-icon { font-size: 2.2rem; color: #ffa533; background: rgba(255,140,0,0.08); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
-        .service-title { font-size: 1.3rem; font-weight: 600; color: #ffa533; margin-bottom: 6px; }
+        .service-icon { font-size: 2.2rem; color: #ffa533; background: rgba(255,140,0,0.08); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; }
+        .service-title { font-size: 1.3rem; font-weight: 600; color: #ffa533; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
         .service-desc { color: #fff; font-size: 1.05em; margin-bottom: 18px; min-height: 40px; }
         .service-actions { margin-top: auto; display: flex; gap: 10px; }
         .btn-edit { background: #ffa533; color: #23234a; border: none; }
@@ -95,16 +127,16 @@ while ($row = $services_result->fetch_assoc()) {
             <div class="text-muted">No services found. Add a new service.</div>
         <?php else: ?>
             <?php foreach ($services as $service): ?>
-                <div class="service-card">
-                    <div class="service-icon"><i class="bi bi-gear"></i></div>
-                    <div class="service-title"><?php echo htmlspecialchars($service['service_name']); ?></div>
+                <div class="service-card" id="serviceCard<?php echo $service['service_id']; ?>">
+                    <div class="service-icon"><i class="bi <?php echo get_service_icon($service['service_name']); ?>"></i></div>
+                    <div class="service-title">
+                        <i class="bi <?php echo get_service_icon($service['service_name']); ?>"></i>
+                        <?php echo htmlspecialchars($service['service_name']); ?>
+                    </div>
                     <div class="service-desc"><?php echo htmlspecialchars($service['service_description']); ?></div>
                     <div class="service-actions">
                         <button class="btn btn-edit btn-sm px-3" data-bs-toggle="modal" data-bs-target="#editServiceModal<?php echo $service['service_id']; ?>"><i class="bi bi-pencil"></i> Edit</button>
-                        <form method="POST" onsubmit="return confirm('Delete this service?');" style="display:inline;">
-                            <input type="hidden" name="service_id" value="<?php echo $service['service_id']; ?>">
-                            <button type="submit" name="delete_service" class="btn btn-delete btn-sm px-3"><i class="bi bi-trash"></i> Delete</button>
-                        </form>
+                        <button type="button" class="btn btn-delete btn-sm px-3 delete-service-btn" data-service-id="<?php echo $service['service_id']; ?>"><i class="bi bi-trash"></i> Delete</button>
                     </div>
                 </div>
                 <!-- Edit Service Modal -->
@@ -187,6 +219,30 @@ function showAdminToast(message, type) {
   var toast = new bootstrap.Toast(toastEl);
   toast.show();
 }
+// AJAX delete for service
+const deleteBtns = document.querySelectorAll('.delete-service-btn');
+deleteBtns.forEach(btn => {
+  btn.addEventListener('click', function() {
+    const serviceId = this.getAttribute('data-service-id');
+    if (!confirm('Delete this service?')) return;
+    fetch('', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'ajax_delete_service=1&service_id=' + encodeURIComponent(serviceId)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        const card = document.getElementById('serviceCard' + serviceId);
+        if (card) card.remove();
+        showAdminToast('Service deleted!', 'success');
+      } else {
+        showAdminToast('Failed to delete service.', 'danger');
+      }
+    })
+    .catch(() => showAdminToast('Failed to delete service.', 'danger'));
+  });
+});
 </script>
 </body>
 </html>
