@@ -31,9 +31,9 @@
         </a>
         <div class="sidebar-dropdown" id="sidebarDropdown">
           <a href="#" class="admin-nav-link sidebar-dropdown-toggle <?php echo (basename($_SERVER['PHP_SELF']) == 'Amenities.php' || basename($_SERVER['PHP_SELF']) == 'services.php' || basename($_SERVER['PHP_SELF']) == 'rooms.php') ? 'active' : ''; ?>">
-            <i class="bi bi-cup-hot"></i> Amenities <i class="bi bi-chevron-down ms-2"></i>
+            <i class="bi bi-cup-hot"></i> Amenities <i class="bi bi-chevron-down ms-2 chevron-icon" style="transition: transform 0.3s;"></i>
           </a>
-          <ul class="sidebar-dropdown-menu bg-dark border-0 shadow" style="display:none;">
+          <ul class="sidebar-dropdown-menu-modern bg-dark border-0 shadow" style="display:none;">
             <li>
               <a href="services.php" class="dropdown-item <?php echo (basename($_SERVER['PHP_SELF']) == 'services.php') ? 'active' : ''; ?>">
                 <i class="bi bi-gear"></i> Services
@@ -204,46 +204,82 @@
     }
 }
 .sidebar-dropdown { position: relative; }
-.sidebar-dropdown-menu {
+.sidebar-dropdown-menu-modern {
   position: absolute;
-  left: 100%;
-  top: 0;
+  left: 0;
+  top: 100%;
   min-width: 180px;
   z-index: 2000;
   background: #23234a;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   padding: 0;
   margin: 0;
   list-style: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
 }
-.sidebar-dropdown-menu .dropdown-item {
+.sidebar-dropdown.open .sidebar-dropdown-menu-modern {
+  display: block !important;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.sidebar-dropdown-menu-modern .dropdown-item {
   color: #fff;
-  padding: 12px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 8px 18px;
+  border: none;
   background: none;
-  transition: background 0.2s;
+  font-weight: 400;
+  font-size: 1em;
+  border-radius: 0;
+  margin: 0;
+  transition: background 0.18s, color 0.18s;
+  box-shadow: none;
+  position: relative;
 }
-.sidebar-dropdown-menu .dropdown-item.active, .sidebar-dropdown-menu .dropdown-item:hover {
-  background: rgba(255,140,0,0.08);
+.sidebar-dropdown-menu-modern .dropdown-item.active, .sidebar-dropdown-menu-modern .dropdown-item:hover {
+  background: #ffa533;
+  color: #23234a;
+  box-shadow: none;
+}
+.sidebar-dropdown-menu-modern .dropdown-item i {
+  margin-right: 8px;
   color: #ffa533;
+  font-size: 1em;
 }
-.sidebar-dropdown-menu .dropdown-item:last-child { border-bottom: none; }
+.chevron-icon {
+  display: inline-block;
+  vertical-align: middle;
+  transition: transform 0.3s;
+}
+.sidebar-dropdown.open .chevron-icon {
+  transform: rotate(180deg);
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  var dropdownToggle = document.querySelector('.sidebar-dropdown-toggle');
-  var dropdownMenu = document.querySelector('.sidebar-dropdown-menu');
+  var dropdown = document.getElementById('sidebarDropdown');
+  var dropdownToggle = dropdown.querySelector('.sidebar-dropdown-toggle');
+  var dropdownMenu = dropdown.querySelector('.sidebar-dropdown-menu-modern');
+  var chevron = dropdown.querySelector('.chevron-icon');
   dropdownToggle.addEventListener('click', function(e) {
     e.preventDefault();
-    var isOpen = dropdownMenu.style.display === 'block';
-    dropdownMenu.style.display = isOpen ? 'none' : 'block';
+    var isOpen = dropdown.classList.contains('open');
+    if (isOpen) {
+      dropdown.classList.remove('open');
+    } else {
+      dropdown.classList.add('open');
+    }
   });
   // Close dropdown when clicking outside
   document.addEventListener('click', function(e) {
-    if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
-      dropdownMenu.style.display = 'none';
+    if (!dropdown.contains(e.target)) {
+      dropdown.classList.remove('open');
     }
   });
 });
