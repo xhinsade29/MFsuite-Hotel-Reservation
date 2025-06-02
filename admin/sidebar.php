@@ -13,10 +13,39 @@
         <a href="dashboard.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
             <i class="bi bi-grid-1x2-fill"></i> Dashboard
         </a>
-        <a href="Amenities.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'Amenities.php') ? 'active' : ''; ?>">
-            <i class="bi bi-cup-hot"></i> Amenities
+        <a href="notifications.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'notifications.php') ? 'active' : ''; ?>">
+            <i class="bi bi-bell-fill"></i> Notifications
+            <?php
+            // Fetch unread notifications count
+            $notif_count = 0;
+            include_once '../functions/db_connect.php';
+            $res = mysqli_query($mycon, "SELECT COUNT(*) as cnt FROM notifications WHERE is_read = 0");
+            if ($res && $row = mysqli_fetch_assoc($res)) {
+                $notif_count = (int)$row['cnt'];
+            }
+         
+            ?>
+            <?php if ($notif_count > 0): ?>
+                <span class="badge bg-danger ms-2"><?php echo $notif_count; ?></span>
+            <?php endif; ?>
         </a>
-    
+        <div class="sidebar-dropdown" id="sidebarDropdown">
+          <a href="#" class="admin-nav-link sidebar-dropdown-toggle <?php echo (basename($_SERVER['PHP_SELF']) == 'Amenities.php' || basename($_SERVER['PHP_SELF']) == 'services.php' || basename($_SERVER['PHP_SELF']) == 'rooms.php') ? 'active' : ''; ?>">
+            <i class="bi bi-cup-hot"></i> Amenities <i class="bi bi-chevron-down ms-2"></i>
+          </a>
+          <ul class="sidebar-dropdown-menu bg-dark border-0 shadow" style="display:none;">
+            <li>
+              <a href="services.php" class="dropdown-item <?php echo (basename($_SERVER['PHP_SELF']) == 'services.php') ? 'active' : ''; ?>">
+                <i class="bi bi-gear"></i> Services
+              </a>
+            </li>
+            <li>
+              <a href="rooms.php" class="dropdown-item <?php echo (basename($_SERVER['PHP_SELF']) == 'rooms.php') ? 'active' : ''; ?>">
+                <i class="bi bi-door-closed"></i> Rooms
+              </a>
+            </li>
+          </ul>
+        </div>
         <a href="reservations.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reservations.php') ? 'active' : ''; ?>">
             <i class="bi bi-calendar2-check-fill"></i> Reservations
         </a>
@@ -174,4 +203,48 @@
         margin: 0;
     }
 }
+.sidebar-dropdown { position: relative; }
+.sidebar-dropdown-menu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 180px;
+  z-index: 2000;
+  background: #23234a;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.sidebar-dropdown-menu .dropdown-item {
+  color: #fff;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: none;
+  transition: background 0.2s;
+}
+.sidebar-dropdown-menu .dropdown-item.active, .sidebar-dropdown-menu .dropdown-item:hover {
+  background: rgba(255,140,0,0.08);
+  color: #ffa533;
+}
+.sidebar-dropdown-menu .dropdown-item:last-child { border-bottom: none; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var dropdownToggle = document.querySelector('.sidebar-dropdown-toggle');
+  var dropdownMenu = document.querySelector('.sidebar-dropdown-menu');
+  dropdownToggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    var isOpen = dropdownMenu.style.display === 'block';
+    dropdownMenu.style.display = isOpen ? 'none' : 'block';
+  });
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
+      dropdownMenu.style.display = 'none';
+    }
+  });
+});
+</script>

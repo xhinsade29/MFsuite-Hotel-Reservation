@@ -259,6 +259,41 @@ $new_admins = mysqli_query($mycon, $new_admins_sql);
             </div>
         </div>
     </div>
+    <!-- Dashboard Analytics Section -->
+    <div class="dashboard-analytics mb-5">
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="card bg-dark text-light shadow rounded-4">
+            <div class="card-body">
+              <h5 class="card-title text-warning"><i class="bi bi-graph-up"></i> Bookings (Last 7 Days)</h5>
+              <canvas id="bookingsLineChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="card bg-dark text-light shadow rounded-4">
+            <div class="card-body">
+              <h5 class="card-title text-warning"><i class="bi bi-pie-chart"></i> Room Types Booked</h5>
+              <canvas id="roomTypesPieChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12 col-lg-4">
+          <div class="card bg-dark text-light shadow rounded-4">
+            <div class="card-body">
+              <h5 class="card-title text-warning"><i class="bi bi-bar-chart"></i> Revenue (Last 7 Days)</h5>
+              <canvas id="revenueBarChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Debug Output for Chart Data -->
+    <div style="background:#222;color:#ffa533;padding:10px;margin-bottom:10px;font-size:1.1em;">
+      <strong>DEBUG: Chart Data</strong><br>
+      <pre id="debugChartData"></pre>
+      <span id="chartjsStatus"></span>
+    </div>
     <!-- Recent Activities Section -->
     <div class="table-section mb-4">
         <div class="table-title d-flex align-items-center">
@@ -294,64 +329,6 @@ $new_admins = mysqli_query($mycon, $new_admins_sql);
                     ?>
                 </tbody>
             </table>
-        </div>
-    </div>
-    <!-- Notifications Section -->
-    <div class="table-section mb-4">
-        <div class="table-title d-flex align-items-center">
-            <i class="bi bi-bell me-2"></i> Notifications
-        </div>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="border rounded-3 p-3 h-100 bg-dark-subtle">
-                    <h6 class="fw-bold text-warning mb-3"><i class="bi bi-x-octagon me-1"></i> Recent Cancellation Requests</h6>
-                    <ul class="list-group list-group-flush">
-                        <?php
-                        if ($cancellation_notifs && mysqli_num_rows($cancellation_notifs) > 0) {
-                            while ($row = mysqli_fetch_assoc($cancellation_notifs)) {
-                                echo '<li class="list-group-item bg-transparent text-light">';
-                                echo '<span class="badge bg-danger me-2">Cancellation</span>';
-                                echo '<b>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</b> requested cancellation for <b>#' . $row['reservation_id'] . '</b> (' . date('M d, Y', strtotime($row['check_in'])) . ')';
-                                echo '<span class="text-muted float-end" style="font-size:0.9em">' . date('M d, Y h:i A', strtotime($row['date_created'])) . '</span>';
-                                echo '</li>';
-                            }
-                        } else {
-                            echo '<li class="list-group-item bg-transparent text-secondary">No recent cancellation requests.</li>';
-                        }
-                        ?>
-                    </ul>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="border rounded-3 p-3 h-100 bg-dark-subtle">
-                    <h6 class="fw-bold text-warning mb-3"><i class="bi bi-person-plus me-1"></i> Recent Sign-ups</h6>
-                    <ul class="list-group list-group-flush mb-2">
-                        <?php
-                        if ($new_guests && mysqli_num_rows($new_guests) > 0) {
-                            while ($row = mysqli_fetch_assoc($new_guests)) {
-                                echo '<li class="list-group-item bg-transparent text-light">';
-                                echo '<span class="badge bg-info me-2">Guest</span>';
-                                echo '<b>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</b> signed up';
-                                echo '<span class="text-muted float-end" style="font-size:0.9em">' . date('M d, Y h:i A', strtotime($row['date_created'])) . '</span>';
-                                echo '</li>';
-                            }
-                        }
-                        if ($new_admins && mysqli_num_rows($new_admins) > 0) {
-                            while ($row = mysqli_fetch_assoc($new_admins)) {
-                                echo '<li class="list-group-item bg-transparent text-light">';
-                                echo '<span class="badge bg-primary me-2">Admin</span>';
-                                echo '<b>' . htmlspecialchars($row['full_name'] ?: $row['username']) . '</b> registered as admin';
-                                echo '<span class="text-muted float-end" style="font-size:0.9em">' . date('M d, Y h:i A', strtotime($row['date_created'])) . '</span>';
-                                echo '</li>';
-                            }
-                        }
-                        if ((!$new_guests || mysqli_num_rows($new_guests) == 0) && (!$new_admins || mysqli_num_rows($new_admins) == 0)) {
-                            echo '<li class="list-group-item bg-transparent text-secondary">No recent sign-ups.</li>';
-                        }
-                        ?>
-                    </ul>
-                </div>
-            </div>
         </div>
     </div>
     <!-- Modals for summary details -->
@@ -428,5 +405,109 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Sample PHP data for charts (replace with real queries)
+const bookingsData = <?php
+  $labels = [];
+  $data = [];
+  for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $labels[] = date('D', strtotime($date));
+    $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(date_created) = '$date'"))[0];
+    $data[] = (int)$count;
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data]);
+?>;
+const roomTypesData = <?php
+  $labels = [];
+  $data = [];
+  $colors = [];
+  $res = mysqli_query($mycon, "SELECT rt.type_name, COUNT(*) as cnt FROM tbl_reservation r LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id GROUP BY rt.type_name");
+  while ($row = mysqli_fetch_assoc($res)) {
+    $labels[] = $row['type_name'];
+    $data[] = (int)$row['cnt'];
+    $colors[] = '#' . substr(md5($row['type_name']), 0, 6);
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data, 'colors' => $colors]);
+?>;
+const revenueData = <?php
+  $labels = [];
+  $data = [];
+  for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $labels[] = date('D', strtotime($date));
+    $sum = mysqli_fetch_row(mysqli_query($mycon, "SELECT SUM(amount) FROM tbl_payment WHERE DATE(date_created) = '$date'"))[0];
+    $data[] = $sum ? (float)$sum : 0;
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data]);
+?>;
+// Bookings Line Chart
+new Chart(document.getElementById('bookingsLineChart'), {
+  type: 'line',
+  data: {
+    labels: bookingsData.labels,
+    datasets: [{
+      label: 'Bookings',
+      data: bookingsData.data,
+      borderColor: '#ffa533',
+      backgroundColor: 'rgba(255,165,51,0.15)',
+      tension: 0.4,
+      fill: true,
+      pointRadius: 5,
+      pointBackgroundColor: '#ffa533',
+      pointBorderColor: '#fff',
+      pointHoverRadius: 7
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } }
+  }
+});
+// Room Types Pie Chart
+new Chart(document.getElementById('roomTypesPieChart'), {
+  type: 'pie',
+  data: {
+    labels: roomTypesData.labels,
+    datasets: [{
+      data: roomTypesData.data,
+      backgroundColor: roomTypesData.colors,
+      borderColor: '#23234a',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    plugins: { legend: { labels: { color: '#fff', font: { weight: 'bold' } } } }
+  }
+});
+// Revenue Bar Chart
+new Chart(document.getElementById('revenueBarChart'), {
+  type: 'bar',
+  data: {
+    labels: revenueData.labels,
+    datasets: [{
+      label: 'Revenue (₱)',
+      data: revenueData.data,
+      backgroundColor: '#ffa533',
+      borderRadius: 8
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } }
+  }
+});
+// Debug: Print chart data variables
+window.addEventListener('DOMContentLoaded', function() {
+  let debug = '';
+  debug += 'bookingsData: ' + JSON.stringify(bookingsData, null, 2) + '\n';
+  debug += 'roomTypesData: ' + JSON.stringify(roomTypesData, null, 2) + '\n';
+  debug += 'revenueData: ' + JSON.stringify(revenueData, null, 2) + '\n';
+  document.getElementById('debugChartData').textContent = debug;
+  // Check if Chart.js is loaded
+  document.getElementById('chartjsStatus').textContent = (typeof Chart !== 'undefined') ? 'Chart.js is loaded.' : 'Chart.js is NOT loaded!';
+});
+</script>
 </body>
 </html> 

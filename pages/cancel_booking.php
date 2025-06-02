@@ -42,6 +42,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
 
+        // Add admin notification for cancellation request
+        $guest_name = '';
+        $guest_stmt = $conn->prepare("SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ?");
+        $guest_stmt->bind_param("i", $guest_id);
+        $guest_stmt->execute();
+        $guest_stmt->bind_result($first_name, $last_name);
+        if ($guest_stmt->fetch()) {
+            $guest_name = $first_name . ' ' . $last_name;
+        }
+        $guest_stmt->close();
+        $admin_notif_msg = "Cancellation request by $guest_name (Reservation ID: $reservation_id)";
+        $notif_sql = "INSERT INTO notifications (type, message, related_id, related_type) VALUES ('cancellation', ?, ?, 'reservation')";
+        $notif_stmt = $conn->prepare($notif_sql);
+        $notif_stmt->bind_param("si", $admin_notif_msg, $reservation_id);
+        $notif_stmt->execute();
+        $notif_stmt->close();
+
         // Add notification for the user
         include_once '../functions/notify.php';
         $notif_msg = "Your cancellation request for reservation #$reservation_id has been submitted.";
