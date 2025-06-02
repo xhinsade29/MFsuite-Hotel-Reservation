@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Add Room
     if (isset($_POST['add_room'])) {
         $type_name = trim($_POST['type_name']);
-        $room_price = floatval($_POST['room_price']);
+        $nightly_rate = floatval($_POST['nightly_rate']);
         $description = trim($_POST['description']);
         $max_occupancy = intval($_POST['max_occupancy']);
         $image_name = '';
@@ -23,9 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 move_uploaded_file($_FILES['room_image']['tmp_name'], '../assets/rooms/' . $image_name);
             }
         }
-        if ($type_name && $room_price > 0 && $max_occupancy > 0) {
-            $stmt = $mycon->prepare("INSERT INTO tbl_room_type (type_name, room_price, description, max_occupancy, image) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param('sdsis', $type_name, $room_price, $description, $max_occupancy, $image_name);
+        if ($type_name && $nightly_rate > 0 && $max_occupancy > 0) {
+            $stmt = $mycon->prepare("INSERT INTO tbl_room_type (type_name, nightly_rate, description, max_occupancy, image) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param('sdsis', $type_name, $nightly_rate, $description, $max_occupancy, $image_name);
             $stmt->execute();
             $room_type_id = $mycon->insert_id;
             // Insert selected services as inclusions
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['edit_room'])) {
         $room_type_id = intval($_POST['room_type_id']);
         $type_name = trim($_POST['type_name']);
-        $room_price = floatval($_POST['room_price']);
+        $nightly_rate = floatval($_POST['nightly_rate']);
         $description = trim($_POST['description']);
         $max_occupancy = intval($_POST['max_occupancy']);
         $image_name = $_POST['existing_image'] ?? '';
@@ -58,9 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 move_uploaded_file($_FILES['room_image']['tmp_name'], '../assets/rooms/' . $image_name);
             }
         }
-        if ($room_type_id && $type_name && $room_price > 0 && $max_occupancy > 0) {
-            $stmt = $mycon->prepare("UPDATE tbl_room_type SET type_name=?, room_price=?, description=?, max_occupancy=?, image=? WHERE room_type_id=?");
-            $stmt->bind_param('sdsisi', $type_name, $room_price, $description, $max_occupancy, $image_name, $room_type_id);
+        if ($room_type_id && $type_name && $nightly_rate > 0 && $max_occupancy > 0) {
+            $stmt = $mycon->prepare("UPDATE tbl_room_type SET type_name=?, nightly_rate=?, description=?, max_occupancy=?, image=? WHERE room_type_id=?");
+            $stmt->bind_param('sdsisi', $type_name, $nightly_rate, $description, $max_occupancy, $image_name, $room_type_id);
             $stmt->execute();
             $stmt->close();
             // Update included services
@@ -75,12 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ins->close();
             }
             $msg = 'Room type updated!';
-            // Update all future reservations for this room type
-            $now = date('Y-m-d H:i:s');
-            $update_res = $mycon->prepare("UPDATE tbl_reservation SET room_name=?, room_price=?, room_description=? WHERE room_id=? AND check_in > ?");
-            $update_res->bind_param('sdsis', $type_name, $room_price, $description, $room_type_id, $now);
-            $update_res->execute();
-            $update_res->close();
+            echo "<script>setTimeout(function(){ showAdminToast('Room type updated successfully!', 'success'); }, 500);</script>";
             // Notify all users with future reservations for this room type
             include_once '../functions/notify.php';
             $future_res = $mycon->prepare("SELECT DISTINCT guest_id, reservation_id FROM tbl_reservation WHERE room_id=? AND check_in > ?");
@@ -88,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $future_res->execute();
             $future_res->bind_result($guest_id, $reservation_id);
             while ($future_res->fetch()) {
-                $msg = "The details for your upcoming reservation (ID: $reservation_id) have changed. New room: $type_name, Price: ₱" . number_format($room_price, 2) . ".";
+                $msg = "The details for your upcoming reservation (ID: $reservation_id) have changed. New room: $type_name, Price: ₱" . number_format($nightly_rate, 2) . ".";
                 add_notification($guest_id, 'reservation', $msg, $mycon);
             }
             $future_res->close();
@@ -103,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $stmt->close();
             $msg = 'Room type deleted!';
+            echo "<script>setTimeout(function(){ showAdminToast('Room type deleted successfully!', 'success'); }, 500);</script>";
         }
     }
     // Handle room number edit
@@ -159,27 +155,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         }
-    }
-    // Handle duplicate room number cleanup
-    if (isset($_POST['cleanup_duplicate_rooms'])) {
-        $deleted = 0;
-        $dupes = $mycon->query("SELECT room_number FROM tbl_room GROUP BY room_number HAVING COUNT(*) > 1");
-        while ($d = $dupes->fetch_assoc()) {
-            $room_number = $d['room_number'];
-            $ids = [];
-            $res = $mycon->query("SELECT room_id FROM tbl_room WHERE room_number = '".$mycon->real_escape_string($room_number)."' ORDER BY room_id ASC");
-            while ($r = $res->fetch_assoc()) {
-                $ids[] = $r['room_id'];
-            }
-            if (count($ids) > 1) {
-                // Keep the first (lowest id), delete the rest
-                $to_delete = array_slice($ids, 1);
-                $in = implode(',', $to_delete);
-                $mycon->query("DELETE FROM tbl_room WHERE room_id IN ($in)");
-                $deleted += count($to_delete);
-            }
-        }
-        $msg = $deleted > 0 ? ("Deleted $deleted duplicate room(s)!") : "No duplicates found.";
     }
 }
 // Fetch all rooms and services into arrays
@@ -239,12 +214,6 @@ while ($row = $services_result->fetch_assoc()) {
     <?php if ($msg): ?>
         <div class="alert alert-success text-center mb-3"><?php echo htmlspecialchars($msg); ?></div>
     <?php endif; ?>
-    <!-- Duplicate Cleanup Button -->
-    <form method="POST" class="mb-3">
-        <button type="submit" name="cleanup_duplicate_rooms" class="btn btn-danger fw-bold" onclick="return confirm('Are you sure you want to delete duplicate room numbers? This cannot be undone!')">
-            <i class="bi bi-trash"></i> Delete Duplicate Room Numbers
-        </button>
-    </form>
     <!-- Add Room Type Button -->
     <div class="d-flex justify-content-end mb-3">
       <button class="btn btn-warning fw-bold" data-bs-toggle="modal" data-bs-target="#addRoomTypeModal">
@@ -269,7 +238,7 @@ while ($row = $services_result->fetch_assoc()) {
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Room Price</label>
-                    <input type="number" name="room_price" class="form-control" min="1" step="0.01" required>
+                    <input type="number" name="nightly_rate" class="form-control" min="1" step="0.01" required>
                   </div>
                   <div class="mb-3">
                     <label class="form-label">Max Occupancy</label>
@@ -326,7 +295,7 @@ while ($row = $services_result->fetch_assoc()) {
               <img src="<?php echo $img; ?>" alt="Room Image" class="img-fluid rounded-top" style="width:100%;height:180px;object-fit:cover;">
               <div class="p-3">
                 <h5 class="card-title text-warning"><?php echo htmlspecialchars($room['type_name']); ?></h5>
-                <h6 class="card-subtitle mb-2">₱<?php echo number_format(isset($room['room_price']) ? $room['room_price'] : (isset($room['nightly_rate']) ? $room['nightly_rate'] : 0), 2); ?></h6>
+                <h6 class="card-subtitle mb-2">₱<?php echo number_format(isset($room['nightly_rate']) ? $room['nightly_rate'] : 0, 2); ?></h6>
                 <div class="mb-1"><i class="bi bi-people"></i> Max Occupancy: <?php echo htmlspecialchars($room['max_occupancy']); ?></div>
                 <p class="card-text"><?php echo htmlspecialchars($room['description']); ?></p>
                 <button class="btn btn-info btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#roomModal<?php echo $room['room_type_id']; ?>">View Rooms</button>
@@ -352,7 +321,7 @@ while ($row = $services_result->fetch_assoc()) {
                           </div>
                           <div class="mb-3">
                             <label class="form-label">Room Price</label>
-                            <input type="number" name="room_price" value="<?php echo isset($room['room_price']) ? $room['room_price'] : (isset($room['nightly_rate']) ? $room['nightly_rate'] : ''); ?>" class="form-control form-control-sm" min="1" step="0.01" required>
+                            <input type="number" name="nightly_rate" value="<?php echo isset($room['nightly_rate']) ? $room['nightly_rate'] : ''; ?>" class="form-control form-control-sm" min="1" step="0.01" required>
                           </div>
                           <div class="mb-3">
                             <label class="form-label">Max Occupancy</label>
