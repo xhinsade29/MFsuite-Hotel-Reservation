@@ -14,6 +14,7 @@ $admin_id = $_SESSION['admin_id'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Payments & Revenue</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         .modern-table-wrapper {
             background: rgba(255,255,255,0.03);
@@ -42,12 +43,18 @@ $admin_id = $_SESSION['admin_id'];
             font-weight: 600;
             font-size: 1.12em;
             letter-spacing: 0.5px;
+            cursor: pointer;
+            user-select: none;
         }
         .modern-table tbody tr {
             background: transparent !important;
         }
         .modern-table tbody tr:hover {
             background: rgba(255,140,0,0.07) !important;
+        }
+        .sort-icon {
+            font-size: 0.9em;
+            margin-left: 4px;
         }
     </style>
 </head>
@@ -83,14 +90,14 @@ $admin_id = $_SESSION['admin_id'];
         </div>
         <div class="col-md-2">
             <label for="filter_date_to" class="form-label">Date To</label>
-            <input type="date" class="form-control" id="filter_date_to" name="date_to">
+            <div class="input-group">
+                <input type="date" class="form-control" id="filter_date_to" name="date_to">
+                <button type="submit" class="btn btn-primary ms-2">Filter</button>
+            </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <label for="filter_search" class="form-label">Search (Guest or Reservation ID)</label>
             <input type="text" class="form-control" id="filter_search" name="search" placeholder="Guest name or Reservation ID">
-        </div>
-        <div class="col-md-1 d-grid">
-            <button type="submit" class="btn btn-primary">Filter</button>
         </div>
     </form>
     <div class="modern-table-wrapper mb-4">
@@ -107,41 +114,144 @@ $admin_id = $_SESSION['admin_id'];
         <table class="table modern-table mb-0">
             <thead>
                 <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest Name</th>
-                    <th>Payment Method</th>
-                    <th>Amount Paid</th>
-                    <th>Payment Status</th>
-                    <th>Date of Payment</th>
+                    <th data-sort="reservation_id">Reservation ID <span class="sort-icon" id="sort-icon-reservation_id"></span></th>
+                    <th data-sort="guest_name">Guest Name <span class="sort-icon" id="sort-icon-guest_name"></span></th>
+                    <th data-sort="payment_method">Payment Method <span class="sort-icon" id="sort-icon-payment_method"></span></th>
+                    <th data-sort="amount">Amount Paid <span class="sort-icon" id="sort-icon-amount"></span></th>
+                    <th data-sort="payment_status">Payment Status <span class="sort-icon" id="sort-icon-payment_status"></span></th>
+                    <th data-sort="created_at">Date of Payment <span class="sort-icon" id="sort-icon-created_at"></span></th>
                     <th>Options</th>
                 </tr>
             </thead>
-            <tbody>
-            <?php
-            $sql = "SELECT p.amount, p.payment_method, p.payment_status, p.reference_number, p.created_at, r.reservation_id, CONCAT(g.first_name, ' ', IFNULL(g.middle_name, ''), ' ', g.last_name) AS guest_name FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id ORDER BY p.created_at DESC";
-            $res = $mycon->query($sql);
-            if ($res && $res->num_rows > 0) {
-                while ($row = $res->fetch_assoc()) {
-                    echo '<tr>';
-                    echo '<td>' . htmlspecialchars($row['reservation_id'] ?: '-') . '</td>';
-                    echo '<td>' . htmlspecialchars(trim($row['guest_name']) ?: '-') . '</td>';
-                    echo '<td>' . htmlspecialchars($row['payment_method']) . '</td>';
-                    echo '<td>₱' . number_format($row['amount'], 2) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['payment_status']) . '</td>';
-                    echo '<td>' . date('M d, Y H:i', strtotime($row['created_at'])) . '</td>';
-                    echo '<td>';
-                    echo '<button class="btn btn-sm btn-outline-info me-1">View Receipt</button>';
-                    echo '<button class="btn btn-sm btn-outline-secondary">Re-send Confirmation</button>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="7" class="text-center text-secondary">No payments found.</td></tr>';
-            }
-            ?>
+            <tbody id="paymentsTableBody">
+                <!-- AJAX loaded rows here -->
             </tbody>
         </table>
     </div>
 </div>
+<!-- View Receipt Modal -->
+<div class="modal fade" id="viewReceiptModal" tabindex="-1" aria-labelledby="viewReceiptModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewReceiptModalLabel">Payment Receipt</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="receiptModalBody">
+        <div class="text-center text-secondary py-4">Loading...</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="printReceiptBtn">Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Toast Container -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+  <div id="toastContainer"></div>
+</div>
+<script>
+// Default sort
+let currentSortBy = 'created_at';
+let currentSortDir = 'desc';
+
+function getFilterParams() {
+    return {
+        payment_method: $('#filter_method').val(),
+        payment_status: $('#filter_status').val(),
+        date_from: $('#filter_date_from').val(),
+        date_to: $('#filter_date_to').val(),
+        search: $('#filter_search').val(),
+    };
+}
+
+function loadPaymentsTable(sortBy = currentSortBy, sortDir = currentSortDir) {
+    let params = getFilterParams();
+    params.sort_by = sortBy;
+    params.sort_dir = sortDir;
+    $.get('ajax_payments_table.php', params, function(data) {
+        $('#paymentsTableBody').html(data);
+        // Update sort icons
+        $(".sort-icon").html('');
+        let icon = sortDir === 'asc' ? '▲' : '▼';
+        $('#sort-icon-' + sortBy).html(icon);
+    });
+}
+
+$(function() {
+    // Initial load
+    loadPaymentsTable();
+    // Sorting
+    $('.modern-table thead th[data-sort]').on('click', function() {
+        let sortBy = $(this).data('sort');
+        if (currentSortBy === sortBy) {
+            currentSortDir = (currentSortDir === 'asc') ? 'desc' : 'asc';
+        } else {
+            currentSortBy = sortBy;
+            currentSortDir = 'asc';
+        }
+        loadPaymentsTable(currentSortBy, currentSortDir);
+    });
+    // Filter form submit
+    $('#paymentsFilterForm').on('submit', function(e) {
+        e.preventDefault();
+        loadPaymentsTable(currentSortBy, currentSortDir);
+    });
+    // Auto-update table when Payment Method or Status changes
+    $('#filter_method, #filter_status').on('change', function() {
+        loadPaymentsTable(currentSortBy, currentSortDir);
+    });
+    // Remove date range auto-update
+    $('#filter_date_from, #filter_date_to').off('change input');
+
+    // View Receipt button click
+    $(document).on('click', '.view-receipt-btn', function() {
+        const paymentId = $(this).data('payment-id');
+        $('#viewReceiptModal').modal('show');
+        $('#receiptModalBody').html('<div class="text-center text-secondary py-4">Loading...</div>');
+        $.get('process_view_receipt.php', { payment_id: paymentId }, function(data) {
+            $('#receiptModalBody').html(data);
+        });
+    });
+
+    // Print Receipt
+    $('#printReceiptBtn').on('click', function() {
+        let printContents = document.getElementById('receiptModalBody').innerHTML;
+        let originalContents = document.body.innerHTML;
+        document.body.innerHTML = printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+        location.reload();
+    });
+
+    // Re-send Confirmation button click
+    $(document).on('click', '.resend-confirmation-btn', function() {
+        const btn = $(this);
+        const paymentId = btn.data('payment-id');
+        btn.prop('disabled', true);
+        $.post('process_resend_confirmation.php', { payment_id: paymentId }, function(resp) {
+            let toastType = resp.success ? 'bg-success' : 'bg-danger';
+            let toastHtml = `<div class="toast align-items-center text-white ${toastType} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">` +
+                `<div class="d-flex"><div class="toast-body">${resp.message}</div>` +
+                `<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
+            $('#toastContainer').append(toastHtml);
+            let toastEl = $('#toastContainer .toast').last()[0];
+            let toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+            toast.show();
+            btn.prop('disabled', false);
+        }, 'json').fail(function() {
+            let toastHtml = `<div class="toast align-items-center text-white bg-danger border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">` +
+                `<div class="d-flex"><div class="toast-body">Failed to send confirmation.</div>` +
+                `<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
+            $('#toastContainer').append(toastHtml);
+            let toastEl = $('#toastContainer .toast').last()[0];
+            let toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+            toast.show();
+            btn.prop('disabled', false);
+        });
+    });
+});
+</script>
 </body>
 </html> 
