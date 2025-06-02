@@ -103,10 +103,49 @@ $stmt_log->bind_param("idss", $guest_id, $amount, $desc, $reference_number);
 $stmt_log->execute();
 $stmt_log->close();
 
+// After logging guest wallet payment, credit admin wallet and log transaction
+$admin_id = 1;
+$admin_result = $conn->query("SELECT admin_id FROM tbl_admin LIMIT 1");
+if ($admin_result && $admin_result->num_rows > 0) {
+    $row = $admin_result->fetch_assoc();
+    $admin_id = $row['admin_id'];
+}
+// Credit admin wallet
+$update_admin_wallet_sql = "UPDATE tbl_admin SET wallet_balance = wallet_balance + ? WHERE admin_id = ?";
+$stmt_admin_wallet = $conn->prepare($update_admin_wallet_sql);
+$stmt_admin_wallet->bind_param("di", $amount, $admin_id);
+$stmt_admin_wallet->execute();
+$stmt_admin_wallet->close();
+// Log admin wallet transaction
+$desc_admin = "Received payment from guest (ID: $guest_id) for reservation.";
+$log_sql_admin = "INSERT INTO wallet_transactions (admin_id, amount, type, description, reference_number, created_at) VALUES (?, ?, 'credit', ?, ?, NOW())";
+$stmt_log_admin = $conn->prepare($log_sql_admin);
+$stmt_log_admin->bind_param("idss", $admin_id, $amount, $desc_admin, $reference_number);
+$stmt_log_admin->execute();
+$stmt_log_admin->close();
+
+// Fetch admin payment account info for the selected payment method
+$admin_account_info = '';
+if (in_array(strtolower($payment_type), ['gcash','bank','paypal','credit_card'])) {
+    $sql = "SELECT account_type, account_number, account_email FROM admin_payment_accounts WHERE admin_id = ? AND account_type = ? LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $admin_id, strtolower($payment_type));
+    $stmt->execute();
+    $stmt->bind_result($atype, $anumber, $aemail);
+    if ($stmt->fetch()) {
+        if ($atype === 'paypal') {
+            $admin_account_info = $aemail;
+        } else {
+            $admin_account_info = $anumber;
+        }
+    }
+    $stmt->close();
+}
+
 $payment_status = 'Paid';
 $payment_method = 'Wallet';
-$stmt = $conn->prepare("INSERT INTO tbl_payment (amount, payment_method, payment_status, reference_number) VALUES (?, ?, ?, ?)");
-$stmt->bind_param("dsss", $amount, $payment_method, $payment_status, $reference_number);
+$stmt = $conn->prepare("INSERT INTO tbl_payment (amount, payment_method, payment_status, reference_number, description) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("dssss", $amount, $payment_method, $payment_status, $reference_number, $admin_account_info);
 $stmt->execute();
 $payment_id = $stmt->insert_id;
 $stmt->close();

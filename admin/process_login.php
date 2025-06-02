@@ -31,6 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['email'] = $db_email;
                 $_SESSION['msg'] = 'Login successful! Welcome, ' . htmlspecialchars($full_name ?: $username) . '.';
                 $_SESSION['msg_type'] = 'success';
+                // Update last_login
+                $mycon->query("UPDATE tbl_admin SET last_login = NOW() WHERE admin_id = $admin_id");
                 if ($debug) { echo "Login success!"; exit; }
                 header('Location: dashboard.php');
                 exit();

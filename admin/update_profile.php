@@ -11,14 +11,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
+    $profile_picture = null;
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+            $profile_picture = uniqid('admin_') . '.' . $ext;
+            move_uploaded_file($_FILES['profile_picture']['tmp_name'], '../uploads/profile_pictures/' . $profile_picture);
+        }
+    }
     if ($full_name && $email && $username) {
         if ($password) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $mycon->prepare("UPDATE tbl_admin SET full_name=?, email=?, username=?, password=? WHERE admin_id=?");
-            $stmt->bind_param('ssssi', $full_name, $email, $username, $hashed, $admin_id);
+            if ($profile_picture) {
+                $stmt = $mycon->prepare("UPDATE tbl_admin SET full_name=?, email=?, username=?, password=?, profile_picture=? WHERE admin_id=?");
+                $stmt->bind_param('sssssi', $full_name, $email, $username, $hashed, $profile_picture, $admin_id);
+            } else {
+                $stmt = $mycon->prepare("UPDATE tbl_admin SET full_name=?, email=?, username=?, password=? WHERE admin_id=?");
+                $stmt->bind_param('ssssi', $full_name, $email, $username, $hashed, $admin_id);
+            }
         } else {
-            $stmt = $mycon->prepare("UPDATE tbl_admin SET full_name=?, email=?, username=? WHERE admin_id=?");
-            $stmt->bind_param('sssi', $full_name, $email, $username, $admin_id);
+            if ($profile_picture) {
+                $stmt = $mycon->prepare("UPDATE tbl_admin SET full_name=?, email=?, username=?, profile_picture=? WHERE admin_id=?");
+                $stmt->bind_param('ssssi', $full_name, $email, $username, $profile_picture, $admin_id);
+            } else {
+                $stmt = $mycon->prepare("UPDATE tbl_admin SET full_name=?, email=?, username=? WHERE admin_id=?");
+                $stmt->bind_param('sssi', $full_name, $email, $username, $admin_id);
+            }
         }
         $stmt->execute();
         $stmt->close();
