@@ -401,35 +401,6 @@ $new_admins = mysqli_query($mycon, $new_admins_sql);
         </table>
         </div>
     </div>
-    <!-- Dashboard Analytics Section -->
-    <div class="dashboard-analytics mb-5">
-      <div class="row g-4">
-        <div class="col-md-6 col-lg-4">
-          <div class="card bg-dark text-light shadow rounded-4">
-            <div class="card-body">
-              <h5 class="card-title text-warning"><i class="bi bi-graph-up"></i> Bookings (Last 7 Days)</h5>
-              <canvas id="bookingsLineChart" height="220"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
-          <div class="card bg-dark text-light shadow rounded-4">
-            <div class="card-body">
-              <h5 class="card-title text-warning"><i class="bi bi-pie-chart"></i> Room Types Booked</h5>
-              <canvas id="roomTypesPieChart" height="220"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-12 col-lg-4">
-          <div class="card bg-dark text-light shadow rounded-4">
-            <div class="card-body">
-              <h5 class="card-title text-warning"><i class="bi bi-bar-chart"></i> Revenue (Last 7 Days)</h5>
-              <canvas id="revenueBarChart" height="220"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     <!-- Debug Output for Chart Data -->
     <div style="background:#222;color:#ffa533;padding:10px;margin-bottom:10px;font-size:1.1em;">
       <strong>DEBUG: Chart Data</strong><br>
@@ -585,30 +556,72 @@ const revenueData = <?php
   echo json_encode(['labels' => $labels, 'data' => $data]);
 ?>;
 // Bookings Line Chart
-new Chart(document.getElementById('bookingsLineChart'), {
-  type: 'line',
-  data: {
-    labels: bookingsData.labels,
-    datasets: [{
-      label: 'Bookings',
-      data: bookingsData.data,
-      borderColor: '#ffa533',
-      backgroundColor: 'rgba(255,165,51,0.15)',
-      tension: 0.4,
-      fill: true,
-      pointRadius: 5,
-      pointBackgroundColor: '#ffa533',
-      pointBorderColor: '#fff',
-      pointHoverRadius: 7
-    }]
-  },
-  options: {
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } }
+(function() {
+  var debugDiv = document.getElementById('bookingsChartDebug');
+  var canvas = document.getElementById('bookingsLast7Chart');
+  var chartStatus = (typeof Chart !== 'undefined') ? 'Chart.js is loaded.' : 'Chart.js is NOT loaded!';
+  var bookingsDataStr = '';
+  try {
+    bookingsDataStr = JSON.stringify(bookingsData, null, 2);
+  } catch (e) {
+    bookingsDataStr = 'Error stringifying bookingsData: ' + e;
   }
-});
+  debugDiv.innerHTML = '<b>bookingsData:</b><pre style="color:#ffa533;white-space:pre-wrap;">' + bookingsDataStr + '</pre>' +
+    '<b>Chart.js status:</b> ' + chartStatus + '<br>' +
+    '<b>Canvas present:</b> ' + (canvas ? 'YES' : 'NO');
+  if (!canvas) return;
+  if (typeof Chart === 'undefined') {
+    document.getElementById('bookingsChartFallback').style.display = 'flex';
+    document.getElementById('bookingsChartFallback').textContent = 'Chart.js is NOT loaded!';
+    return;
+  }
+  try {
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: bookingsData.labels,
+        datasets: [{
+          label: 'Bookings',
+          data: bookingsData.data,
+          borderColor: '#ffa533',
+          backgroundColor: 'rgba(255,165,51,0.15)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 7,
+          pointBackgroundColor: '#ffa533',
+          pointBorderColor: '#fff',
+          pointHoverRadius: 10
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#232323',
+            titleColor: '#ffa533',
+            bodyColor: '#fff',
+            borderColor: '#ffa533',
+            borderWidth: 2,
+            cornerRadius: 12,
+            padding: 16,
+            titleFont: { weight: '700', size: 20 },
+            bodyFont: { size: 18 }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#fff', font: { size: 18 } } },
+          x: { ticks: { color: '#fff', font: { size: 18 } } }
+        }
+      }
+    });
+  } catch (err) {
+    document.getElementById('bookingsChartFallback').style.display = 'flex';
+    document.getElementById('bookingsChartFallback').textContent = 'Chart error: ' + err;
+    debugDiv.innerHTML += '<br><b style="color:#ff4d4d;">Chart error:</b> ' + err;
+  }
+})();
 // Room Types Pie Chart
-new Chart(document.getElementById('roomTypesPieChart'), {
+new Chart(document.getElementById('roomTypesBookedChart'), {
   type: 'pie',
   data: {
     labels: roomTypesData.labels,
@@ -616,15 +629,28 @@ new Chart(document.getElementById('roomTypesPieChart'), {
       data: roomTypesData.data,
       backgroundColor: roomTypesData.colors,
       borderColor: '#23234a',
-      borderWidth: 2
+      borderWidth: 3
     }]
   },
   options: {
-    plugins: { legend: { labels: { color: '#fff', font: { weight: 'bold' } } } }
+    plugins: {
+      legend: { labels: { color: '#fff', font: { weight: 'bold', size: 20 } } },
+      tooltip: {
+        backgroundColor: '#232323',
+        titleColor: '#ffa533',
+        bodyColor: '#fff',
+        borderColor: '#ffa533',
+        borderWidth: 2,
+        cornerRadius: 12,
+        padding: 16,
+        titleFont: { weight: '700', size: 20 },
+        bodyFont: { size: 18 }
+      }
+    }
   }
 });
 // Revenue Bar Chart
-new Chart(document.getElementById('revenueBarChart'), {
+new Chart(document.getElementById('revenueLast7Chart'), {
   type: 'bar',
   data: {
     labels: revenueData.labels,
@@ -632,12 +658,28 @@ new Chart(document.getElementById('revenueBarChart'), {
       label: 'Revenue (₱)',
       data: revenueData.data,
       backgroundColor: '#ffa533',
-      borderRadius: 8
+      borderRadius: 12
     }]
   },
   options: {
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#232323',
+        titleColor: '#ffa533',
+        bodyColor: '#fff',
+        borderColor: '#ffa533',
+        borderWidth: 2,
+        cornerRadius: 12,
+        padding: 16,
+        titleFont: { weight: '700', size: 20 },
+        bodyFont: { size: 18 }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { color: '#fff', font: { size: 18 } } },
+      x: { ticks: { color: '#fff', font: { size: 18 } } }
+    }
   }
 });
 // Debug: Print chart data variables
@@ -649,6 +691,61 @@ window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('debugChartData').textContent = debug;
   // Check if Chart.js is loaded
   document.getElementById('chartjsStatus').textContent = (typeof Chart !== 'undefined') ? 'Chart.js is loaded.' : 'Chart.js is NOT loaded!';
+});
+// Bookings Last 7 Days Chart
+const bookingsLast7Data = <?php
+  $labels = [];
+  $data = [];
+  for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $labels[] = date('D', strtotime($date));
+    $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(date_created) = '$date'"))[0];
+    $data[] = (int)$count;
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data]);
+?>;
+new Chart(document.getElementById('bookingsLast7Chart'), {
+  type: 'line',
+  data: {
+    labels: bookingsLast7Data.labels,
+    datasets: [{
+      label: 'Bookings',
+      data: bookingsLast7Data.data,
+      borderColor: '#ffa533',
+      backgroundColor: 'rgba(255,165,51,0.15)',
+      tension: 0.4,
+      fill: true,
+      pointRadius: 5,
+      pointBackgroundColor: '#ffa533',
+      pointBorderColor: '#fff',
+      pointHoverRadius: 8
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#232323',
+        titleColor: '#ffa533',
+        bodyColor: '#fff',
+        borderColor: '#ffa533',
+        borderWidth: 1.5,
+        cornerRadius: 10,
+        padding: 12,
+        titleFont: { weight: '700', size: 15 },
+        bodyFont: { size: 14 }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { color: '#fff', font: { size: 14 } } },
+      x: { ticks: { color: '#fff', font: { size: 14 } } }
+    },
+    layout: { padding: 8 },
+    animation: { duration: 900, easing: 'easeOutQuart' },
+    responsive: true,
+    maintainAspectRatio: false,
+    backgroundColor: '#181818'
+  }
 });
 </script>
 </body>

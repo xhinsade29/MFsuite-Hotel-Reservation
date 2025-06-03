@@ -146,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 error_log("No available room found for reservation #{$reservation_id}.");
                 // Admin notification
-                add_notification($_SESSION['admin_id'], 'admin', 'No available room for this type and date for reservation #'.$reservation_id.'.', $mycon, 0, $admin_id);
-                header("Location: reservations.php?msg=No+available+room+for+this+type+and+date");
+                add_notification($_SESSION['admin_id'], 'admin', 'Room Type Fully Booked', 'No available room for this type and date for reservation #'.$reservation_id.'. The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, $admin_id);
+                header("Location: reservations.php?msg=Room+type+is+fully+booked+and+cannot+accept+any+more+reservations+for+the+selected+dates");
                 exit();
             }
         }
@@ -157,76 +157,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_param($stmt, "i", $payment_id);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
-            // If payment method is Cash, assign a room and set reservation to approved
-            if ($payment_method === 'Cash') {
-                $room_type_id = $row['room_id'];
-                $check_in = $row['check_in'];
-                $check_out = $row['check_out'];
-                $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (
-                    SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
-                ) LIMIT 1";
-                $stmt_find = mysqli_prepare($mycon, $find_room_sql);
-                 if (!$stmt_find) {
-                     error_log("Find room prepare failed for reservation #{$reservation_id} (Cash Payment): " . mysqli_error($mycon));
-                     add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error preparing room query for reservation #'.$reservation_id.' (Cash Payment).', $mycon, 0, $admin_id);
-                     header("Location: reservations.php?msg=Database+error+finding+room");
-                     exit();
-                 }
-                mysqli_stmt_bind_param($stmt_find, "iss", $room_type_id, $check_out, $check_in);
-                 if (!mysqli_stmt_execute($stmt_find)) {
-                     error_log("Find room execute failed for reservation #{$reservation_id} (Cash Payment): " . mysqli_stmt_error($stmt_find));
-                     mysqli_stmt_close($stmt_find); // Close statement before exiting
-                     add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error executing room query for reservation #'.$reservation_id.' (Cash Payment).', $mycon, 0, $admin_id);
-                     header("Location: reservations.php?msg=Database+error+finding+room");
-                     exit();
-                 }
-                mysqli_stmt_bind_result($stmt_find, $assigned_room_id_fetched);
-                $assigned_room_id = null;
-                if (mysqli_stmt_fetch($stmt_find) && $assigned_room_id_fetched) {
-                    error_log("Room found for reservation #{$reservation_id} (Cash Payment): Room ID = " . $assigned_room_id_fetched);
-                    mysqli_stmt_close($stmt_find);
-                    // Use the fetched room ID
-                    $assigned_room_id = $assigned_room_id_fetched;
-                    $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = 'approved', assigned_room_id = ? WHERE reservation_id = ?");
-                    mysqli_stmt_bind_param($stmt, "ii", $assigned_room_id, $reservation_id);
-                     if (!mysqli_stmt_execute($stmt)) {
-                         error_log("tbl_reservation update failed for reservation #{$reservation_id} (Cash Payment). Error: " . mysqli_stmt_error($stmt));
-                         mysqli_stmt_close($stmt);
-                         add_notification($_SESSION['admin_id'], 'admin', 'Reservation Update Failed', 'Database error updating reservation #'.$reservation_id.' (Cash Payment).', $mycon, 0, $admin_id);
-                         header("Location: reservations.php?msg=Database+error+updating+reservation");
-                         exit();
-                     }
-                    error_log("tbl_reservation update successful for reservation #{$reservation_id} (Cash Payment).");
+            // Assign a room and set reservation to approved for both Cash and Non-Cash payments
+            $room_type_id = $row['room_id'];
+            $check_in = $row['check_in'];
+            $check_out = $row['check_out'];
+            $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (
+                SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
+            ) LIMIT 1";
+            $stmt_find = mysqli_prepare($mycon, $find_room_sql);
+            if (!$stmt_find) {
+                error_log("Find room prepare failed for reservation #{$reservation_id} (Payment Approval): " . mysqli_error($mycon));
+                add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error preparing room query for reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                header("Location: reservations.php?msg=Database+error+finding+room");
+                exit();
+            }
+            mysqli_stmt_bind_param($stmt_find, "iss", $room_type_id, $check_out, $check_in);
+            if (!mysqli_stmt_execute($stmt_find)) {
+                error_log("Find room execute failed for reservation #{$reservation_id} (Payment Approval): " . mysqli_stmt_error($stmt_find));
+                mysqli_stmt_close($stmt_find);
+                add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error executing room query for reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                header("Location: reservations.php?msg=Database+error+finding+room");
+                exit();
+            }
+            mysqli_stmt_bind_result($stmt_find, $assigned_room_id_fetched);
+            $assigned_room_id = null;
+            if (mysqli_stmt_fetch($stmt_find) && $assigned_room_id_fetched) {
+                mysqli_stmt_close($stmt_find);
+                $assigned_room_id = $assigned_room_id_fetched;
+                $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = 'approved', assigned_room_id = ? WHERE reservation_id = ?");
+                mysqli_stmt_bind_param($stmt, "ii", $assigned_room_id, $reservation_id);
+                if (!mysqli_stmt_execute($stmt)) {
+                    error_log("tbl_reservation update failed for reservation #{$reservation_id} (Payment Approval). Error: " . mysqli_stmt_error($stmt));
                     mysqli_stmt_close($stmt);
-                    // Mark the room as occupied
-                    $stmt = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
-                    mysqli_stmt_bind_param($stmt, "i", $assigned_room_id);
-                     if (!mysqli_stmt_execute($stmt)) {
-                          error_log("tbl_room status update failed for room #{$assigned_room_id} (Cash Payment). Error: " . mysqli_stmt_error($stmt));
-                          mysqli_stmt_close($stmt);
-                          add_notification($_SESSION['admin_id'], 'admin', 'Room Status Update Failed', 'Database error updating room status for room #'.$assigned_room_id.' (Cash Payment).', $mycon, 0, $admin_id);
-                          header("Location: reservations.php?msg=Database+error+updating+room");
-                          exit();
-                     }
-                     error_log("tbl_room status update successful for room #{$assigned_room_id} (Cash Payment).");
-                    mysqli_stmt_close($stmt);
-                    add_notification($guest_id, 'guest', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id);
-                    // Admin notification
-                    add_notification($_SESSION['admin_id'], 'admin', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, $admin_id);
-                } else {
-                    mysqli_stmt_close($stmt_find);
-                    error_log("No available room found for reservation #{$reservation_id} (Cash Payment).");
-                    // Admin notification
-                    add_notification($_SESSION['admin_id'], 'admin', 'No available room for this type and date for reservation #'.$reservation_id.' (Cash Payment).', $mycon, 0, $admin_id);
-                    header("Location: reservations.php?msg=No+available+room+for+this+type+and+date");
+                    add_notification($_SESSION['admin_id'], 'admin', 'Reservation Update Failed', 'Database error updating reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                    header("Location: reservations.php?msg=Database+error+updating+reservation");
                     exit();
                 }
-            } else {
-                // Auto-approve reservation if payment method is not Cash
-                $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = 'approved' WHERE reservation_id = ?");
-                mysqli_stmt_bind_param($stmt, "i", $reservation_id);
-                mysqli_stmt_execute($stmt);
                 mysqli_stmt_close($stmt);
+                // Mark the room as occupied
+                $stmt = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
+                mysqli_stmt_bind_param($stmt, "i", $assigned_room_id);
+                if (!mysqli_stmt_execute($stmt)) {
+                    error_log("tbl_room status update failed for room #{$assigned_room_id} (Payment Approval). Error: " . mysqli_stmt_error($stmt));
+                    mysqli_stmt_close($stmt);
+                    add_notification($_SESSION['admin_id'], 'admin', 'Room Status Update Failed', 'Database error updating room status for room #'.$assigned_room_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                    header("Location: reservations.php?msg=Database+error+updating+room");
+                    exit();
+                }
+                mysqli_stmt_close($stmt);
+                add_notification($guest_id, 'guest', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id);
+                // Admin notification
+                add_notification($_SESSION['admin_id'], 'admin', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, $admin_id);
+            } else {
+                mysqli_stmt_close($stmt_find);
+                add_notification($_SESSION['admin_id'], 'admin', 'Room Type Fully Booked', 'No available room for this type and date for reservation #'.$reservation_id.' (Payment Approval). The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, $admin_id);
+                header("Location: reservations.php?msg=Room+type+is+fully+booked+and+cannot+accept+any+more+reservations+for+the+selected+dates");
+                exit();
             }
             // Notify for wallet top-up if payment method is a top-up type
             $topup_methods = ['GCash', 'Bank Transfer', 'PayPal', 'Credit Card'];

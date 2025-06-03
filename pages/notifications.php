@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <option value="payment" <?php if ($sort === 'payment') echo 'selected'; ?>>Payment</option>
             <option value="wallet" <?php if ($sort === 'wallet') echo 'selected'; ?>>Wallet</option>
             <option value="profile" <?php if ($sort === 'profile') echo 'selected'; ?>>Profile</option>
-        </select>
+            </select>
     </form>
     <?php
     $unread_count = 0;

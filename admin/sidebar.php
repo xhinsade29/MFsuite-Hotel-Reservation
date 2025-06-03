@@ -297,7 +297,7 @@ document.getElementById('adminNotifBell').addEventListener('click', function(e) 
         .then(function(response) {
             if (badge) badge.remove(); // Remove badge visually
             // Now redirect to notifications page
-            window.location.href = 'notifications.php';
+    window.location.href = 'notifications.php';
         });
 });
 const adminProfileBtn = document.getElementById('adminProfileDropdownBtn');

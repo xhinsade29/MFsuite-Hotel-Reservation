@@ -142,31 +142,31 @@ function is_user_only_message($notif) {
     <?php if (count($notifications) > 0): ?>
         <?php foreach ($notifications as $notif): ?>
             <?php if ($notif['type'] === 'admin' || !is_user_only_message($notif)): ?>
-            <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?>">
-                <div class="flex-grow-1">
-                    <div class="d-flex align-items-center mb-2">
-                        <?php if ($notif['type'] === 'reservation'): ?>
-                            <i class="bi bi-calendar2-check notif-type-reservation me-2"></i>
-                        <?php elseif ($notif['type'] === 'wallet'): ?>
-                            <i class="bi bi-wallet2 notif-type-wallet me-2"></i>
-                        <?php elseif ($notif['type'] === 'profile'): ?>
-                            <i class="bi bi-person-circle notif-type-profile me-2"></i>
+        <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?>">
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-2">
+                    <?php if ($notif['type'] === 'reservation'): ?>
+                        <i class="bi bi-calendar2-check notif-type-reservation me-2"></i>
+                    <?php elseif ($notif['type'] === 'wallet'): ?>
+                        <i class="bi bi-wallet2 notif-type-wallet me-2"></i>
+                    <?php elseif ($notif['type'] === 'profile'): ?>
+                        <i class="bi bi-person-circle notif-type-profile me-2"></i>
                         <?php elseif ($notif['type'] === 'admin'): ?>
                             <i class="bi bi-person-badge notif-type-profile me-2"></i>
-                        <?php else: ?>
-                            <i class="bi bi-info-circle me-2"></i>
-                        <?php endif; ?>
-                        <span class="fw-bold text-capitalize me-2 notif-type-<?php echo htmlspecialchars($notif['type']); ?>">
-                            <?php echo htmlspecialchars($notif['type']); ?>
-                        </span>
-                        <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
-                    </div>
-                    <div><?php echo $notif['message']; ?></div>
-                    <?php if (!empty($notif['first_name']) || !empty($notif['last_name'])): ?>
-                        <div class="mt-2 text-info small">From: <?php echo htmlspecialchars(trim(($notif['first_name'] ?? '') . ' ' . ($notif['last_name'] ?? ''))); ?></div>
+                    <?php else: ?>
+                        <i class="bi bi-info-circle me-2"></i>
                     <?php endif; ?>
+                    <span class="fw-bold text-capitalize me-2 notif-type-<?php echo htmlspecialchars($notif['type']); ?>">
+                        <?php echo htmlspecialchars($notif['type']); ?>
+                    </span>
+                    <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
                 </div>
+                    <div><?php echo $notif['message']; ?></div>
+                <?php if (!empty($notif['first_name']) || !empty($notif['last_name'])): ?>
+                    <div class="mt-2 text-info small">From: <?php echo htmlspecialchars(trim(($notif['first_name'] ?? '') . ' ' . ($notif['last_name'] ?? ''))); ?></div>
+                <?php endif; ?>
             </div>
+        </div>
             <?php endif; ?>
         <?php endforeach; ?>
     <?php else: ?>

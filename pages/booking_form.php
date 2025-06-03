@@ -233,7 +233,7 @@ if ($room_type_id) {
     <div class="booking-form-section">
         <h4 class="text-warning fw-bold mb-4">Book this Room</h4>
         <?php if ($room_fully_booked): ?>
-            <div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for today. Please select another room type or date.</div>
+            <div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for your selected dates. Please select another room type or date.</div>
         <?php endif; ?>
         <?php if (isset($_SESSION['guest_id']) && $wallet_balance !== null): ?>
             <div class="alert alert-info mb-3"><i class="bi bi-wallet2"></i> Your Wallet Balance: <b>₱<?php echo number_format($wallet_balance, 2); ?></b></div>
@@ -383,6 +383,20 @@ if ($room_type_id) {
         </div>
         <div class="toast-body">
             Your reservation was placed successfully!
+        </div>
+    </div>
+</div>
+
+<!-- Toast for fully booked notification -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000; min-width: 320px;">
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="fullyBookedToast" data-bs-delay="5000" style="display:none;">
+        <div class="toast-header bg-danger text-white">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong class="me-auto">Fully Booked</strong>
+            <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            All rooms of this type are fully booked or occupied for your selected dates. Please select another room type or date.
         </div>
     </div>
 </div>
@@ -666,19 +680,16 @@ document.addEventListener('DOMContentLoaded', function() {
         var formSection = document.querySelector('.booking-form-section');
         var alertDiv = document.getElementById('roomFullAlert');
         if (!checkin || !checkout || !roomTypeId) {
-            // If missing dates, remove alert and enable form
             if (alertDiv) alertDiv.remove();
             document.getElementById('bookingForm').style.pointerEvents = '';
             document.getElementById('bookingForm').style.opacity = '';
-            // Also disable book button and show wallet warning if dates are cleared after being set
-             if (walletWarning) walletWarning.remove();
-             bookNowBtn.disabled = true;
-             return;
+            hideFullyBookedToast();
+            if (walletWarning) walletWarning.remove();
+            bookNowBtn.disabled = true;
+            return;
         }
-        // Enable book button and remove warning before fetch, assuming dates are valid for check
-         bookNowBtn.disabled = false;
-         if (walletWarning) walletWarning.remove();
-
+        bookNowBtn.disabled = false;
+        if (walletWarning) walletWarning.remove();
         fetch(`../functions/check_room_availability.php?room_type_id=${roomTypeId}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`)
             .then(res => res.json())
             .then(data => {
@@ -692,17 +703,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     document.getElementById('bookingForm').style.pointerEvents = 'none';
                     document.getElementById('bookingForm').style.opacity = '0.6';
-                     bookNowBtn.disabled = true; // Disable button if room is fully booked
+                    bookNowBtn.disabled = true;
+                    showFullyBookedToast();
                 } else {
                     if (alertDiv) alertDiv.remove();
                     document.getElementById('bookingForm').style.pointerEvents = '';
                     document.getElementById('bookingForm').style.opacity = '';
-                    // Re-check wallet sufficiency after availability check passes
-                     checkWalletSufficiency();
+                    hideFullyBookedToast();
+                    checkWalletSufficiency();
                 }
             })
             .catch(() => {
-                // On error, show alert and disable form
                 if (!alertDiv) {
                     alertDiv = document.createElement('div');
                     alertDiv.id = 'roomFullAlert';
@@ -712,7 +723,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 document.getElementById('bookingForm').style.pointerEvents = 'none';
                 document.getElementById('bookingForm').style.opacity = '0.6';
-                 bookNowBtn.disabled = true; // Disable button on availability check error
+                bookNowBtn.disabled = true;
+                showFullyBookedToast();
             });
     }
     document.getElementById('checkin_datetime').addEventListener('change', function() {
@@ -726,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
         checkRoomAvailability(); // Check availability after dates change
     });
 
-    // Auto-refresh room availability every 9 seconds (optional, adjust as needed)
+    // Auto-refresh room availability every 1 seconds (optional, adjust as needed)
     setInterval(checkRoomAvailability, 1000);
     // Initial check on page load
     checkRoomAvailability();
@@ -764,41 +776,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- Real-time room availability polling ---
-    var roomTypeId = <?php echo json_encode($room_type_id); ?>;
-    var bookingFormSection = document.querySelector('.booking-form-section');
-    var fullyBookedAlert = bookingFormSection.querySelector('.alert-danger');
-    function checkRoomAvailability() {
-        fetch('check_room_availability.php?room_type_id=' + roomTypeId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.available) {
-                    // Room is available, enable form and remove alert
-                    if (bookingForm) {
-                        bookingForm.style.pointerEvents = '';
-                        bookingForm.style.opacity = '';
-                    }
-                    if (fullyBookedAlert) {
-                        fullyBookedAlert.remove();
-                        fullyBookedAlert = null;
-                    }
-                } else {
-                    // Room is not available, disable form and show alert if not present
-                    if (bookingForm) {
-                        bookingForm.style.pointerEvents = 'none';
-                        bookingForm.style.opacity = '0.6';
-                    }
-                    if (!fullyBookedAlert) {
-                        var alertDiv = document.createElement('div');
-                        alertDiv.className = 'alert alert-danger mb-3';
-                        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for today. Please select another room type or date.';
-                        bookingFormSection.insertBefore(alertDiv, bookingFormSection.firstChild);
-                        fullyBookedAlert = alertDiv;
-                    }
-                }
-            });
+    // Toast for fully booked
+    var fullyBookedToastEl = document.getElementById('fullyBookedToast');
+    var fullyBookedToast = fullyBookedToastEl ? new bootstrap.Toast(fullyBookedToastEl) : null;
+
+    function showFullyBookedToast() {
+        if (fullyBookedToastEl) {
+            fullyBookedToastEl.style.display = '';
+            fullyBookedToast && fullyBookedToast.show();
+        }
     }
-    setInterval(checkRoomAvailability, 9000);
+    function hideFullyBookedToast() {
+        if (fullyBookedToastEl) {
+            fullyBookedToastEl.style.display = 'none';
+        }
+    }
 });
 </script>
 <script>

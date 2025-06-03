@@ -206,27 +206,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Prepare admin notification message
         $admin_notif_msg = '';
         if ($reservation_status === 'approved') {
-            $notif_msg .= " Your reservation is approved.";
-            if ($assigned_room_id !== NULL) {
-                // Fetch room number to include in notification if assigned
-                $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = ? LIMIT 1"; // Limit 1 just in case
-                $stmt_room_num = $mycon->prepare($room_num_sql);
-                $stmt_room_num->bind_param("i", $assigned_room_id);
-                $stmt_room_num->execute();
-                $stmt_room_num->bind_result($room_number);
-                $stmt_room_num->fetch();
-                $stmt_room_num->close();
-                if (!empty($room_number)) {
+             $notif_msg .= " Your reservation is approved.";
+             if ($assigned_room_id !== NULL) {
+                 // Fetch room number to include in notification if assigned
+                 $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = ? LIMIT 1"; // Limit 1 just in case
+                 $stmt_room_num = $mycon->prepare($room_num_sql);
+                 $stmt_room_num->bind_param("i", $assigned_room_id);
+                 $stmt_room_num->execute();
+                 $stmt_room_num->bind_result($room_number);
+                 $stmt_room_num->fetch();
+                 $stmt_room_num->close();
+                 if (!empty($room_number)) {
                     $notif_msg .= " Assigned Room Number: " . htmlspecialchars($room_number) . ".";
                     $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved. Assigned Room Number: $room_number.";
                 } else {
                     $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
-                }
+                 }
             } else {
                 $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
-            }
+             }
         } else {
-            $notif_msg .= " It is pending admin approval for room assignment and confirmation.";
+             $notif_msg .= " It is pending admin approval for room assignment and confirmation.";
             $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Pending approval.";
         }
 
