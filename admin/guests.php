@@ -23,7 +23,7 @@ while ($row = $res->fetch_assoc()) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #1e1e2f; color: #fff; font-family: 'Poppins', sans-serif; }
-        .guests-container { margin-left: 240px; padding: 40px 24px 24px 24px; max-width: 1400px; }
+        .guests-container { margin-left: 240px; margin-top: 70px; padding: 40px 24px 24px 24px; max-width: 1400px; }
         .guests-title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; letter-spacing: 1px; }
         .modern-table-wrapper { background: rgba(255,255,255,0.03); border-radius: 20px; box-shadow: 0 2px 16px rgba(255,140,0,0.07); padding: 24px 16px 16px 16px; margin-bottom: 0; }
         .modern-table { border-radius: 18px !important; overflow: hidden; box-shadow: 0 2px 12px rgba(255,140,0,0.06); font-size: 1.08em; }

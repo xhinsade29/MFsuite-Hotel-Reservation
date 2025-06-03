@@ -42,27 +42,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
 
-        // Add admin notification for cancellation request
-        $guest_name = '';
-        $guest_stmt = $conn->prepare("SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ?");
-        $guest_stmt->bind_param("i", $guest_id);
-        $guest_stmt->execute();
-        $guest_stmt->bind_result($first_name, $last_name);
-        if ($guest_stmt->fetch()) {
-            $guest_name = $first_name . ' ' . $last_name;
-        }
-        $guest_stmt->close();
-        $admin_notif_msg = "Cancellation request by $guest_name (Reservation ID: $reservation_id)";
-        $notif_sql = "INSERT INTO notifications (type, message, related_id, related_type) VALUES ('cancellation', ?, ?, 'reservation')";
-        $notif_stmt = $conn->prepare($notif_sql);
-        $notif_stmt->bind_param("si", $admin_notif_msg, $reservation_id);
-        $notif_stmt->execute();
-        $notif_stmt->close();
-
         // Add notification for the user
+        $notif_msg = "Your cancellation request has been submitted.";
         include_once '../functions/notify.php';
-        $notif_msg = "Your cancellation request for reservation #$reservation_id has been submitted.";
         add_notification($guest_id, 'reservation', $notif_msg, $conn);
+
+        // Add notification for the admin
+        // Fetch guest name
+        $guest_name = '';
+        $stmt_guest = $conn->prepare("SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ?");
+        $stmt_guest->bind_param("i", $guest_id);
+        $stmt_guest->execute();
+        $stmt_guest->bind_result($first_name, $last_name);
+        if ($stmt_guest->fetch()) {
+            $guest_name = trim($first_name . ' ' . $last_name);
+        }
+        $stmt_guest->close();
+        // Get an admin_id (first admin)
+        $admin_id = 1;
+        $admin_res = $conn->query("SELECT admin_id FROM tbl_admin LIMIT 1");
+        if ($admin_res && $admin_row = $admin_res->fetch_assoc()) {
+            $admin_id = $admin_row['admin_id'];
+        }
+        $admin_notif_msg = "A cancellation request has been submitted by $guest_name for reservation #$reservation_id.";
+        add_notification($admin_id, 'admin', $admin_notif_msg, $conn, 0, $admin_id);
 
         $conn->close();
         // Redirect back to details with notification

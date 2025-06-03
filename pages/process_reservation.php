@@ -193,7 +193,7 @@ if (!empty($service_ids)) {
 
 // Add admin notification for new reservation
 $guest_name = $first_name . ' ' . $last_name;
-$notif_msg = "New reservation by $guest_name (Reservation ID: $reservation_id)";
+$notif_msg = "New reservation by $guest_name";
 $notif_sql = "INSERT INTO notifications (type, message, related_id, related_type) VALUES ('reservation', ?, ?, 'reservation')";
 $stmt_notif = $conn->prepare($notif_sql);
 $stmt_notif->bind_param("si", $notif_msg, $reservation_id);
@@ -201,8 +201,8 @@ $stmt_notif->execute();
 $stmt_notif->close();
 
 // After successful booking and wallet deduction
-add_notification($guest_id, 'reservation', 'Your reservation was successful!', $conn);
-add_notification($guest_id, 'wallet', 'Wallet payment made for reservation.', $conn);
+add_notification($guest_id, 'reservation', 'Your reservation was successful!', $conn, 0, $admin_id);
+add_notification($guest_id, 'wallet', 'Wallet payment made for reservation.', $conn, 0, $admin_id);
 
 $conn->close();
 $_SESSION['success'] = 'Booking successful and paid via wallet!';

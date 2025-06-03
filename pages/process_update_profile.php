@@ -96,12 +96,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         mysqli_stmt_bind_param($stmt, $types, ...$params);
         if (mysqli_stmt_execute($stmt)) {
             $_SESSION['success'] = "Profile and payment details updated successfully!";
-            // Insert notification
-            $notif = "Your profile and payment details have been updated.";
-            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at) VALUES (?, ?, NOW())";
+            $admin_id = 1; // Use your default or actual admin_id here
+            $user_name = $first_name . ' ' . $last_name;
+            // Determine what was updated
+            $profile_fields = [$_POST['first_name'], $_POST['middle_name'], $_POST['last_name'], $_POST['phone_number'], $_POST['address']];
+            $payment_fields = [$_POST['bank_account_number'] ?? '', $_POST['paypal_email'] ?? '', $_POST['credit_card_number'] ?? '', $_POST['gcash_number'] ?? ''];
+            $profile_updated = false;
+            $payment_updated = false;
+            foreach ($profile_fields as $field) { if (!empty($field)) { $profile_updated = true; break; } }
+            foreach ($payment_fields as $field) { if (!empty($field)) { $payment_updated = true; break; } }
+            // User notification
+            if ($profile_updated && !$payment_updated) {
+                $notif = "Your profile details have been updated.";
+                $admin_notif = "User $user_name updated their profile details.";
+            } elseif (!$profile_updated && $payment_updated) {
+                $notif = "Your payment details have been updated.";
+                $admin_notif = "User $user_name updated their payment details.";
+            } else {
+                $notif = "Your profile and payment details have been updated.";
+                $admin_notif = "User $user_name updated their profile and payment details.";
+            }
+            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
             $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-            mysqli_stmt_bind_param($notif_stmt, "is", $guest_id, $notif);
+            mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
             mysqli_stmt_execute($notif_stmt);
+            $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
+            $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
+            mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
+            mysqli_stmt_execute($admin_notif_stmt);
             $did_update = true;
         } else {
             $_SESSION['error'] = "Profile update failed: " . mysqli_error($mycon);
@@ -149,12 +171,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $update->bind_param('si', $new_password, $guest_id);
             if ($update->execute()) {
                 $_SESSION['success'] = 'Password updated successfully!';
-                // Insert notification
+                // Insert notification for user
+                $admin_id = 1; // Use your default or actual admin_id here
                 $notif = "Your password has been changed.";
-                $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at) VALUES (?, ?, NOW())";
+                $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
                 $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-                mysqli_stmt_bind_param($notif_stmt, "is", $guest_id, $notif);
+                mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
                 mysqli_stmt_execute($notif_stmt);
+                // Insert notification for admin
+                $user_name = $first_name . ' ' . $last_name;
+                $admin_notif = "User $user_name changed their password.";
+                $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
+                $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
+                mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
+                mysqli_stmt_execute($admin_notif_stmt);
             } else {
                 $_SESSION['error'] = 'Password update failed: ' . $update->error;
                 header("Location: settings.php");
@@ -286,11 +316,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['phone_number'] = $phone_number;
             $_SESSION['success'] = "User details updated successfully!";
             // Insert notification
+            $admin_id = 1; // Use your default or actual admin_id here
             $notif = "Your profile details have been updated.";
-            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at) VALUES (?, ?, NOW())";
+            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
             $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-            mysqli_stmt_bind_param($notif_stmt, "is", $guest_id, $notif);
+            mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
             mysqli_stmt_execute($notif_stmt);
+            // Insert notification for admin
+            $user_name = $first_name . ' ' . $last_name;
+            $admin_notif = "User $user_name updated their profile.";
+            $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
+            $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
+            mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
+            mysqli_stmt_execute($admin_notif_stmt);
             header("Location: update_profile.php");
             exit();
         } else {
@@ -309,12 +347,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         mysqli_stmt_bind_param($stmt, "ssssi", $bank_account_number, $paypal_email, $credit_card_number, $gcash_number, $guest_id);
         if (mysqli_stmt_execute($stmt)) {
             $_SESSION['success'] = "Payment details updated successfully!";
-            // Insert notification
+            $admin_id = 1; // Use your default or actual admin_id here
+            $user_name = $first_name . ' ' . $last_name;
             $notif = "Your payment details have been updated.";
-            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at) VALUES (?, ?, NOW())";
+            $admin_notif = "User $user_name updated their payment details.";
+            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
             $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-            mysqli_stmt_bind_param($notif_stmt, "is", $guest_id, $notif);
+            mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
             mysqli_stmt_execute($notif_stmt);
+            $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
+            $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
+            mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
+            mysqli_stmt_execute($admin_notif_stmt);
             header("Location: update_profile.php");
             exit();
         } else {

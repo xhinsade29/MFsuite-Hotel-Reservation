@@ -1,29 +1,27 @@
 <?php
-function add_notification($guest_id, $type, $message, $mycon) {
-    $sql = "INSERT INTO user_notifications (guest_id, type, message) VALUES (?, ?, ?)";
-    $stmt = mysqli_prepare($mycon, $sql);
-    if (!$stmt) {
-        error_log("Notification INSERT prepare failed: " . mysqli_error($mycon));
-        return;
+function add_notification($recipient_id, $type, $message, $mycon, $is_read = 0, $admin_id = 1) {
+    if ($type === 'admin') {
+        // Admin notification: guest_id should be NULL, admin_id should be set
+        $sql = "INSERT INTO user_notifications (guest_id, type, message, is_read, admin_id) VALUES (NULL, ?, ?, ?, ?)";
+        $stmt = mysqli_prepare($mycon, $sql);
+        if (!$stmt) {
+            error_log("Notification INSERT prepare failed: " . mysqli_error($mycon));
+            return;
+        }
+        mysqli_stmt_bind_param($stmt, "ssii", $type, $message, $is_read, $recipient_id); // $recipient_id is admin_id here
+    } else {
+        // Guest notification: guest_id is set, admin_id is set
+        $sql = "INSERT INTO user_notifications (guest_id, type, message, is_read, admin_id) VALUES (?, ?, ?, ?, ?)";
+        $stmt = mysqli_prepare($mycon, $sql);
+        if (!$stmt) {
+            error_log("Notification INSERT prepare failed: " . mysqli_error($mycon));
+            return;
+        }
+        mysqli_stmt_bind_param($stmt, "issii", $recipient_id, $type, $message, $is_read, $admin_id);
     }
-    // Set created_at to NOW() by default in the table schema or SQL
-    // The current schema has a default of current_timestamp(), so no need to explicitly set it here.
-    
-    // Bind parameters
-    // Check if guest_id is valid before binding (basic check)
-    if (!is_numeric($guest_id) || $guest_id <= 0) {
-        error_log("Invalid guest_id provided to add_notification: " . $guest_id);
-        // Optionally insert a notification without guest_id if you have a system user or similar
-        return;
-    }
-    
-    mysqli_stmt_bind_param($stmt, "iss", $guest_id, $type, $message);
-    
-    // Execute statement
     if (!mysqli_stmt_execute($stmt)) {
         error_log("Notification INSERT execute failed: " . mysqli_stmt_error($stmt));
     }
-    
     mysqli_stmt_close($stmt);
 }
 

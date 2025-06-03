@@ -15,19 +15,6 @@
         </a>
         <a href="notifications.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'notifications.php') ? 'active' : ''; ?>">
             <i class="bi bi-bell-fill"></i> Notifications
-            <?php
-            // Fetch unread notifications count
-            $notif_count = 0;
-            include_once '../functions/db_connect.php';
-            $res = mysqli_query($mycon, "SELECT COUNT(*) as cnt FROM notifications WHERE is_read = 0");
-            if ($res && $row = mysqli_fetch_assoc($res)) {
-                $notif_count = (int)$row['cnt'];
-            }
-         
-            ?>
-            <?php if ($notif_count > 0): ?>
-                <span class="badge bg-danger ms-2"><?php echo $notif_count; ?></span>
-            <?php endif; ?>
         </a>
         <div class="sidebar-dropdown" id="sidebarDropdown">
           <a href="#" class="admin-nav-link sidebar-dropdown-toggle <?php echo (basename($_SERVER['PHP_SELF']) == 'Amenities.php' || basename($_SERVER['PHP_SELF']) == 'services.php' || basename($_SERVER['PHP_SELF']) == 'rooms.php') ? 'active' : ''; ?>">
@@ -58,15 +45,8 @@
         <a href="reports.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reports.php') ? 'active' : ''; ?>">
             <i class="bi bi-bar-chart-fill"></i> Reports
         </a>
-    </nav>
-    <div class="admin-profile">
-        <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['username'] ?? 'Admin User'); ?>&background=FF8C00&color=fff" alt="Admin User" class="admin-avatar">
-        <div class="admin-profile-info">
-            <span class="admin-profile-name"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin User'); ?></span>
-            <span class="admin-profile-role"><?php echo htmlspecialchars(ucfirst($_SESSION['role'] ?? 'Administrator')); ?></span>
-        </div>
-        <a href="logout.php" class="admin-logout-btn" title="Log Out"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
+    
+   
 </aside>
 <style>
 :root {
@@ -285,5 +265,69 @@ document.addEventListener('DOMContentLoaded', function() {
       dropdown.classList.remove('open');
     }
   });
+});
+</script>
+<!-- Admin Top Navigation Bar (User Style) -->
+<nav class="navbar admin-navbar" style="background:#23234a; color:#fff; padding: 0.7rem 2rem; display:flex; align-items:center; justify-content:space-between; position:fixed; top:0; left:240px; right:0; z-index:1100; box-shadow:0 2px 12px rgba(0,0,0,0.10);">
+    <!-- Removed logo to avoid duplication -->
+    <div></div>
+    <div class="d-flex align-items-center gap-4 nav-right">
+        <a href="notifications.php" class="notifications position-relative" id="adminNotifBell" style="color:#fff; font-size:1.6em;">
+            <i class="bi bi-bell"></i>
+        </a>
+        <div style="position:relative;">
+            <button class="profile-trigger" id="adminProfileDropdownBtn" style="background:none;border:none;display:flex;align-items:center;gap:8px;color:#fff;">
+                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['username'] ?? 'Admin User'); ?>&background=FF8C00&color=fff" alt="Admin User" style="width:36px;height:36px;border-radius:50%;border:2px solid #FF8C00;">
+                <span class="fw-semibold d-none d-md-inline"> <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin User'); ?> </span>
+                <i class="bi bi-chevron-down d-none d-md-inline"></i>
+            </button>
+            <div class="profile-dropdown" id="adminProfileDropdown" style="display:none;position:absolute;right:0;top:48px;min-width:160px;background:#23234a;color:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(31,38,135,0.18);z-index:3000;padding:0.5rem 0;border:1px solid rgba(255,255,255,0.08);">
+                <a href="profile.php" class="dropdown-item"><i class="bi bi-person me-2"></i> Profile</a>
+                <a href="logout.php" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i> Log Out</a>
+            </div>
+        </div>
+    </div>
+</nav>
+<script>
+document.getElementById('adminNotifBell').addEventListener('click', function(e) {
+    e.preventDefault(); // Prevent immediate navigation
+    var badge = document.getElementById('adminNotifBadge');
+    // Mark all as read in backend
+    fetch('../pages/mark_notifications_read.php?admin=1')
+        .then(function(response) {
+            if (badge) badge.remove(); // Remove badge visually
+            // Now redirect to notifications page
+            window.location.href = 'notifications.php';
+        });
+});
+const adminProfileBtn = document.getElementById('adminProfileDropdownBtn');
+const adminProfileDropdown = document.getElementById('adminProfileDropdown');
+if (adminProfileBtn && adminProfileDropdown) {
+    adminProfileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        adminProfileDropdown.style.display = (adminProfileDropdown.style.display === 'block') ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+        if (adminProfileDropdown.style.display === 'block') {
+            adminProfileDropdown.style.display = 'none';
+        }
+    });
+}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var notifBell = document.querySelector('.admin-nav-link[href="notifications.php"]');
+    if (notifBell) {
+        notifBell.addEventListener('click', function(e) {
+            // Remove badge visually
+            var badge = notifBell.querySelector('.badge');
+            if (badge) badge.style.display = 'none';
+            // Mark all as read in backend
+            fetch('notifications.php?readall=1')
+                .then(function() {
+                    // Optionally reload or update badge
+                });
+        });
+    }
 });
 </script>

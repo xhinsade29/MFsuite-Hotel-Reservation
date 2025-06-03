@@ -40,7 +40,7 @@ $success = isset($_GET['msg']) ? $_GET['msg'] : '';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: linear-gradient(120deg, #23234a 0%, #1e1e2f 100%); color: #fff; font-family: 'Poppins', sans-serif; }
-        .profile-container { margin-left: 240px; padding: 40px 24px 24px 24px; max-width: 1400px; }
+        .profile-container { margin-left: 240px; margin-top: 70px; padding: 40px 24px 24px 24px; max-width: 1400px; }
         .profile-title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; letter-spacing: 1px; }
         .profile-card { background: rgba(35,35,74,0.98); border-radius: 22px; box-shadow: 0 8px 32px rgba(0,0,0,0.22); padding: 36px 32px; }
         .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #FF8C00; margin-bottom: 18px; box-shadow: 0 0 0 6px rgba(255,140,0,0.18), 0 2px 16px rgba(0,0,0,0.18); transition: box-shadow 0.3s; }

@@ -256,7 +256,7 @@ if (isset($_SESSION['guest_id'])) {
                 <i class="bi bi-search"></i>
                 <div id="roomSearchResults" class="search-results-dropdown" style="display:none;position:absolute;top:110%;left:0;width:100%;background:#fff;color:#23234a;z-index:3001;border-radius:0 0 12px 12px;box-shadow:0 8px 32px rgba(31,38,135,0.10);max-height:320px;overflow-y:auto;"></div>
             </div>
-            <a href="#" class="notifications <?php echo ($unread_count > 0) ? 'has-unread' : ''; ?>" id="notifBell" style="position:relative;">
+            <a href="../pages/notifications.php" class="notifications <?php echo ($unread_count > 0) ? 'has-unread' : ''; ?>" id="notifBell" style="position:relative;">
                 <i class="bi bi-bell"></i>
                 <?php if ($unread_count > 0): ?>
                     <span class="badge" id="notifBadge"><?php echo $unread_count; ?></span>
@@ -341,21 +341,13 @@ document.addEventListener('click', function(e) {
 });
 
 document.getElementById('notifBell').addEventListener('click', function(e) {
-    e.preventDefault();
-    fetch('../pages/mark_notifications_read.php')
-        .then(response => response.text())
-        .then(data => {
-            if (data.trim() === 'success') {
-                var badge = document.getElementById('notifBadge');
-                if (badge) badge.remove();
-                window.location.href = '../pages/notifications.php';
-            } else {
-                window.location.href = '../pages/notifications.php';
-            }
-        })
-        .catch(() => {
-            window.location.href = '../pages/notifications.php';
-        });
+    // Remove the badge immediately
+    var badge = document.getElementById('notifBadge');
+    if (badge) badge.remove();
+    // Optionally mark as read, but always redirect
+    fetch('../pages/mark_notifications_read.php').finally(() => {
+        window.location.href = '../pages/notifications.php';
+    });
 });
 
 // Profile dropdown logic

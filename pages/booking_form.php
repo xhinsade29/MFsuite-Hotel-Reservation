@@ -726,8 +726,8 @@ document.addEventListener('DOMContentLoaded', function() {
         checkRoomAvailability(); // Check availability after dates change
     });
 
-    // Auto-refresh room availability every 10 seconds (optional, adjust as needed)
-    // setInterval(checkRoomAvailability, 10000);
+    // Auto-refresh room availability every 9 seconds (optional, adjust as needed)
+    setInterval(checkRoomAvailability, 1000);
     // Initial check on page load
     checkRoomAvailability();
 
@@ -763,7 +763,133 @@ document.addEventListener('DOMContentLoaded', function() {
             toast.show();
         }
     }
+
+    // --- Real-time room availability polling ---
+    var roomTypeId = <?php echo json_encode($room_type_id); ?>;
+    var bookingFormSection = document.querySelector('.booking-form-section');
+    var fullyBookedAlert = bookingFormSection.querySelector('.alert-danger');
+    function checkRoomAvailability() {
+        fetch('check_room_availability.php?room_type_id=' + roomTypeId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.available) {
+                    // Room is available, enable form and remove alert
+                    if (bookingForm) {
+                        bookingForm.style.pointerEvents = '';
+                        bookingForm.style.opacity = '';
+                    }
+                    if (fullyBookedAlert) {
+                        fullyBookedAlert.remove();
+                        fullyBookedAlert = null;
+                    }
+                } else {
+                    // Room is not available, disable form and show alert if not present
+                    if (bookingForm) {
+                        bookingForm.style.pointerEvents = 'none';
+                        bookingForm.style.opacity = '0.6';
+                    }
+                    if (!fullyBookedAlert) {
+                        var alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger mb-3';
+                        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for today. Please select another room type or date.';
+                        bookingFormSection.insertBefore(alertDiv, bookingFormSection.firstChild);
+                        fullyBookedAlert = alertDiv;
+                    }
+                }
+            });
+    }
+    setInterval(checkRoomAvailability, 9000);
 });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr("#check_in", { enableTime: true, dateFormat: "Y-m-d H:i", minDate: "today" });
+        flatpickr("#check_out", { enableTime: true, dateFormat: "Y-m-d H:i", minDate: "today" });
+
+        // --- AJAX Form Submission ---start
+        const bookingForm = document.getElementById('bookingForm');
+        const formErrorMsg = document.getElementById('formErrorMsg');
+
+        bookingForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Clear previous errors
+            formErrorMsg.classList.add('d-none');
+            formErrorMsg.innerHTML = '';
+
+            const formData = new FormData(bookingForm);
+            const submitButton = bookingForm.querySelector('button[type="submit"]');
+
+            // Disable button and show loading indicator (optional)
+            if(submitButton) {
+                submitButton.disabled = true;
+                // Add loading text/spinner if desired
+                // submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Booking...';
+            }
+
+            fetch(bookingForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json()) // Assuming the server responds with JSON
+            .then(data => {
+                // Re-enable button
+                if(submitButton) {
+                    submitButton.disabled = false;
+                    // Restore original button text
+                    // submitButton.innerHTML = 'Book Now';
+                }
+
+                if (data.success) {
+                    // Handle success (e.g., show success message, redirect, show a modal)
+                    console.log('Booking successful:', data);
+                    // Example: Redirect to a confirmation page or show a success modal
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else if (data.message) {
+                        // Display a success message
+                        alert(data.message); // Or use a more styled notification
+                    }
+                    // You might want to show a success modal here
+
+                } else {
+                    // Handle errors (e.g., display validation errors)
+                    console.error('Booking failed:', data);
+                    formErrorMsg.classList.remove('d-none');
+                    formErrorMsg.innerHTML = data.message || 'An unexpected error occurred.';
+
+                    // If there are specific field errors, you might iterate through them
+                    // if (data.errors) {
+                    //     for (const field in data.errors) {
+                    //         const errorElement = document.getElementById(field + 'Error'); // Assuming error divs have IDs like inputIdError
+                    //         if (errorElement) {
+                    //             errorElement.innerText = data.errors[field];
+                    //             errorElement.classList.remove('d-none');
+                    //         }
+                    //     }
+                    // }
+                }
+            })
+            .catch(error => {
+                // Handle network errors or issues with the fetch request
+                console.error('Fetch error:', error);
+                 if(submitButton) {
+                    submitButton.disabled = false;
+                    // Restore original button text
+                    // submitButton.innerHTML = 'Book Now';
+                }
+                formErrorMsg.classList.remove('d-none');
+                formErrorMsg.innerHTML = 'There was a network error. Please try again.';
+            });
+        });
+         // --- AJAX Form Submission ---end
+
+
+        // Existing JavaScript for modals and other interactions can go here.
+
+    });
+    // Add event listeners for modals here if they are triggered by button clicks etc.
+
 </script>
 </body>
 </html> 

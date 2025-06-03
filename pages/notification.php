@@ -184,13 +184,14 @@ function show_log_notifications($limit = 20) {
 }
 
 function add_notification($guest_id, $type, $message, $mycon) {
-    $sql = "INSERT INTO user_notifications (guest_id, type, message) VALUES (?, ?, ?)";
+    $admin_id = 1; // Use your default or actual admin_id here
+    $sql = "INSERT INTO user_notifications (guest_id, type, message, admin_id) VALUES (?, ?, ?, ?)";
     $stmt = mysqli_prepare($mycon, $sql);
     if (!$stmt) {
         error_log("Prepare failed: " . mysqli_error($mycon));
         return;
     }
-    mysqli_stmt_bind_param($stmt, "iss", $guest_id, $type, $message);
+    mysqli_stmt_bind_param($stmt, "issi", $guest_id, $type, $message, $admin_id);
     if (!mysqli_stmt_execute($stmt)) {
         error_log("Execute failed: " . mysqli_stmt_error($stmt));
     }

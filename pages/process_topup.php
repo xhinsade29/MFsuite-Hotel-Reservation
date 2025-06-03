@@ -30,10 +30,11 @@ if ($amount > 0 && $payment_method !== '') {
         mysqli_stmt_execute($log_stmt);
         mysqli_stmt_close($log_stmt);
         // Insert notification for the user
-        $notif_sql = "INSERT INTO user_notifications (guest_id, type, message, created_at) VALUES (?, 'wallet', ?, NOW())";
+        $admin_id = 1; // Use your default or actual admin_id here
+        $notif_sql = "INSERT INTO user_notifications (guest_id, type, message, created_at, admin_id) VALUES (?, 'wallet', ?, NOW(), ?)";
         $notif_msg = "Your wallet was topped up with ₱" . number_format($amount, 2) . " via $payment_method. Ref: $reference_number";
         $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-        mysqli_stmt_bind_param($notif_stmt, "is", $guest_id, $notif_msg);
+        mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif_msg, $admin_id);
         mysqli_stmt_execute($notif_stmt);
         mysqli_stmt_close($notif_stmt);
         $_SESSION['success'] = 'Wallet topped up successfully!<br>Your Reference Number: <b>' . htmlspecialchars($reference_number) . '</b>';

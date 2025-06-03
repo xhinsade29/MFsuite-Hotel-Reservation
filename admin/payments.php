@@ -17,7 +17,7 @@ $admin_id = $_SESSION['admin_id'];
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body { background: #1e1e2f; color: #fff; font-family: 'Poppins', sans-serif; }
-        .payments-container { margin-left: 240px; padding: 40px 24px 24px 24px; }
+        .payments-container { margin-left: 240px; margin-top: 70px; padding: 40px 24px 24px 24px; }
         .payments-title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; }
         .summary-cards {
             display: flex;
@@ -71,7 +71,7 @@ $admin_id = $_SESSION['admin_id'];
 </head>
 <body>
 <?php include './sidebar.php'; ?>
-<div class="container py-4">
+<div class="payments-container">
    
     <!-- Summary metrics -->
     <?php

@@ -37,9 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_execute($stmt);
         mysqli_stmt_close($stmt);
 
+        // If approved, set the assigned room to available
+        if ($action === 'approve') {
+            // Get the assigned room id
+            $assigned_room_id = $row['assigned_room_id'] ?? null;
+            if ($assigned_room_id) {
+                $stmt_room = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Available' WHERE room_id = ?");
+                mysqli_stmt_bind_param($stmt_room, "i", $assigned_room_id);
+                mysqli_stmt_execute($stmt_room);
+                mysqli_stmt_close($stmt_room);
+            }
+        }
+
         // Notify user if cancellation is approved
         if ($action === 'approve') {
-            add_notification($guest_id, 'reservation', 'Your reservation cancellation has been approved by the admin.', $mycon);
+            $admin_id = 1; // Use your default or actual admin_id here
+            add_notification($guest_id, 'reservation', 'Your reservation cancellation has been approved by the admin.', $mycon, 0, $admin_id);
         }
 
         // If approved and eligible for refund
@@ -62,7 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_execute($log_stmt);
             mysqli_stmt_close($log_stmt);
 
-            add_notification($guest_id, 'wallet', "Refunded ₱" . number_format($amount, 2) . " to your wallet for cancelled reservation #$reservation_id.", $mycon);
+            $admin_id = 1; // Use your default or actual admin_id here
+            add_notification($guest_id, 'wallet', "Refunded ₱" . number_format($amount, 2) . " to your wallet for cancelled reservation #$reservation_id.", $mycon, 0, $admin_id);
         }
 
         $msg = $action === 'approve' ? 'Cancellation approved.' : 'Cancellation denied.';

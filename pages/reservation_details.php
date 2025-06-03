@@ -366,12 +366,15 @@ $conn->close();
                     <div class="divider"></div>
                     <div class="details-section">
                         <div class="section-title"><i class="bi bi-calendar-check icon"></i>Reservation Information</div>
+                        <div class="info-row"><strong>Reservation ID:</strong>&nbsp;<?php echo htmlspecialchars($booking['reservation_id']); ?></div>
                         <div class="info-row"><strong>Reference Number:</strong>&nbsp;<?php echo htmlspecialchars($reference_number ?: '-'); ?></div>
                         <div class="info-row"><strong>Check-in:</strong>&nbsp;<?php echo date('Y-m-d h:i A', strtotime($booking['check_in'])); ?></div>
                         <div class="info-row"><strong>Check-out:</strong>&nbsp;<?php echo date('Y-m-d h:i A', strtotime($booking['check_out'])); ?></div>
-                        <?php if ($assigned_room_number): ?>
-                        <div class="info-row"><strong>Room Number:</strong>&nbsp;<?php echo htmlspecialchars($assigned_room_number); ?></div>
-                        <?php endif; ?>
+                        <div class="info-row"><strong>Number of Nights:</strong>&nbsp;<?php
+                            $nights = (strtotime($booking['check_out']) - strtotime($booking['check_in'])) / (60*60*24);
+                            echo $nights;
+                        ?></div>
+                        <div class="info-row"><strong>Room Number:</strong>&nbsp;<?php echo $assigned_room_number ? htmlspecialchars($assigned_room_number) : '<span class="text-secondary">Not assigned</span>'; ?></div>
                         <?php if (!empty($booking['services'])): ?>
                         <div class="info-row"><strong>Selected Services:</strong>&nbsp;<?php echo htmlspecialchars($booking['services']); ?></div>
                         <?php endif; ?>

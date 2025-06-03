@@ -488,7 +488,7 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
             </div>
           
             <?php if (count($user_bookings) > 0): ?>
-            <div class="container py-5" id="bookingList">
+            <div id="userReservationList">
                 <?php foreach ($user_bookings as $booking): ?>
                 <?php
                 $services = [];
@@ -826,7 +826,7 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
         }
         // Sorting
         var sortSelect = document.getElementById('sortSelect');
-        var bookingList = document.getElementById('bookingList');
+        var bookingList = document.getElementById('userReservationList');
         if (sortSelect && bookingList) {
             sortSelect.addEventListener('change', function() {
                 var cards = Array.from(bookingList.querySelectorAll('.booking-card'));
@@ -984,6 +984,19 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
           });
         }
     });
+    </script>
+    <script>
+    function fetchUserReservations() {
+        fetch('ajax_user_reservations.php')
+            .then(response => response.text())
+            .then(html => {
+                var reservationList = document.getElementById('userReservationList');
+                if (reservationList) reservationList.innerHTML = html;
+            });
+    }
+    setInterval(fetchUserReservations, 10000); // every 10 seconds
+    // Optionally, fetch immediately on page load
+    fetchUserReservations();
     </script>
 </body>
 </html>

@@ -164,7 +164,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $payment_id = $mycon->insert_id;
 
     // Get a valid admin_id from tbl_admin
-    $admin_id = 1; // Default admin ID
+    $admin_id = 1; // Use your default or actual admin_id here
     $admin_result = $mycon->query("SELECT admin_id FROM tbl_admin LIMIT 1");
     if ($admin_result && $admin_result->num_rows > 0) {
         $row = $admin_result->fetch_assoc();
@@ -188,32 +188,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $reservation_id = $mycon->insert_id; // Get the new reservation ID
 
         // Insert notification for the user
-        $notif_sql = "INSERT INTO user_notifications (guest_id, type, message, created_at) VALUES (?, 'reservation', ?, NOW())";
+        $notif_sql = "INSERT INTO user_notifications (guest_id, type, message, created_at, admin_id) VALUES (?, 'reservation', ?, NOW(), ?)";
         $notif_msg = "Your reservation has been placed successfully. Ref: " . htmlspecialchars($reference_number) . ".";
 
+        // Fetch guest name for admin notification
+        $guest_name = '';
+        $guest_name_sql = "SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ? LIMIT 1";
+        $stmt_guest_name = $mycon->prepare($guest_name_sql);
+        $stmt_guest_name->bind_param("i", $guest_id);
+        $stmt_guest_name->execute();
+        $stmt_guest_name->bind_result($first_name, $last_name);
+        if ($stmt_guest_name->fetch()) {
+            $guest_name = trim($first_name . ' ' . $last_name);
+        }
+        $stmt_guest_name->close();
+
+        // Prepare admin notification message
+        $admin_notif_msg = '';
         if ($reservation_status === 'approved') {
-             $notif_msg .= " Your reservation is approved.";
-             if ($assigned_room_id !== NULL) {
-                 // Fetch room number to include in notification if assigned
-                 $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = ? LIMIT 1"; // Limit 1 just in case
-                 $stmt_room_num = $mycon->prepare($room_num_sql);
-                 $stmt_room_num->bind_param("i", $assigned_room_id);
-                 $stmt_room_num->execute();
-                 $stmt_room_num->bind_result($room_number);
-                 $stmt_room_num->fetch();
-                 $stmt_room_num->close();
-                 if (!empty($room_number)) {
+            $notif_msg .= " Your reservation is approved.";
+            if ($assigned_room_id !== NULL) {
+                // Fetch room number to include in notification if assigned
+                $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = ? LIMIT 1"; // Limit 1 just in case
+                $stmt_room_num = $mycon->prepare($room_num_sql);
+                $stmt_room_num->bind_param("i", $assigned_room_id);
+                $stmt_room_num->execute();
+                $stmt_room_num->bind_result($room_number);
+                $stmt_room_num->fetch();
+                $stmt_room_num->close();
+                if (!empty($room_number)) {
                     $notif_msg .= " Assigned Room Number: " . htmlspecialchars($room_number) . ".";
-                 }
-             }
+                    $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved. Assigned Room Number: $room_number.";
+                } else {
+                    $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
+                }
+            } else {
+                $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
+            }
         } else {
-             $notif_msg .= " It is pending admin approval for room assignment and confirmation.";
+            $notif_msg .= " It is pending admin approval for room assignment and confirmation.";
+            $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Pending approval.";
         }
 
         $notif_stmt = $mycon->prepare($notif_sql);
-        $notif_stmt->bind_param("is", $guest_id, $notif_msg);
+        $notif_stmt->bind_param("isi", $guest_id, $notif_msg, $admin_id);
         $notif_stmt->execute();
         $notif_stmt->close();
+
+        // Add admin notification
+        include_once __DIR__ . '/notify.php';
+        add_notification($admin_id, 'admin', $admin_notif_msg, $mycon, 0, $admin_id);
 
         $_SESSION['success'] = "Reservation successful!<br>Your Reference Number: <b>" . htmlspecialchars($reference_number) . "</b>";
 

@@ -12,25 +12,53 @@ include '../functions/db_connect.php';
 // Mark as read (single)
 if (isset($_GET['read']) && is_numeric($_GET['read'])) {
     $nid = intval($_GET['read']);
-    mysqli_query($mycon, "UPDATE notifications SET is_read = 1 WHERE notification_id = $nid");
+    mysqli_query($mycon, "UPDATE user_notifications SET is_read = 1 WHERE user_notication_id = $nid AND admin_id = {$_SESSION['admin_id']}");
     header('Location: notifications.php');
     exit();
 }
 // Mark all as read
 if (isset($_GET['readall'])) {
-    mysqli_query($mycon, "UPDATE notifications SET is_read = 1 WHERE is_read = 0");
+    mysqli_query($mycon, "UPDATE user_notifications SET is_read = 1 WHERE is_read = 0 AND admin_id = {$_SESSION['admin_id']}");
     header('Location: notifications.php');
     exit();
 }
+// Sorting
+$sort = $_GET['sort'] ?? 'newest';
+$order_by = 'n.created_at DESC';
+$type_filter = '';
+$params = [$_SESSION['admin_id']];
+$types = 'i';
+if ($sort === 'oldest') {
+    $order_by = 'n.created_at ASC';
+} else if (in_array($sort, ['reservation', 'payment', 'wallet', 'profile', 'admin'])) {
+    $type_filter = ' AND n.type = ?';
+    $params[] = $sort;
+    $types .= 's';
+}
+
 // Pagination
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = 20;
 $offset = ($page - 1) * $per_page;
-$total = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM notifications"))[0];
+$count_sql = "SELECT COUNT(*) FROM user_notifications n WHERE n.admin_id = ?$type_filter";
+$count_stmt = mysqli_prepare($mycon, $count_sql);
+if ($types && count($params) > 0) {
+    mysqli_stmt_bind_param($count_stmt, $types, ...$params);
+}
+mysqli_stmt_execute($count_stmt);
+$count_result = mysqli_stmt_get_result($count_stmt);
+$total_row = mysqli_fetch_row($count_result);
+$total = $total_row[0];
 $pages = ceil($total / $per_page);
+mysqli_stmt_close($count_stmt);
 
-$sql = "SELECT * FROM user_notifications ORDER BY created_at DESC LIMIT $per_page OFFSET $offset";
-$res = mysqli_query($mycon, $sql);
+$sql = "SELECT n.*, g.first_name, g.last_name FROM user_notifications n LEFT JOIN tbl_guest g ON n.guest_id = g.guest_id WHERE n.admin_id = ?$type_filter ORDER BY $order_by LIMIT $per_page OFFSET $offset";
+$stmt = mysqli_prepare($mycon, $sql);
+if ($types && count($params) > 0) {
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+}
+mysqli_stmt_execute($stmt);
+$res = mysqli_stmt_get_result($stmt);
 if (!$res) {
     echo '<div class="alert alert-danger">MySQL Error: ' . mysqli_error($mycon) . '</div>';
 }
@@ -41,8 +69,24 @@ if ($res && mysqli_num_rows($res) > 0) {
     while ($row = mysqli_fetch_assoc($res)) {
         $debug_rows[] = $row;
     }
-    // Re-run the query for the actual table rendering
-    $res = mysqli_query($mycon, $sql);
+}
+
+function is_user_only_message($notif) {
+    $user_only_phrases = [
+        'Your cancellation request has been submitted.',
+        'Your reservation has been placed successfully.',
+        'Your reservation has been approved',
+        'Your reservation is approved',
+        'It is pending admin approval',
+        'Your cancellation request for reservation',
+        // Add more user-only phrases as needed
+    ];
+    foreach ($user_only_phrases as $phrase) {
+        if (stripos($notif['message'], $phrase) !== false) {
+            return true;
+        }
+    }
+    return false;
 }
 ?>
 <!DOCTYPE html>
@@ -55,90 +99,95 @@ if ($res && mysqli_num_rows($res) > 0) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #1e1e2f; color: #fff; font-family: 'Poppins', sans-serif; }
-        .notifications-container { margin-left: 240px; padding: 40px 24px 24px 24px; }
-        .notifications-title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; }
-        .table-section { background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); padding: 32px 18px; }
-        .table-title { color: #ffa533; font-size: 1.3rem; font-weight: 600; margin-bottom: 18px; }
-        .table thead { background: #1a1a2e; color: #ffa533; }
-        .table tbody tr { color: #fff; }
-        .table tbody tr.unread { background: #2d2d4a; font-weight: 600; border-left: 5px solid #ffa533; }
-        .table tbody tr.read { background: #23234a; }
-        .table td, .table th { vertical-align: middle; }
-        .badge-type { font-size: 0.95em; }
-        .pagination .page-link { color: #ffa533; background: #23234a; border: none; }
-        .pagination .active .page-link { background: #ffa533; color: #23234a; }
-        .btn-mark-read { font-size: 0.95em; }
-        @media (max-width: 900px) { .notifications-container { margin-left: 70px; padding: 18px 4px; } }
+        .container { margin-left: 240px; margin-top: 70px; padding: 40px 24px 24px 24px; }
+        .notif-card { background: #23234a; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); margin-bottom: 18px; }
+        .notif-type-reservation { color: #FF8C00; }
+        .notif-type-wallet { color: #00c896; }
+        .notif-type-profile { color: #1e90ff; }
+        .notif-date { font-size: 0.95em; color: #bdbdbd; }
+        .notif-unread-new {
+            border-left: 5px solid #FF8C00;
+            background: linear-gradient(90deg, #2d2d5a 80%, #23234a 100%);
+            box-shadow: 0 4px 18px rgba(255,140,0,0.10);
+            position: relative;
+        }
+        @media (max-width: 900px) { .container { margin-left: 70px; padding: 18px 4px; } }
     </style>
 </head>
 <body>
 <?php include './sidebar.php'; ?>
-<div class="notifications-container">
-    <div class="notifications-title d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-bell-fill me-2"></i> Notifications</span>
-        <a href="?readall=1" class="btn btn-sm btn-success"><i class="bi bi-check2-all me-1"></i> Mark all as read</a>
-    </div>
-    <div class="table-section mb-4">
-        <div class="table-title"><i class="bi bi-bell me-2"></i> All Notifications</div>
-        <div class="table-responsive">
-            <table class="table table-hover table-bordered align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Message</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $has_unread = false;
-                    if ($res && mysqli_num_rows($res) > 0) {
-                        while ($row = mysqli_fetch_assoc($res)) {
-                            $is_unread = (isset($row['is_read']) && $row['is_read'] == 0);
-                            if ($is_unread) $has_unread = true;
-                            $badge_class = 'bg-secondary';
-                            if ($row['type'] === 'reservation') $badge_class = 'bg-info';
-                            if ($row['type'] === 'cancellation') $badge_class = 'bg-danger';
-                            if ($row['type'] === 'signup') $badge_class = 'bg-primary';
-                            echo '<tr class="' . ($is_unread ? 'unread' : 'read') . '">';
-                            echo '<td><span class="badge badge-type ' . $badge_class . '">' . ucfirst($row['type']) . '</span></td>';
-                            echo '<td>' . htmlspecialchars($row['message']) . '</td>';
-                            echo '<td>' . date('M d, Y h:i A', strtotime($row['created_at'])) . '</td>';
-                            echo '<td>' . ($is_unread ? '<span class="badge bg-warning text-dark">Unread</span>' : '<span class="badge bg-success">Read</span>') . '</td>';
-                            echo '<td>';
-                            if ($is_unread) {
-                                echo '<span class="text-secondary">-</span>';
-                            } else {
-                                echo '<span class="text-secondary">-</span>';
-                            }
-                            echo '</td>';
-                            echo '</tr>';
-                        }
-                        if (!$has_unread) {
-                            echo '<tr><td colspan="5" class="text-center text-success">All notifications are read.</td></tr>';
-                        }
-                    } else {
-                        echo '<tr><td colspan="5" class="text-center text-secondary">No notifications found.</td></tr>';
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-        <?php if ($pages > 1): ?>
-        <nav class="mt-3">
-            <ul class="pagination justify-content-center">
-                <?php for ($i = 1; $i <= $pages; $i++): ?>
-                    <li class="page-item <?php if ($i == $page) echo 'active'; ?>">
-                        <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-            </ul>
-        </nav>
-        <?php endif; ?>
+<div class="container py-5">
+    <h2 class="mb-4 text-warning"><i class="bi bi-bell-fill"></i> Admin Notifications</h2>
+    <form method="get" class="mb-3 d-flex align-items-center gap-2">
+        <label for="sort" class="form-label mb-0">Sort/Filter by:</label>
+        <select name="sort" id="sort" class="form-select w-auto" onchange="this.form.submit()">
+            <option value="newest" <?php if ($sort === 'newest') echo 'selected'; ?>>Newest first</option>
+            <option value="oldest" <?php if ($sort === 'oldest') echo 'selected'; ?>>Oldest first</option>
+            <option value="reservation" <?php if ($sort === 'reservation') echo 'selected'; ?>>Reservation</option>
+            <option value="payment" <?php if ($sort === 'payment') echo 'selected'; ?>>Payment</option>
+            <option value="wallet" <?php if ($sort === 'wallet') echo 'selected'; ?>>Wallet</option>
+            <option value="profile" <?php if ($sort === 'profile') echo 'selected'; ?>>Profile</option>
+            <option value="admin" <?php if ($sort === 'admin') echo 'selected'; ?>>Admin</option>
+        </select>
+    </form>
+    <div id="adminNotifList">
+    <?php
+    $notifications = [];
+    if ($res && mysqli_num_rows($res) > 0) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $notifications[] = $row;
+        }
+    }
+    ?>
+    <?php if (count($notifications) > 0): ?>
+        <?php foreach ($notifications as $notif): ?>
+            <?php if ($notif['type'] === 'admin' || !is_user_only_message($notif)): ?>
+            <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?>">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center mb-2">
+                        <?php if ($notif['type'] === 'reservation'): ?>
+                            <i class="bi bi-calendar2-check notif-type-reservation me-2"></i>
+                        <?php elseif ($notif['type'] === 'wallet'): ?>
+                            <i class="bi bi-wallet2 notif-type-wallet me-2"></i>
+                        <?php elseif ($notif['type'] === 'profile'): ?>
+                            <i class="bi bi-person-circle notif-type-profile me-2"></i>
+                        <?php elseif ($notif['type'] === 'admin'): ?>
+                            <i class="bi bi-person-badge notif-type-profile me-2"></i>
+                        <?php else: ?>
+                            <i class="bi bi-info-circle me-2"></i>
+                        <?php endif; ?>
+                        <span class="fw-bold text-capitalize me-2 notif-type-<?php echo htmlspecialchars($notif['type']); ?>">
+                            <?php echo htmlspecialchars($notif['type']); ?>
+                        </span>
+                        <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
+                    </div>
+                    <div><?php echo $notif['message']; ?></div>
+                    <?php if (!empty($notif['first_name']) || !empty($notif['last_name'])): ?>
+                        <div class="mt-2 text-info small">From: <?php echo htmlspecialchars(trim(($notif['first_name'] ?? '') . ' ' . ($notif['last_name'] ?? ''))); ?></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <div class="alert alert-info">No notifications yet.</div>
+    <?php endif; ?>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Real-time notifications polling
+function fetchNotifications() {
+    const sort = document.getElementById('sort') ? document.getElementById('sort').value : 'newest';
+    fetch('ajax_admin_notifications.php?sort=' + encodeURIComponent(sort))
+        .then(response => response.text())
+        .then(html => {
+            var notifList = document.getElementById('adminNotifList');
+            if (notifList) notifList.innerHTML = html;
+        });
+}
+setInterval(fetchNotifications, 10000);
+document.addEventListener('DOMContentLoaded', fetchNotifications);
+</script>
 </body>
 </html> 

@@ -84,7 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $future_res->bind_result($guest_id, $reservation_id);
             while ($future_res->fetch()) {
                 $msg = "The details for your upcoming reservation (ID: $reservation_id) have changed. New room: $type_name, Price: ₱" . number_format($nightly_rate, 2) . ".";
-                add_notification($guest_id, 'reservation', $msg, $mycon);
+                $admin_id = 1; // Use your default or actual admin_id here
+                add_notification($guest_id, 'reservation', $msg, $mycon, 0, $admin_id);
             }
             $future_res->close();
         }
@@ -190,7 +191,7 @@ while ($row = $services_result->fetch_assoc()) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #1e1e2f; color: #fff; font-family: 'Poppins', sans-serif; }
-        .container { margin-left: 240px; padding: 40px 24px 24px 24px; }
+        .container { margin-left: 240px; margin-top: 70px; padding: 40px 24px 24px 24px; }
         .title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; }
         .section { background: #23234a; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); padding: 32px 18px; margin-bottom: 32px; }
         .form-label { color: #ffa533; font-weight: 500; }

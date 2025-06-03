@@ -98,7 +98,7 @@ function get_service_icon($name) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background: #1e1e2f; color: #fff; font-family: 'Poppins', sans-serif; }
-        .container { margin-left: 240px; padding: 40px 24px 24px 24px; }
+        .container { margin-left: 240px; margin-top: 70px; padding: 40px 24px 24px 24px; }
         .title { font-size: 2.2rem; font-weight: 700; color: #ffa533; margin-bottom: 32px; }
         .service-cards { display: flex; flex-wrap: wrap; gap: 28px; }
         .service-card { background: #23234a; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.18); padding: 28px 22px 22px 22px; min-width: 260px; max-width: 340px; flex: 1 1 260px; display: flex; flex-direction: column; align-items: flex-start; position: relative; transition: box-shadow 0.2s; }

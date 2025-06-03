@@ -6,16 +6,21 @@ if (!isset($_SESSION['guest_id'])) {
     exit();
 }
 include('../functions/db_connect.php');
-$type_filter = isset($_GET['type']) ? trim($_GET['type']) : '';
-$where = 'WHERE guest_id = ?';
+$type_filter = '';
 $params = [$_SESSION['guest_id']];
 $types = 'i';
-if ($type_filter !== '') {
-    $where .= ' AND type = ?';
-    $params[] = $type_filter;
+
+$sort = $_GET['sort'] ?? 'newest';
+$order_by = 'n.created_at DESC';
+if ($sort === 'oldest') {
+    $order_by = 'n.created_at ASC';
+} elseif (in_array($sort, ['reservation', 'payment', 'wallet', 'profile'])) {
+    $type_filter = ' AND n.type = ?';
+    $params[] = $sort;
     $types .= 's';
 }
-$sql = "SELECT * FROM user_notifications $where ORDER BY created_at DESC";
+
+$sql = "SELECT n.*, a.username AS admin_name FROM user_notifications n LEFT JOIN tbl_admin a ON n.admin_id = a.admin_id WHERE n.guest_id = ?$type_filter ORDER BY $order_by";
 $stmt = mysqli_prepare($mycon, $sql);
 if ($types && count($params) > 0) {
     mysqli_stmt_bind_param($stmt, $types, ...$params);
@@ -27,6 +32,22 @@ while ($row = mysqli_fetch_assoc($result)) {
     $notifications[] = $row;
 }
 mysqli_stmt_close($stmt);
+
+// Pagination
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$per_page = 20;
+$offset = ($page - 1) * $per_page;
+$count_sql = "SELECT COUNT(*) FROM user_notifications n WHERE n.guest_id = ?$type_filter";
+$count_stmt = mysqli_prepare($mycon, $count_sql);
+if ($types && count($params) > 0) {
+    mysqli_stmt_bind_param($count_stmt, $types, ...$params);
+}
+mysqli_stmt_execute($count_stmt);
+$count_result = mysqli_stmt_get_result($count_stmt);
+$total_row = mysqli_fetch_row($count_result);
+$total = $total_row[0];
+$pages = ceil($total / $per_page);
+mysqli_stmt_close($count_stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -139,18 +160,16 @@ document.addEventListener('DOMContentLoaded', function() {
             Trash (<span id="notifTrashCount">0</span>)
         </span>
     </div>
-    <form class="row g-3 mb-4" method="get">
-        <div class="col-md-4">
-            <select name="type" class="form-select">
-                <option value="">All Types</option>
-                <option value="reservation" <?php if($type_filter==='reservation') echo 'selected'; ?>>Reservation</option>
-                <option value="wallet" <?php if($type_filter==='wallet') echo 'selected'; ?>>Wallet</option>
-                <option value="profile" <?php if($type_filter==='profile') echo 'selected'; ?>>Profile</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary">Filter</button>
-        </div>
+    <form method="get" class="mb-3 d-flex align-items-center gap-2">
+        <label for="sort" class="form-label mb-0">Sort/Filter by:</label>
+        <select name="sort" id="sort" class="form-select w-auto" onchange="this.form.submit()">
+            <option value="newest" <?php if ($sort === 'newest') echo 'selected'; ?>>Newest first</option>
+            <option value="oldest" <?php if ($sort === 'oldest') echo 'selected'; ?>>Oldest first</option>
+            <option value="reservation" <?php if ($sort === 'reservation') echo 'selected'; ?>>Reservation</option>
+            <option value="payment" <?php if ($sort === 'payment') echo 'selected'; ?>>Payment</option>
+            <option value="wallet" <?php if ($sort === 'wallet') echo 'selected'; ?>>Wallet</option>
+            <option value="profile" <?php if ($sort === 'profile') echo 'selected'; ?>>Profile</option>
+        </select>
     </form>
     <?php
     $unread_count = 0;
@@ -174,14 +193,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <label class="form-check-label" for="selectAllCheckbox">Select All</label>
             </div>
         </div>
-        <?php $latest_notif = $notifications[0]; ?>
         <!-- Toast Notification for the latest notification -->
         <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
             <div id="notifToast" class="toast align-items-center text-bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="bi bi-bell-fill me-2"></i>
-                        <?php echo htmlspecialchars($latest_notif['message']); ?>
+                        <?php echo $notifications[0]['message']; ?>
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
@@ -268,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </span>
                     <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
                 </div>
-                <div><?php echo htmlspecialchars($notif['message']); ?></div>
+                <div><?php echo $notif['message']; ?></div>
             </div>
         </div>
         <?php endforeach; ?>
