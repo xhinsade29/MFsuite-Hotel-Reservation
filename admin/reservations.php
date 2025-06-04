@@ -423,14 +423,10 @@ document.addEventListener('DOMContentLoaded', refreshReservationsTable);
         }
     // Mark as Completed button logic
     if (e.target.classList.contains('mark-complete-btn')) {
-        console.log('[DEBUG] Mark as Completed button clicked.');
         var reservationId = e.target.getAttribute('data-reservation-id');
         var checkoutTime = e.target.getAttribute('data-checkout-time');
         var checkoutTimestamp = parseInt(e.target.getAttribute('data-checkout-timestamp'), 10);
         var now = Math.floor(Date.now() / 1000);
-        console.log('[DEBUG] current time (now):', now);
-        console.log('[DEBUG] checkout timestamp:', checkoutTimestamp);
-
         if (now < checkoutTimestamp) {
             // Checkout not finished
             showToast('Unavailable to mark as complete. The guest has not checked out yet.<br>Check-out: <b>' + checkoutTime + '</b>');
@@ -442,8 +438,7 @@ document.addEventListener('DOMContentLoaded', refreshReservationsTable);
     }
 });
 // Toast notification function
-function showToast(message) {
-    console.log('[DEBUG] showToast function called.', message);
+function showToast(message, type = 'warning') {
     var toastContainer = document.getElementById('customToastContainer');
     if (!toastContainer) {
         toastContainer = document.createElement('div');
@@ -455,13 +450,14 @@ function showToast(message) {
         document.body.appendChild(toastContainer);
     }
     var toast = document.createElement('div');
-    toast.className = 'toast align-items-center text-bg-warning border-0';
+    var bgClass = type === 'success' ? 'text-bg-success' : 'text-bg-warning';
+    toast.className = 'toast align-items-center ' + bgClass + ' border-0';
     toast.role = 'alert';
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
     toast.innerHTML = `
-        <div class="toast-header bg-warning text-dark">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div class="toast-header ${type === 'success' ? 'bg-success text-white' : 'bg-warning text-dark'}">
+            <i class="bi bi-check-circle-fill me-2"></i>
             <strong class="me-auto">Notification</strong>
             <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
@@ -476,6 +472,14 @@ function showToast(message) {
         toast.remove();
     });
 }
+document.addEventListener('DOMContentLoaded', function() {
+    // Show toast if msg param exists in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const msg = urlParams.get('msg');
+    if (msg) {
+        showToast(decodeURIComponent(msg), 'success');
+    }
+});
 </script>
 </body>
 </html> 

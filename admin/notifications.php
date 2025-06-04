@@ -68,6 +68,13 @@ if ($res && mysqli_num_rows($res) > 0) {
     mysqli_data_seek($res, 0); // Reset pointer
     while ($row = mysqli_fetch_assoc($res)) {
         $debug_rows[] = $row;
+        $assigned_room_id = $row['assigned_room_id'] ?? null;
+        if ($assigned_room_id) {
+            $stmt_room = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Available' WHERE room_id = ?");
+            mysqli_stmt_bind_param($stmt_room, "i", $assigned_room_id);
+            mysqli_stmt_execute($stmt_room);
+            mysqli_stmt_close($stmt_room);
+        }
     }
 }
 
@@ -178,7 +185,7 @@ function fetchNotifications() {
             if (notifList) notifList.innerHTML = html;
         });
 }
-setInterval(fetchNotifications, 10000);
+setInterval(fetchNotifications, 1000);
 document.addEventListener('DOMContentLoaded', fetchNotifications);
 </script>
 </body>
