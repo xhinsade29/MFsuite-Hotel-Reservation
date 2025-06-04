@@ -156,9 +156,11 @@ $check_in = $check_in;
 $check_out = $check_out;
 $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.room_id NOT IN (
     SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
-) LIMIT 1";
+) ORDER BY (
+    SELECT COUNT(*) FROM tbl_reservation res2 WHERE res2.guest_id = ? AND res2.assigned_room_id = r.room_id
+) ASC LIMIT 1";
 $stmt_find = $conn->prepare($find_room_sql);
-$stmt_find->bind_param("iss", $room_type_id, $check_out, $check_in);
+$stmt_find->bind_param("issi", $room_type_id, $check_out, $check_in, $guest_id);
 $stmt_find->execute();
 $stmt_find->bind_result($assigned_room_id);
 $assigned_room_id = null;
@@ -191,18 +193,51 @@ if (!empty($service_ids)) {
     $stmt->close();
 }
 
-// Add admin notification for new reservation
-$guest_name = $first_name . ' ' . $last_name;
-$notif_msg = "New reservation by $guest_name";
-$notif_sql = "INSERT INTO notifications (type, message, related_id, related_type) VALUES ('reservation', ?, ?, 'reservation')";
-$stmt_notif = $conn->prepare($notif_sql);
-$stmt_notif->bind_param("si", $notif_msg, $reservation_id);
-$stmt_notif->execute();
-$stmt_notif->close();
+// Insert notification for the user
+$notif_sql = "INSERT INTO user_notifications (guest_id, type, message, created_at, admin_id) VALUES (?, 'reservation', ?, NOW(), ?)";
+$notif_msg = "Your reservation has been placed successfully. Ref: " . htmlspecialchars($reference_number) . ".";
 
-// After successful booking and wallet deduction
-add_notification($guest_id, 'reservation', 'Your reservation was successful!', $conn, 0, $admin_id);
-add_notification($guest_id, 'wallet', 'Wallet payment made for reservation.', $conn, 0, $admin_id);
+// Fetch guest name for admin notification
+$guest_name = '';
+$guest_name_sql = "SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ? LIMIT 1";
+$stmt_guest_name = $conn->prepare($guest_name_sql);
+$stmt_guest_name->bind_param("i", $guest_id);
+$stmt_guest_name->execute();
+$stmt_guest_name->bind_result($first_name, $last_name);
+if ($stmt_guest_name->fetch()) {
+    $guest_name = trim($first_name . ' ' . $last_name);
+}
+$stmt_guest_name->close();
+
+// Prepare admin notification message (admin only)
+$admin_notif_msg = '';
+if ($assigned_room_id !== NULL) {
+    // Fetch room number to include in notification if assigned
+    $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = ? LIMIT 1";
+    $stmt_room_num = $conn->prepare($room_num_sql);
+    $stmt_room_num->bind_param("i", $assigned_room_id);
+    $stmt_room_num->execute();
+    $stmt_room_num->bind_result($room_number);
+    $stmt_room_num->fetch();
+    $stmt_room_num->close();
+    if (!empty($room_number)) {
+        $notif_msg .= " Assigned Room Number: " . htmlspecialchars($room_number) . ".";
+        $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved. Assigned Room Number: $room_number.";
+    } else {
+        $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
+    }
+} else {
+    $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
+}
+
+// Send notification to user (guest)
+$notif_stmt = $conn->prepare($notif_sql);
+$notif_stmt->bind_param("isi", $guest_id, $notif_msg, $admin_id);
+$notif_stmt->execute();
+$notif_stmt->close();
+
+// Send notification to admin (admin only, not the user message)
+add_notification($admin_id, 'admin', $admin_notif_msg, $conn, 0, $admin_id);
 
 $conn->close();
 $_SESSION['success'] = 'Booking successful and paid via wallet!';

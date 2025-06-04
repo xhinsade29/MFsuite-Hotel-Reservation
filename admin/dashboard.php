@@ -4,6 +4,24 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['rol
     header('Location: admin_login.php');
     exit();
 }
+// Toast notification logic
+$toast_message = '';
+if (isset($_SESSION['admin_login_success'])) {
+    $admin_display_name = '';
+    if (!empty($_SESSION['full_name'])) {
+        $admin_display_name = $_SESSION['full_name'];
+    } elseif (!empty($_SESSION['first_name']) || !empty($_SESSION['last_name'])) {
+        $admin_display_name = trim(($_SESSION['first_name'] ?? '') . ' ' . ($_SESSION['last_name'] ?? ''));
+    } else {
+        $admin_display_name = 'Admin';
+    }
+    $toast_message = 'Welcome, ' . htmlspecialchars($admin_display_name) . '! You have successfully logged in.';
+    unset($_SESSION['admin_login_success']);
+}
+if (isset($_SESSION['admin_logout_success'])) {
+    $toast_message = 'You have successfully logged out.';
+    unset($_SESSION['admin_logout_success']);
+}
 include '../functions/db_connect.php';
 // Count new cancellation requests
 $cancellation_count = 0;
@@ -110,6 +128,27 @@ $new_admins = mysqli_query($mycon, $new_admins_sql);
 </head>
 <body>
 <?php include './sidebar.php'; ?>
+<?php if ($toast_message): ?>
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+    <div id="adminToast" class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+        <div class="d-flex">
+            <div class="toast-body">
+                <?php echo $toast_message; ?>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.getElementById('adminToast');
+        if (toastEl) {
+            var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        }
+    });
+</script>
+<?php endif; ?>
 <div class="dashboard-container">
     <?php if (isset($_SESSION['msg'])): ?>
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">

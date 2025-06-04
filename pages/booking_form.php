@@ -76,6 +76,7 @@ if ($admin_result && $admin_result->num_rows > 0) {
 }
 // After fetching $room, add PHP check for room availability
 $room_fully_booked = false;
+$no_rooms_available = false;
 if ($room_type_id) {
     // Only check if room type is selected
     $sql_count = "SELECT COUNT(*) as total FROM tbl_room WHERE room_type_id = $room_type_id";
@@ -83,6 +84,9 @@ if ($room_type_id) {
     $total_rooms = 0;
     if ($result_count && $row_count = mysqli_fetch_assoc($result_count)) {
         $total_rooms = $row_count['total'];
+    }
+    if ($total_rooms == 0) {
+        $no_rooms_available = true;
     }
     // Default to today for initial check
     $today = date('Y-m-d');
@@ -232,7 +236,9 @@ if ($room_type_id) {
     </div>
     <div class="booking-form-section">
         <h4 class="text-warning fw-bold mb-4">Book this Room</h4>
-        <?php if ($room_fully_booked): ?>
+        <?php if ($no_rooms_available): ?>
+            <div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle"></i> No rooms are available for this room type. Please contact the hotel or select another room type.</div>
+        <?php elseif ($room_fully_booked): ?>
             <div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle"></i> All rooms of this type are fully booked or occupied for your selected dates. Please select another room type or date.</div>
         <?php endif; ?>
         <?php if (isset($_SESSION['guest_id']) && $wallet_balance !== null): ?>
@@ -243,7 +249,7 @@ if ($room_type_id) {
             <div class="alert alert-danger"> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?> </div>
         <?php endif; ?>
         <div id="formErrorMsg" class="alert alert-danger d-none"></div>
-        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate <?php if ($room_fully_booked) echo 'style="pointer-events:none;opacity:0.6;"'; ?>>
+        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate <?php if ($room_fully_booked || $no_rooms_available) echo 'style="pointer-events:none;opacity:0.6;"'; ?>>
             <input type="hidden" name="room_type_id" value="<?php echo htmlspecialchars($room_type_id); ?>">
             <div class="row g-3">
                 <div class="row g-3 mt-1">
@@ -684,12 +690,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('bookingForm').style.pointerEvents = '';
             document.getElementById('bookingForm').style.opacity = '';
             hideFullyBookedToast();
-            if (walletWarning) walletWarning.remove();
-            bookNowBtn.disabled = true;
-            return;
+             if (walletWarning) walletWarning.remove();
+             bookNowBtn.disabled = true;
+             return;
         }
-        bookNowBtn.disabled = false;
-        if (walletWarning) walletWarning.remove();
+         bookNowBtn.disabled = false;
+         if (walletWarning) walletWarning.remove();
         fetch(`../functions/check_room_availability.php?room_type_id=${roomTypeId}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`)
             .then(res => res.json())
             .then(data => {
@@ -710,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('bookingForm').style.pointerEvents = '';
                     document.getElementById('bookingForm').style.opacity = '';
                     hideFullyBookedToast();
-                    checkWalletSufficiency();
+                     checkWalletSufficiency();
                 }
             })
             .catch(() => {
@@ -791,6 +797,11 @@ document.addEventListener('DOMContentLoaded', function() {
             fullyBookedToastEl.style.display = 'none';
         }
     }
+
+    // --- NEW: Show toast immediately if room is fully booked on page load ---
+    <?php if ($room_fully_booked): ?>
+    showFullyBookedToast();
+    <?php endif; ?>
 });
 </script>
 <script>

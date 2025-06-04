@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', refreshReservationsTable);
     if (e.target.classList.contains('mark-complete-btn')) {
         var reservationId = e.target.getAttribute('data-reservation-id');
         var checkoutTime = e.target.getAttribute('data-checkout-time');
-        showToast('Mark as Completed clicked!<br>Reservation ID: <b>' + reservationId + '</b><br>Check-out: <b>' + checkoutTime + '</b>');
+        showToast('Reservation is now eligible for completion!<br>Reservation ID: <b>' + reservationId + '</b><br>Check-out: <b>' + checkoutTime + '</b><br>You can now mark this reservation as completed.');
         if (e.target.hasAttribute('disabled')) {
             // Show toast notification for disabled (legacy, but always show above now)
             return;

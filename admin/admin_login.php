@@ -1,5 +1,10 @@
 <?php
 session_start();
+$logout_toast = false;
+if (isset($_SESSION['admin_logout_success'])) {
+    $logout_toast = true;
+    unset($_SESSION['admin_logout_success']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,6 +90,28 @@ session_start();
   </style>
 </head>
 <body>
+
+<?php if ($logout_toast): ?>
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+    <div id="logoutToast" class="toast align-items-center text-bg-success border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+        <div class="d-flex">
+            <div class="toast-body">
+                You have successfully logged out.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.getElementById('logoutToast');
+        if (toastEl) {
+            var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        }
+    });
+</script>
+<?php endif; ?>
 
   <div class="container">
     <div class="row justify-content-center align-items-center min-vh-100">

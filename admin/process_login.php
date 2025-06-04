@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update last_login
                 $mycon->query("UPDATE tbl_admin SET last_login = NOW() WHERE admin_id = $admin_id");
                 if ($debug) { echo "Login success!"; exit; }
+                $_SESSION['admin_login_success'] = true;
                 header('Location: dashboard.php');
                 exit();
             } else {

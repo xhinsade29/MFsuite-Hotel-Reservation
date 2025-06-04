@@ -277,12 +277,20 @@ document.addEventListener('DOMContentLoaded', function() {
         </a>
         <div style="position:relative;">
             <button class="profile-trigger" id="adminProfileDropdownBtn" style="background:none;border:none;display:flex;align-items:center;gap:8px;color:#fff;">
-                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($_SESSION['username'] ?? 'Admin User'); ?>&background=FF8C00&color=fff" alt="Admin User" style="width:36px;height:36px;border-radius:50%;border:2px solid #FF8C00;">
-                <span class="fw-semibold d-none d-md-inline"> <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin User'); ?> </span>
+                <?php
+                $admin_full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Admin';
+                $admin_avatar = '';
+                if (!empty($_SESSION['profile_picture'])) {
+                    $admin_avatar = '../uploads/profile_pictures/' . $_SESSION['profile_picture'];
+                } else {
+                    $admin_avatar = 'https://ui-avatars.com/api/?name=' . urlencode($admin_full_name) . '&background=FF8C00&color=fff';
+                }
+                ?>
+                <img src="<?php echo $admin_avatar; ?>" alt="Admin User" style="width:36px;height:36px;border-radius:50%;border:2px solid #FF8C00;object-fit:cover;">
+                <span class="fw-semibold d-none d-md-inline"> <?php echo htmlspecialchars($admin_full_name); ?> </span>
                 <i class="bi bi-chevron-down d-none d-md-inline"></i>
             </button>
             <div class="profile-dropdown" id="adminProfileDropdown" style="display:none;position:absolute;right:0;top:48px;min-width:160px;background:#23234a;color:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(31,38,135,0.18);z-index:3000;padding:0.5rem 0;border:1px solid rgba(255,255,255,0.08);">
-                <a href="profile.php" class="dropdown-item"><i class="bi bi-person me-2"></i> Profile</a>
                 <a href="logout.php" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i> Log Out</a>
             </div>
         </div>

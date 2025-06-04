@@ -255,9 +255,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_param($stmt, "i", $reservation_id);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
+            // Set the room status to 'Available' after completion
+            $assigned_room_id = $row['assigned_room_id'] ?? null;
+            if ($assigned_room_id) {
+                $stmt_room = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Available' WHERE room_id = ?");
+                mysqli_stmt_bind_param($stmt_room, "i", $assigned_room_id);
+                mysqli_stmt_execute($stmt_room);
+                mysqli_stmt_close($stmt_room);
+            }
             add_notification($guest_id, 'guest', 'Your reservation has been marked as completed.', $mycon, 0, $admin_id);
-            // Admin notification
-            add_notification($_SESSION['admin_id'], 'admin', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been marked as completed.', $mycon, 0, $admin_id);
+            // Admin notification for completed reservation
+            add_notification($_SESSION['admin_id'], 'admin', 'Reservation #' . $reservation_id . ' (Guest: ' . $guest_name . ') has been marked as completed.', $mycon, 0, $admin_id);
             header("Location: reservations.php?msg=Reservation+marked+as+completed");
             exit();
         }

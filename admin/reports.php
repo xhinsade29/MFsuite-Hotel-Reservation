@@ -257,16 +257,18 @@ $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM
         @media (max-width: 900px) { .report-container { margin-left: 70px; padding: 18px 4px; } }
         @media (max-width: 600px) { .kpi-card { min-width: 80px; max-width: 100px; padding: 7px 0; } .report-title { font-size: 1.2rem; } }
         .card-body.chart-card {
-            height: 340px;
-            min-height: 260px;
+            height: 380px !important;
+            min-height: 260px !important;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            padding: 18px 8px 8px 8px;
         }
         canvas {
-            max-width: 480px;
-            max-height: 320px;
-            min-height: 220px;
+            max-width: 100%;
+            max-height: 340px;
+            min-height: 180px;
         }
         .kpi-card {
             max-width: 480px !important;
@@ -284,6 +286,15 @@ $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM
         }
         .table, .table th, .table td {
             color: #232323 !important;
+        }
+        @media (max-width: 991px) {
+          .card-body.chart-card { height: 300px !important; min-height: 180px !important; }
+          canvas { max-height: 200px; }
+        }
+        @media (max-width: 767px) {
+          .col-lg-4 { flex: 0 0 100%; max-width: 100%; }
+          .card-body.chart-card { height: 220px !important; min-height: 120px !important; }
+          canvas { max-height: 120px; }
         }
     </style>
 </head>
@@ -310,50 +321,37 @@ $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM
         </div>
         <div id="reservationsReportContent">
         <div class="row mb-4 g-3 align-items-stretch">
-          <div class="col-lg-5 col-md-6 mb-3 mb-md-0">
-            <div class="kpi-card" style="width:100%;max-width:480px;padding:0 0 0 0;">
-              <div style="padding:36px 38px 28px 38px;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="kpi-label">Total Reservations</span>
-                  <span class="kpi-value"><?php echo $total_reservations; ?></span>
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
+              <div class="card-body chart-card" style="height:380px;min-height:260px;">
+                <div class="d-flex justify-content-between align-items-center mb-2 w-100">
+                  <h5 class="card-title mb-0" style="font-size:1.18rem;"><i class="bi bi-graph-up"></i> Bookings Over Time</h5>
+                  <select id="bookingsRangeSelect" class="form-select form-select-sm ms-2" style="width:auto;min-width:120px;">
+                    <option value="7">Last 7 Days</option>
+                    <option value="14">Last 14 Days</option>
+                    <option value="12m">Last 12 Months</option>
+                  </select>
                 </div>
-                <div style="height:2px;background:#292929;margin:14px 0 14px 0;"></div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="kpi-label">Pending</span>
-                  <span class="kpi-value" style="color:#ffc107;"><?php echo $pending_reservations; ?></span>
-                </div>
-                <div style="height:2px;background:#292929;margin:14px 0 14px 0;"></div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="kpi-label">Approved</span>
-                  <span class="kpi-value" style="color:#ffa533;"><?php echo $approved_reservations; ?></span>
-                </div>
-                <div style="height:2px;background:#292929;margin:14px 0 14px 0;"></div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="kpi-label">Completed</span>
-                  <span class="kpi-value" style="color:#2ecc71;"><?php echo $completed_reservations; ?></span>
-                </div>
-                <div style="height:2px;background:#292929;margin:14px 0 14px 0;"></div>
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="kpi-label">Cancelled</span>
-                  <span class="kpi-value" style="color:#ff4d4d;"><?php echo $cancelled_reservations; ?></span>
-                </div>
+                <canvas id="bookingsLineChart" height="260"></canvas>
               </div>
             </div>
           </div>
-          <!-- Bookings Last 7 Days Chart -->
-          <!-- (REMOVED: Bookings Last 7 Days chart and related Chart.js code from Reservations tab) -->
-        </div>
-        <div class="row mb-4">
-          <div class="col-lg-7 col-md-6">
-            <div class="card shadow mb-4" style="max-width:560px;width:100%;margin:auto;">
-              <div class="card-body chart-card">
-                <div style="width:100%;">
-                  <h5 class="card-title mb-4"><i class="bi bi-pie-chart-fill"></i> Reservations by Status</h5>
-                  <canvas id="reservationStatusChart"></canvas>
-                  <div class="form-check form-switch mt-3">
-                    <input class="form-check-input" type="checkbox" id="toggleStatusChartType">
-                    <label class="form-check-label" for="toggleStatusChartType" style="color:#ffa533;">Bar Chart</label>
-                  </div>
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
+              <div class="card-body chart-card" style="height:380px;min-height:260px;">
+                <h5 class="card-title mb-3" style="font-size:1.18rem;"><i class="bi bi-bar-chart-steps"></i> Bookings by Room Type (Monthly)</h5>
+                <canvas id="roomTypesBarChart" height="260"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-12 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
+              <div class="card-body chart-card" style="height:380px;min-height:260px;">
+                <h5 class="card-title mb-3" style="font-size:1.18rem;"><i class="bi bi-pie-chart-fill"></i> Reservations by Status</h5>
+                <canvas id="reservationStatusChart" height="260"></canvas>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="toggleStatusChartType">
+                  <label class="form-check-label" for="toggleStatusChartType" style="color:#ffa533;font-size:0.95em;">Bar Chart</label>
                 </div>
               </div>
             </div>
@@ -901,33 +899,55 @@ document.getElementById('togglePaymentStatusChartType').addEventListener('change
     })
   });
 });
-// Reservation Trends Chart
-const reservationTrendsData = {
-  labels: [
-    <?php for ($i = 13; $i >= 0; $i--) { echo "'".date('M d', strtotime("-$i days"))."',"; } ?>
-  ],
-  data: [
-    <?php for ($i = 13; $i >= 0; $i--) { $date = date('Y-m-d', strtotime("-$i days")); $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(date_created) = '$date'"))[0]; echo intval($count) . ','; } ?>
-  ]
-};
-new Chart(document.getElementById('reservationTrendsChart'), {
+// Bookings Over Time Chart Data
+const bookings7Data = <?php
+  $labels = [];
+  $data = [];
+  for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $labels[] = date('D', strtotime($date));
+    $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(date_created) = '$date'"))[0];
+    $data[] = (int)$count;
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data]);
+?>;
+const bookings14Data = <?php
+  $labels = [];
+  $data = [];
+  for ($i = 13; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $labels[] = date('M d', strtotime($date));
+    $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE(date_created) = '$date'"))[0];
+    $data[] = (int)$count;
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data]);
+?>;
+const bookings12mData = <?php
+  $labels = [];
+  $data = [];
+  for ($i = 11; $i >= 0; $i--) {
+    $month = date('Y-m', strtotime("-$i months"));
+    $labels[] = date('M Y', strtotime($month.'-01'));
+    $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE DATE_FORMAT(date_created, '%Y-%m') = '$month'"))[0];
+    $data[] = (int)$count;
+  }
+  echo json_encode(['labels' => $labels, 'data' => $data]);
+?>;
+let bookingsLineChart = new Chart(document.getElementById('bookingsLineChart'), {
   type: 'line',
   data: {
-    labels: reservationTrendsData.labels,
+    labels: bookings7Data.labels,
     datasets: [{
-      label: 'Reservations',
-      data: reservationTrendsData.data,
+      label: 'Bookings',
+      data: bookings7Data.data,
       borderColor: '#ffa533',
-      backgroundColor: 'rgba(255,165,51,0.18)',
-      tension: 0.45,
+      backgroundColor: 'rgba(255,165,51,0.15)',
+      tension: 0.4,
       fill: true,
-      pointRadius: 5,
+      pointRadius: 7,
       pointBackgroundColor: '#ffa533',
-      pointBorderColor: '#181818',
-      pointHoverRadius: 8,
-      borderWidth: 4,
-      pointStyle: 'circle',
-      segment: { borderColor: '#ffa533', borderWidth: 4 }
+      pointBorderColor: '#fff',
+      pointHoverRadius: 10
     }]
   },
   options: {
@@ -938,91 +958,105 @@ new Chart(document.getElementById('reservationTrendsChart'), {
         titleColor: '#ffa533',
         bodyColor: '#fff',
         borderColor: '#ffa533',
-        borderWidth: 1.5,
-        cornerRadius: 10,
-        padding: 12,
-        titleFont: { weight: '700', size: 15 },
-        bodyFont: { size: 14 }
+        borderWidth: 2,
+        cornerRadius: 12,
+        padding: 16,
+        titleFont: { weight: '700', size: 20 },
+        bodyFont: { size: 18 }
       }
     },
-    layout: { padding: 8 },
-    animation: { duration: 900, easing: 'easeOutQuart' },
-    responsive: true,
-    maintainAspectRatio: false,
     scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: '#232323' },
-        ticks: { color: '#ffa533', font: { size: 13 } }
-      },
-      x: {
-        grid: { display: false },
-        ticks: { color: '#ffa533', font: { size: 13 } }
-      }
-    },
-    backgroundColor: '#181818'
+      y: { beginAtZero: true, ticks: { color: '#fff', font: { size: 18 } } },
+      x: { ticks: { color: '#fff', font: { size: 18 } } }
+    }
   }
 });
-// Revenue Trends Chart
-const revenueTrendsData = {
-  labels: [
-    <?php for ($i = 13; $i >= 0; $i--) { echo "'".date('M d', strtotime("-$i days"))."',"; } ?>
-  ],
-  data: [
-    <?php for ($i = 13; $i >= 0; $i--) { $date = date('Y-m-d', strtotime("-$i days")); $sum = mysqli_fetch_row(mysqli_query($mycon, "SELECT SUM(amount) FROM tbl_payment WHERE payment_status = 'Paid' AND DATE(payment_created) = '$date'"))[0]; echo ($sum ? (float)$sum : 0) . ','; } ?>
-  ]
-};
-new Chart(document.getElementById('revenueTrendsChart'), {
-  type: 'line',
+document.getElementById('bookingsRangeSelect').addEventListener('change', function() {
+  let val = this.value;
+  if (val === '7') {
+    bookingsLineChart.data.labels = bookings7Data.labels;
+    bookingsLineChart.data.datasets[0].data = bookings7Data.data;
+  } else if (val === '14') {
+    bookingsLineChart.data.labels = bookings14Data.labels;
+    bookingsLineChart.data.datasets[0].data = bookings14Data.data;
+  } else if (val === '12m') {
+    bookingsLineChart.data.labels = bookings12mData.labels;
+    bookingsLineChart.data.datasets[0].data = bookings12mData.data;
+  }
+  bookingsLineChart.update();
+});
+// Bookings by Room Type Stacked Bar Chart Data (last 12 months)
+const roomTypesBarData = <?php
+  // Get all room types
+  $room_types = [];
+  $rt_res = mysqli_query($mycon, "SELECT room_type_id, type_name FROM tbl_room_type ORDER BY type_name");
+  while ($row = mysqli_fetch_assoc($rt_res)) {
+    $room_types[$row['room_type_id']] = $row['type_name'];
+  }
+  // Get last 12 months
+  $months = [];
+  for ($i = 11; $i >= 0; $i--) {
+    $month = date('Y-m', strtotime("-$i months"));
+    $months[] = $month;
+  }
+  // Build datasets for each room type
+  $datasets = [];
+  $colors = [];
+  foreach ($room_types as $rt_id => $rt_name) {
+    $data = [];
+    foreach ($months as $month) {
+      $count = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation r LEFT JOIN tbl_room rm ON r.room_id = rm.room_id WHERE rm.room_type_id = $rt_id AND DATE_FORMAT(r.date_created, '%Y-%m') = '$month'"))[0];
+      $data[] = (int)$count;
+    }
+    $color = '#' . substr(md5($rt_name), 0, 6);
+    $datasets[] = [
+      'label' => $rt_name,
+      'data' => $data,
+      'backgroundColor' => $color,
+      'borderColor' => $color,
+      'borderWidth' => 1
+    ];
+    $colors[] = $color;
+  }
+  $labels = array_map(function($m) { return date('M Y', strtotime($m.'-01')); }, $months);
+  echo json_encode(['labels' => $labels, 'datasets' => $datasets]);
+?>;
+new Chart(document.getElementById('roomTypesBarChart'), {
+  type: 'bar',
   data: {
-    labels: revenueTrendsData.labels,
-    datasets: [{
-      label: 'Revenue (₱)',
-      data: revenueTrendsData.data,
-      borderColor: '#ffa533',
-      backgroundColor: 'rgba(255,165,51,0.18)',
-      tension: 0.45,
-      fill: true,
-      pointRadius: 5,
-      pointBackgroundColor: '#ffa533',
-      pointBorderColor: '#181818',
-      pointHoverRadius: 8,
-      borderWidth: 4,
-      pointStyle: 'circle',
-      segment: { borderColor: '#ffa533', borderWidth: 4 }
-    }]
+    labels: roomTypesBarData.labels,
+    datasets: roomTypesBarData.datasets
   },
   options: {
     plugins: {
-      legend: { display: false },
+      legend: { labels: { color: '#fff', font: { weight: 'bold', size: 16 } } },
       tooltip: {
         backgroundColor: '#232323',
         titleColor: '#ffa533',
         bodyColor: '#fff',
         borderColor: '#ffa533',
-        borderWidth: 1.5,
-        cornerRadius: 10,
-        padding: 12,
-        titleFont: { weight: '700', size: 15 },
-        bodyFont: { size: 14 }
+        borderWidth: 2,
+        cornerRadius: 12,
+        padding: 16,
+        titleFont: { weight: '700', size: 18 },
+        bodyFont: { size: 16 }
       }
     },
-    layout: { padding: 8 },
-    animation: { duration: 900, easing: 'easeOutQuart' },
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      y: {
-        beginAtZero: true,
-        grid: { color: '#232323' },
-        ticks: { color: '#ffa533', font: { size: 13 } }
-      },
       x: {
-        grid: { display: false },
-        ticks: { color: '#ffa533', font: { size: 13 } }
+        stacked: true,
+        ticks: { color: '#fff', font: { size: 15 } },
+        grid: { color: '#292929' }
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: { color: '#fff', font: { size: 15 } },
+        grid: { color: '#292929' }
       }
-    },
-    backgroundColor: '#181818'
+    }
   }
 });
 document.querySelectorAll('.export-csv-btn').forEach(btn => {

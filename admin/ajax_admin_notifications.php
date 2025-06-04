@@ -7,6 +7,17 @@ $order_by = 'n.created_at DESC';
 $type_filter = '';
 $params = [$admin_id];
 $types = 'i';
+if (isset($_GET['count']) && $_GET['count'] == '1') {
+    $count_sql = "SELECT COUNT(*) as cnt FROM user_notifications WHERE admin_id = ? AND is_read = 0 AND type = 'admin'";
+    $stmt = mysqli_prepare($mycon, $count_sql);
+    mysqli_stmt_bind_param($stmt, 'i', $admin_id);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($res);
+    mysqli_stmt_close($stmt);
+    echo json_encode(['count' => (int)($row['cnt'] ?? 0)]);
+    exit;
+}
 if ($sort === 'oldest') {
     $order_by = 'n.created_at ASC';
 } else if (in_array($sort, ['reservation', 'payment', 'wallet', 'profile', 'admin'])) {

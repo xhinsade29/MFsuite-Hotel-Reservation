@@ -10,6 +10,15 @@ $type_filter = '';
 $params = [$_SESSION['guest_id']];
 $types = 'i';
 
+if (isset($_GET['count']) && $_GET['count'] == '1') {
+    $guest_id = $_SESSION['guest_id'];
+    $count_sql = "SELECT COUNT(*) as cnt FROM user_notifications WHERE guest_id = $guest_id AND is_read = 0";
+    $res = mysqli_query($mycon, $count_sql);
+    $row = mysqli_fetch_assoc($res);
+    echo json_encode(['count' => (int)($row['cnt'] ?? 0)]);
+    exit;
+}
+
 $sort = $_GET['sort'] ?? 'newest';
 $order_by = 'n.created_at DESC';
 if ($sort === 'oldest') {
@@ -306,6 +315,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 });
+</script>
+<script>
+function updateUserNotifBadge() {
+    fetch('notifications.php?count=1')
+        .then(response => response.json())
+        .then(data => {
+            var badge = document.getElementById('userNotifBadge');
+            if (badge) {
+                if (data && data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        });
+}
+setInterval(updateUserNotifBadge, 10000);
+document.addEventListener('DOMContentLoaded', updateUserNotifBadge);
 </script>
 </body>
 </html> 
