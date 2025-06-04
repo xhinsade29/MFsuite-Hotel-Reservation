@@ -205,6 +205,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, null, $reservation_id);
             } else {
                 mysqli_stmt_close($stmt_find);
+                // Fallback: Set status to approved even if no room is assigned
+                $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = 'approved' WHERE reservation_id = ?");
+                mysqli_stmt_bind_param($stmt, "i", $reservation_id);
+                mysqli_stmt_execute($stmt);
+                mysqli_stmt_close($stmt);
                 add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Room Type Fully Booked: No available room for this type and date for reservation #'.$reservation_id.' (Payment Approval). The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Room+type+is+fully+booked+and+cannot+accept+any+more+reservations+for+the+selected+dates");
                 exit();

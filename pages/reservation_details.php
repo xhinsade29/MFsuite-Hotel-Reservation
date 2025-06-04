@@ -8,7 +8,7 @@ $reservation_id = intval($_GET['id'] ?? 0);
 if (!$reservation_id) { die("Invalid reservation."); }
 
 // Fetch reservation details
-$sql = "SELECT r.*, rt.type_name, rt.description, rt.nightly_rate,
+$sql = "SELECT r.status AS reservation_status, r.*, rt.type_name, rt.description, rt.nightly_rate,
                GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
                p.payment_status, p.payment_method, p.amount, rt.room_type_id
         FROM tbl_reservation r
@@ -107,7 +107,7 @@ if (!empty($booking['assigned_room_id'])) {
 }
 // Fetch cancellation details if cancelled
 $cancellation_details = null;
-if ($booking['status'] === 'cancelled') {
+if ($booking['reservation_status'] === 'cancelled') {
     $cancel_sql = "SELECT cr.*, r.reason_text FROM cancelled_reservation cr LEFT JOIN tbl_cancellation_reason r ON cr.reason_id = r.reason_id WHERE cr.reservation_id = ? ORDER BY cr.date_canceled DESC LIMIT 1";
     $stmt_cancel = $conn->prepare($cancel_sql);
     $stmt_cancel->bind_param("i", $reservation_id);
@@ -298,7 +298,7 @@ $conn->close();
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
     <?php include '../components/user_navigation.php'; ?>
-    <?php if ($booking['status'] === 'cancellation_requested'): ?>
+    <?php if ($booking['reservation_status'] === 'cancellation_requested'): ?>
         <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
           <div id="cancelToast" class="toast align-items-center text-bg-info border-0 show" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -347,7 +347,7 @@ $conn->close();
                     <a href="reservations.php" class="btn btn-outline-light d-inline-flex align-items-center" style="gap: 0.5em; font-weight: 500; border-radius: 2em; box-shadow: 0 2px 8px rgba(0,0,0,0.10);">
                         <i class="bi bi-arrow-left-circle" style="font-size: 1.3em;"></i> Back to My Reservations
                     </a>
-                    <?php if ($booking['status'] !== 'cancellation_requested' && $booking['status'] !== 'cancelled' && $booking['status'] !== 'denied' && $booking['status'] !== 'completed'): ?>
+                    <?php if ($booking['reservation_status'] !== 'cancellation_requested' && $booking['reservation_status'] !== 'cancelled' && $booking['reservation_status'] !== 'denied' && $booking['reservation_status'] !== 'completed'): ?>
                     <button id="cancelBtn" class="btn btn-outline-danger d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#cancelModal" style="gap:0.5em; font-weight:500; border-radius:2em; box-shadow:0 2px 8px rgba(0,0,0,0.10);">
                         <i class="bi bi-trash3" style="font-size:1.2em;"></i> Cancel Reservation
                     </button>
@@ -381,13 +381,13 @@ $conn->close();
                         <?php endif; ?>
                         <div class="info-row">
                             <strong>Status:</strong>&nbsp;
-                            <?php if ($booking['status'] === 'approved'): ?>
+                            <?php if ($booking['reservation_status'] === 'approved'): ?>
                                 <span class="badge bg-success">Approved by Admin</span>
-                            <?php elseif ($booking['status'] === 'pending'): ?>
+                            <?php elseif ($booking['reservation_status'] === 'pending'): ?>
                                 <span class="badge bg-warning text-dark">Pending Admin Approval</span>
-                            <?php elseif ($booking['status'] === 'completed'): ?>
+                            <?php elseif ($booking['reservation_status'] === 'completed'): ?>
                                 <span class="badge bg-primary">Completed</span>
-                            <?php elseif ($booking['status'] === 'cancelled'): ?>
+                            <?php elseif ($booking['reservation_status'] === 'cancelled'): ?>
                                 <span class="badge bg-danger mb-2">Cancelled</span>
                                 <?php if ($cancellation_details): ?>
                                 <div class="alert alert-danger mt-2" style="background:rgba(255,0,0,0.08);color:#ffb3b3;border:none;">
@@ -402,9 +402,9 @@ $conn->close();
                                     <strong>Refunded:</strong> The payment for this reservation has been refunded and added to your wallet.
                                 </div>
                                 <?php endif; ?>
-                            <?php elseif ($booking['status'] === 'cancellation_requested'): ?>
+                            <?php elseif ($booking['reservation_status'] === 'cancellation_requested'): ?>
                                 <span class="badge bg-info text-dark">Cancellation Requested</span>
-                            <?php elseif ($booking['status'] === 'denied'): ?>
+                            <?php elseif ($booking['reservation_status'] === 'denied'): ?>
                                 <span class="badge bg-secondary">Cancellation Denied</span>
                             <?php endif; ?>
                         </div>
