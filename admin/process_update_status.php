@@ -47,9 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
 
-            add_notification($guest_id, 'guest', 'Your reservation has been denied by admin.', $mycon, 0, $admin_id);
-            // Admin notification
-            add_notification($_SESSION['admin_id'], 'admin', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been denied.', $mycon, 0, $admin_id);
+            add_notification($guest_id, 'user', 'reservation', 'Your reservation has been denied by admin.', $mycon, 0, $admin_id, $reservation_id);
+            add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been denied.', $mycon, 0, null, $reservation_id);
 
             header("Location: reservations.php?msg=Reservation+denied+successfully");
             exit();
@@ -78,9 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_close($log_stmt);
 
             // 4. Notify user
-            add_notification($guest_id, 'guest', "Refunded ₱" . number_format($amount, 2) . " to your wallet for reservation #$reservation_id.", $mycon, 0, $admin_id);
-            // Admin notification
-            add_notification($_SESSION['admin_id'], 'admin', 'Refund processed for reservation #'.$reservation_id.' ('.$guest_name.').', $mycon, 0, $admin_id);
+            add_notification($guest_id, 'user', 'wallet', "Refunded ₱" . number_format($amount, 2) . " to your wallet for reservation #$reservation_id.", $mycon, 0, $admin_id, $reservation_id);
+            add_notification($_SESSION['admin_id'], 'admin', 'payment', 'Refund processed for reservation #'.$reservation_id.' ('.$guest_name.').', $mycon, 0, null, $reservation_id);
 
             header("Location: reservations.php?msg=Refund+processed+successfully");
             exit();
@@ -98,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_find = mysqli_prepare($mycon, $find_room_sql);
             if (!$stmt_find) {
                  error_log("Find room prepare failed for reservation #{$reservation_id}: " . mysqli_error($mycon));
-                 add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error preparing room query for reservation #'.$reservation_id.'.', $mycon, 0, $admin_id);
+                 add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Assignment Failed: Database error preparing room query for reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
                  header("Location: reservations.php?msg=Database+error+finding+room");
                  exit();
             }
@@ -106,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!mysqli_stmt_execute($stmt_find)) {
                  error_log("Find room execute failed for reservation #{$reservation_id}: " . mysqli_stmt_error($stmt_find));
                  mysqli_stmt_close($stmt_find); // Close statement before exiting
-                 add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error executing room query for reservation #'.$reservation_id.'.', $mycon, 0, $admin_id);
+                 add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Assignment Failed: Database error executing room query for reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
                  header("Location: reservations.php?msg=Database+error+finding+room");
                  exit();
             }
@@ -120,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!mysqli_stmt_execute($stmt)) {
                     error_log("tbl_reservation update failed for reservation #{$reservation_id}. Error: " . mysqli_stmt_error($stmt));
                     mysqli_stmt_close($stmt);
-                    add_notification($_SESSION['admin_id'], 'admin', 'Reservation Update Failed', 'Database error updating reservation #'.$reservation_id.'.', $mycon, 0, $admin_id);
+                    add_notification($_SESSION['admin_id'], 'admin', 'system', 'Reservation Update Failed: Database error updating reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
                     header("Location: reservations.php?msg=Database+error+updating+reservation");
                     exit();
                 }
@@ -132,21 +130,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  if (!mysqli_stmt_execute($stmt)) {
                      error_log("tbl_room status update failed for room #{$assigned_room_id}. Error: " . mysqli_stmt_error($stmt));
                      mysqli_stmt_close($stmt);
-                     add_notification($_SESSION['admin_id'], 'admin', 'Room Status Update Failed', 'Database error updating room status for room #'.$assigned_room_id.'.', $mycon, 0, $admin_id);
+                     add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Status Update Failed: Database error updating room status for room #'.$assigned_room_id.'.', $mycon, 0, null, $assigned_room_id);
                      header("Location: reservations.php?msg=Database+error+updating+room");
                      exit();
                  }
                 error_log("tbl_room status update successful for room #{$assigned_room_id}.");
                 mysqli_stmt_close($stmt);
-                add_notification($guest_id, 'guest', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id);
-                // Admin notification
-                add_notification($_SESSION['admin_id'], 'admin', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, $admin_id);
+                add_notification($guest_id, 'user', 'reservation', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id, $reservation_id);
+                add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Reservation+approved+successfully");
                 exit();
             } else {
                 error_log("No available room found for reservation #{$reservation_id}.");
-                // Admin notification
-                add_notification($_SESSION['admin_id'], 'admin', 'Room Type Fully Booked', 'No available room for this type and date for reservation #'.$reservation_id.'. The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, $admin_id);
+                add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Room Type Fully Booked: No available room for this type and date for reservation #'.$reservation_id.'. The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Room+type+is+fully+booked+and+cannot+accept+any+more+reservations+for+the+selected+dates");
                 exit();
             }
@@ -167,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_find = mysqli_prepare($mycon, $find_room_sql);
             if (!$stmt_find) {
                 error_log("Find room prepare failed for reservation #{$reservation_id} (Payment Approval): " . mysqli_error($mycon));
-                add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error preparing room query for reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Assignment Failed: Database error preparing room query for reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Database+error+finding+room");
                 exit();
             }
@@ -175,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!mysqli_stmt_execute($stmt_find)) {
                 error_log("Find room execute failed for reservation #{$reservation_id} (Payment Approval): " . mysqli_stmt_error($stmt_find));
                 mysqli_stmt_close($stmt_find);
-                add_notification($_SESSION['admin_id'], 'admin', 'Room Assignment Failed', 'Database error executing room query for reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Assignment Failed: Database error executing room query for reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Database+error+finding+room");
                 exit();
             }
@@ -189,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!mysqli_stmt_execute($stmt)) {
                     error_log("tbl_reservation update failed for reservation #{$reservation_id} (Payment Approval). Error: " . mysqli_stmt_error($stmt));
                     mysqli_stmt_close($stmt);
-                    add_notification($_SESSION['admin_id'], 'admin', 'Reservation Update Failed', 'Database error updating reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                    add_notification($_SESSION['admin_id'], 'admin', 'system', 'Reservation Update Failed: Database error updating reservation #'.$reservation_id.' (Payment Approval).', $mycon, 0, null, $reservation_id);
                     header("Location: reservations.php?msg=Database+error+updating+reservation");
                     exit();
                 }
@@ -200,30 +196,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!mysqli_stmt_execute($stmt)) {
                     error_log("tbl_room status update failed for room #{$assigned_room_id} (Payment Approval). Error: " . mysqli_stmt_error($stmt));
                     mysqli_stmt_close($stmt);
-                    add_notification($_SESSION['admin_id'], 'admin', 'Room Status Update Failed', 'Database error updating room status for room #'.$assigned_room_id.' (Payment Approval).', $mycon, 0, $admin_id);
+                    add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Status Update Failed: Database error updating room status for room #'.$assigned_room_id.' (Payment Approval).', $mycon, 0, null, $assigned_room_id);
                     header("Location: reservations.php?msg=Database+error+updating+room");
                     exit();
                 }
                 mysqli_stmt_close($stmt);
-                add_notification($guest_id, 'guest', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id);
-                // Admin notification
-                add_notification($_SESSION['admin_id'], 'admin', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, $admin_id);
+                add_notification($guest_id, 'user', 'reservation', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id, $reservation_id);
+                add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, null, $reservation_id);
             } else {
                 mysqli_stmt_close($stmt_find);
-                add_notification($_SESSION['admin_id'], 'admin', 'Room Type Fully Booked', 'No available room for this type and date for reservation #'.$reservation_id.' (Payment Approval). The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, $admin_id);
+                add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Room Type Fully Booked: No available room for this type and date for reservation #'.$reservation_id.' (Payment Approval). The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Room+type+is+fully+booked+and+cannot+accept+any+more+reservations+for+the+selected+dates");
                 exit();
             }
             // Notify for wallet top-up if payment method is a top-up type
             $topup_methods = ['GCash', 'Bank Transfer', 'PayPal', 'Credit Card'];
             if (in_array($payment_method, $topup_methods)) {
-                add_notification($guest_id, 'guest', 'Your wallet top-up via ' . $payment_method . ' has been received and credited. Reference: ' . $ref, $mycon, 0, $admin_id);
+                add_notification($guest_id, 'user', 'wallet', 'Your wallet top-up via ' . $payment_method . ' has been received and credited. Reference: ' . $ref, $mycon, 0, $admin_id, $payment_id);
             } else {
                 $receipt_btn = '<a href="../admin/process_view_receipt.php?payment_id=' . $payment_id . '" class="btn btn-sm btn-primary mt-2" target="_blank">See Receipt</a>';
-                add_notification($guest_id, 'guest', 'Your payment for the reservation has been approved. ' . $receipt_btn, $mycon, 0, $admin_id);
+                add_notification($guest_id, 'user', 'payment', 'Your payment for the reservation has been approved. ' . $receipt_btn, $mycon, 0, $admin_id, $payment_id);
             }
-            // Admin notification
-            add_notification($_SESSION['admin_id'], 'admin', 'Payment for reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, $admin_id);
+            add_notification($_SESSION['admin_id'], 'admin', 'payment', 'Payment for reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, null, $payment_id);
             header("Location: reservations.php?msg=Payment+approved+successfully");
             exit();
         }
@@ -234,12 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
 
-            // Add notifications
-            add_notification($guest_id, 'guest', 'Your cancellation request for reservation #'.$reservation_id.' has been approved.', $mycon, 0, $admin_id);
-            add_notification($_SESSION['admin_id'], 'admin', 'You have approved the reservation cancellation by '.$guest_name.'.', $mycon, 0, $admin_id);
-
-            // Handle potential refund logic here if applicable (based on your business rules)
-            // For now, assuming refund is a separate action or not automatic upon cancellation approval
+            add_notification($guest_id, 'user', 'cancellation', 'Your cancellation request for reservation #'.$reservation_id.' has been approved.', $mycon, 0, $admin_id, $reservation_id);
+            add_notification($_SESSION['admin_id'], 'admin', 'cancellation', 'You have approved the reservation cancellation by '.$guest_name.'.', $mycon, 0, null, $reservation_id);
 
             header("Location: reservations.php?msg=Cancellation+approved+successfully");
             exit();
@@ -263,10 +253,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_execute($stmt_room);
                 mysqli_stmt_close($stmt_room);
             }
-            add_notification($guest_id, 'guest', 'Your reservation has been marked as completed.', $mycon, 0, $admin_id);
-            // Admin notification for completed reservation
-            add_notification($_SESSION['admin_id'], 'admin', 'Reservation #' . $reservation_id . ' (Guest: ' . $guest_name . ') has been marked as completed.', $mycon, 0, $admin_id);
-            header("Location: reservations.php?msg=Reservation+marked+as+completed");
+            add_notification($guest_id, 'user', 'reservation', 'Your reservation #'.$reservation_id.' has been marked as completed.', $mycon, 0, $admin_id, $reservation_id);
+            add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been marked as completed.', $mycon, 0, null, $reservation_id);
+            header("Location: reservations.php?msg=Reservation+marked+as+completed+successfully");
             exit();
         }
     }

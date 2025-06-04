@@ -8,7 +8,7 @@ $type_filter = '';
 $params = [$admin_id];
 $types = 'i';
 if (isset($_GET['count']) && $_GET['count'] == '1') {
-    $count_sql = "SELECT COUNT(*) as cnt FROM user_notifications WHERE admin_id = ? AND is_read = 0 AND type = 'admin'";
+    $count_sql = "SELECT COUNT(*) as cnt FROM admin_notifications WHERE admin_id = ? AND is_read = 0";
     $stmt = mysqli_prepare($mycon, $count_sql);
     mysqli_stmt_bind_param($stmt, 'i', $admin_id);
     mysqli_stmt_execute($stmt);
@@ -25,7 +25,7 @@ if ($sort === 'oldest') {
     $params[] = $sort;
     $types .= 's';
 }
-$sql = "SELECT n.*, g.first_name, g.last_name FROM user_notifications n LEFT JOIN tbl_guest g ON n.guest_id = g.guest_id WHERE n.admin_id = ?$type_filter ORDER BY $order_by LIMIT 20";
+$sql = "SELECT n.* FROM admin_notifications n WHERE n.admin_id = ?$type_filter ORDER BY $order_by LIMIT 20";
 $stmt = mysqli_prepare($mycon, $sql);
 if ($types && count($params) > 0) {
     mysqli_stmt_bind_param($stmt, $types, ...$params);
@@ -58,9 +58,6 @@ foreach ($notifications as $notif): ?>
             <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
         </div>
         <div><?php echo htmlspecialchars($notif['message']); ?></div>
-        <?php if (!empty($notif['first_name']) || !empty($notif['last_name'])): ?>
-            <div class="text-muted small mt-1">Guest: <?php echo htmlspecialchars($notif['first_name'] . ' ' . $notif['last_name']); ?></div>
-        <?php endif; ?>
     </div>
 </div>
 <?php endforeach; ?>

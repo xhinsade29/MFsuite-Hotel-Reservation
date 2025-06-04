@@ -183,21 +183,6 @@ function show_log_notifications($limit = 20) {
     <?php
 }
 
-function add_notification($guest_id, $type, $message, $mycon) {
-    $admin_id = 1; // Use your default or actual admin_id here
-    $sql = "INSERT INTO user_notifications (guest_id, type, message, admin_id) VALUES (?, ?, ?, ?)";
-    $stmt = mysqli_prepare($mycon, $sql);
-    if (!$stmt) {
-        error_log("Prepare failed: " . mysqli_error($mycon));
-        return;
-    }
-    mysqli_stmt_bind_param($stmt, "issi", $guest_id, $type, $message, $admin_id);
-    if (!mysqli_stmt_execute($stmt)) {
-        error_log("Execute failed: " . mysqli_stmt_error($stmt));
-    }
-    mysqli_stmt_close($stmt);
-}
-
 // --- Notification Page Entry Point ---
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
 ?><!DOCTYPE html>

@@ -10,6 +10,7 @@ if (!isset($_SESSION['guest_id'])) {
 }
 
 include('../functions/db_connect.php');
+include_once '../functions/notify.php'; // Ensure notify.php is included
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $guest_id = $_SESSION['guest_id'];
@@ -116,14 +117,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $notif = "Your profile and payment details have been updated.";
                 $admin_notif = "User $user_name updated their profile and payment details.";
             }
-            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-            $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-            mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
-            mysqli_stmt_execute($notif_stmt);
-            $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-            $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
-            mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
-            mysqli_stmt_execute($admin_notif_stmt);
+            // Use add_notification for user notification
+            add_notification($guest_id, 'user', 'profile', $notif, $mycon, 0, $admin_id);
+            // Use add_notification for admin notification
+            add_notification($admin_id, 'admin', 'profile', $admin_notif, $mycon, 0, null, $guest_id); // Related ID could be guest_id
+
             $did_update = true;
         } else {
             $_SESSION['error'] = "Profile update failed: " . mysqli_error($mycon);
@@ -174,17 +172,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Insert notification for user
                 $admin_id = 1; // Use your default or actual admin_id here
                 $notif = "Your password has been changed.";
-                $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-                $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-                mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
-                mysqli_stmt_execute($notif_stmt);
+                add_notification($guest_id, 'user', 'profile', $notif, $mycon, 0, $admin_id);
+
                 // Insert notification for admin
                 $user_name = $first_name . ' ' . $last_name;
                 $admin_notif = "User $user_name changed their password.";
-                $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-                $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
-                mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
-                mysqli_stmt_execute($admin_notif_stmt);
+                add_notification($admin_id, 'admin', 'profile', $admin_notif, $mycon, 0, null, $guest_id); // Related ID could be guest_id
             } else {
                 $_SESSION['error'] = 'Password update failed: ' . $update->error;
                 header("Location: settings.php");
@@ -248,7 +241,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             "last_name = ?",
             "phone_number = ?",
             "user_email = ?",
-            "address = ?"
+            "address = ?",
         ];
         $params = [$first_name, $middle_name, $last_name, $phone_number, $user_email, $address];
         $types = "ssssss";
@@ -257,122 +250,76 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $params[] = $profile_picture;
             $types .= "s";
         }
-
-        // Handle password update if provided
-        if (!empty($_POST['current_password']) && !empty($_POST['new_password']) && !empty($_POST['confirm_password'])) {
-            $sql = "SELECT password FROM tbl_guest WHERE guest_id = ?";
-            $stmt = mysqli_prepare($mycon, $sql);
-            mysqli_stmt_bind_param($stmt, "i", $guest_id);
-            mysqli_stmt_execute($stmt);
-            $result = mysqli_stmt_get_result($stmt);
-            $user = mysqli_fetch_assoc($result);
-            if ($_POST['current_password'] === $user['password']) {
-                $new_password = $_POST['new_password'];
-                $confirm_password = $_POST['confirm_password'];
-                if (strlen($new_password) < 8) {
-                    $_SESSION['error'] = "New password must be at least 8 characters long";
-                    header("Location: update_profile.php");
-                    exit();
-                }
-                if (!preg_match("/[A-Z]/", $new_password)) {
-                    $_SESSION['error'] = "New password must contain at least one uppercase letter";
-                    header("Location: update_profile.php");
-                    exit();
-                }
-                if (!preg_match("/[a-z]/", $new_password)) {
-                    $_SESSION['error'] = "New password must contain at least one lowercase letter";
-                    header("Location: update_profile.php");
-                    exit();
-                }
-                if (!preg_match("/[0-9]/", $new_password)) {
-                    $_SESSION['error'] = "New password must contain at least one number";
-                    header("Location: update_profile.php");
-                    exit();
-                }
-                if ($new_password !== $confirm_password) {
-                    $_SESSION['error'] = "New passwords do not match";
-                    header("Location: update_profile.php");
-                    exit();
-                }
-                $update_fields[] = "password = ?";
-                $params[] = $new_password;
-                $types .= "s";
-            } else {
-                $_SESSION['error'] = "Current password is incorrect";
-                header("Location: update_profile.php");
-                exit();
-            }
-        }
         $params[] = $guest_id;
         $types .= "i";
+
         $sql = "UPDATE tbl_guest SET " . implode(", ", $update_fields) . " WHERE guest_id = ?";
         $stmt = mysqli_prepare($mycon, $sql);
         mysqli_stmt_bind_param($stmt, $types, ...$params);
+
         if (mysqli_stmt_execute($stmt)) {
-            // Update session variables
-            $_SESSION['first_name'] = $first_name;
-            $_SESSION['last_name'] = $last_name;
-            $_SESSION['user_email'] = $user_email;
-            $_SESSION['phone_number'] = $phone_number;
-            $_SESSION['success'] = "User details updated successfully!";
-            // Insert notification
+            $_SESSION['success'] = "Profile updated successfully!";
+            // Add notification for admin (legacy profile update)
             $admin_id = 1; // Use your default or actual admin_id here
-            $notif = "Your profile details have been updated.";
-            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-            $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-            mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
-            mysqli_stmt_execute($notif_stmt);
-            // Insert notification for admin
             $user_name = $first_name . ' ' . $last_name;
-            $admin_notif = "User $user_name updated their profile.";
-            $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-            $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
-            mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
-            mysqli_stmt_execute($admin_notif_stmt);
-            header("Location: update_profile.php");
-            exit();
+            $admin_notif = "User $user_name updated their profile details (via legacy page).";
+            // Use add_notification for admin notification
+             add_notification($admin_id, 'admin', 'profile', $admin_notif, $mycon, 0, null, $guest_id); // Related ID could be guest_id
+
         } else {
-            $_SESSION['error'] = "Failed to update user details: " . mysqli_error($mycon);
-            header("Location: update_profile.php");
-            exit();
+            $_SESSION['error'] = "Profile update failed: " . mysqli_error($mycon);
         }
+        header("Location: update_profile.php");
+        exit();
+
     } elseif ($update_type === 'payment') {
-        // Get payment details
+        // Get payment details (legacy)
         $bank_account_number = mysqli_real_escape_string($mycon, $_POST['bank_account_number'] ?? '');
         $paypal_email = mysqli_real_escape_string($mycon, $_POST['paypal_email'] ?? '');
         $credit_card_number = mysqli_real_escape_string($mycon, $_POST['credit_card_number'] ?? '');
         $gcash_number = mysqli_real_escape_string($mycon, $_POST['gcash_number'] ?? '');
-        $sql = "UPDATE tbl_guest SET bank_account_number = ?, paypal_email = ?, credit_card_number = ?, gcash_number = ? WHERE guest_id = ?";
+
+        $update_fields = [
+            "bank_account_number = ?",
+            "paypal_email = ?",
+            "credit_card_number = ?",
+            "gcash_number = ?"
+        ];
+        $params = [$bank_account_number, $paypal_email, $credit_card_number, $gcash_number];
+        $types = "ssss";
+        $params[] = $guest_id;
+        $types .= "i";
+
+        $sql = "UPDATE tbl_guest SET " . implode(", ", $update_fields) . " WHERE guest_id = ?";
         $stmt = mysqli_prepare($mycon, $sql);
-        mysqli_stmt_bind_param($stmt, "ssssi", $bank_account_number, $paypal_email, $credit_card_number, $gcash_number, $guest_id);
+        mysqli_stmt_bind_param($stmt, $types, ...$params);
+
         if (mysqli_stmt_execute($stmt)) {
             $_SESSION['success'] = "Payment details updated successfully!";
+            // Add notification for admin (legacy payment update)
             $admin_id = 1; // Use your default or actual admin_id here
-            $user_name = $first_name . ' ' . $last_name;
-            $notif = "Your payment details have been updated.";
-            $admin_notif = "User $user_name updated their payment details.";
-            $notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-            $notif_stmt = mysqli_prepare($mycon, $notif_sql);
-            mysqli_stmt_bind_param($notif_stmt, "isi", $guest_id, $notif, $admin_id);
-            mysqli_stmt_execute($notif_stmt);
-            $admin_notif_sql = "INSERT INTO user_notifications (guest_id, message, created_at, admin_id) VALUES (?, ?, NOW(), ?)";
-            $admin_notif_stmt = mysqli_prepare($mycon, $admin_notif_sql);
-            mysqli_stmt_bind_param($admin_notif_stmt, "isi", $guest_id, $admin_notif, $admin_id);
-            mysqli_stmt_execute($admin_notif_stmt);
-            header("Location: update_profile.php");
-            exit();
+            // Fetch guest name to include in the admin notification
+            $guest_name = '';
+            $stmt_guest = $mycon->prepare("SELECT first_name, last_name FROM tbl_guest WHERE guest_id = ?");
+            $stmt_guest->bind_param("i", $guest_id);
+            $stmt_guest->execute();
+            $stmt_guest->bind_result($first_name, $last_name);
+            if ($stmt_guest->fetch()) {
+                $guest_name = trim($first_name . ' ' . $last_name);
+            }
+            $stmt_guest->close();
+            $admin_notif = "User $guest_name updated their payment details (via legacy page).";
+            // Use add_notification for admin notification
+             add_notification($admin_id, 'admin', 'payment', $admin_notif, $mycon, 0, null, $guest_id); // Related ID could be guest_id
+
         } else {
-            $_SESSION['error'] = "Failed to update payment details: " . mysqli_error($mycon);
-            header("Location: update_profile.php");
-            exit();
+            $_SESSION['error'] = "Payment details update failed: " . mysqli_error($mycon);
         }
-    } else {
-        $_SESSION['error'] = "Invalid update type.";
         header("Location: update_profile.php");
         exit();
     }
-} else {
-    header("Location: update_profile.php");
-    exit();
 }
+// Redirect to dashboard if not POST
+header("Location: /pages/dashboard.php");
+exit();
 ?> 

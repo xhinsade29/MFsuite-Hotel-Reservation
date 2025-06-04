@@ -1,3 +1,11 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header('Location: admin_login.php');
+    exit();
+}
+include '../functions/db_connect.php';
+?>
 <!-- Enhanced Admin Sidebar - User Style Consistency -->
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
@@ -13,8 +21,8 @@
         <a href="dashboard.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
             <i class="bi bi-grid-1x2-fill"></i> Dashboard
         </a>
-        <a href="notifications.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'notifications.php') ? 'active' : ''; ?>">
-            <i class="bi bi-bell-fill"></i> Notifications
+        <a href="notifications.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'notifications.php') ? 'active' : ''; ?>" id="adminNotificationLink" data-admin-id="<?php echo htmlspecialchars($_SESSION['admin_id'] ?? ''); ?>">
+            <i class="bi bi-bell"></i> Notifications
         </a>
         <div class="sidebar-dropdown" id="sidebarDropdown">
           <a href="#" class="admin-nav-link sidebar-dropdown-toggle <?php echo (basename($_SERVER['PHP_SELF']) == 'Amenities.php' || basename($_SERVER['PHP_SELF']) == 'services.php' || basename($_SERVER['PHP_SELF']) == 'rooms.php') ? 'active' : ''; ?>">
@@ -245,6 +253,30 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Real-time notification count update
+function fetchAdminNotificationCount() {
+    fetch('ajax_admin_notifications.php?count=1')
+        .then(response => response.json())
+        .then(data => {
+            var badge = document.getElementById('adminNotifCountBadge');
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => console.error('Error fetching admin notification count:', error));
+}
+
+// Fetch count on page load
+document.addEventListener('DOMContentLoaded', fetchAdminNotificationCount);
+
+// Fetch count periodically (e.g., every 10 seconds)
+setInterval(fetchAdminNotificationCount, 10000);
+
 document.addEventListener('DOMContentLoaded', function() {
   var dropdown = document.getElementById('sidebarDropdown');
   var dropdownToggle = dropdown.querySelector('.sidebar-dropdown-toggle');
@@ -272,8 +304,9 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- Removed logo to avoid duplication -->
     <div></div>
     <div class="d-flex align-items-center gap-4 nav-right">
-        <a href="notifications.php" class="notifications position-relative" id="adminNotifBell" style="color:#fff; font-size:1.6em;">
+        <a href="notifications.php" class="notifications position-relative" id="adminNotifBell" style="color:#fff; font-size:1.6em;" data-admin-id="<?php echo htmlspecialchars($_SESSION['admin_id'] ?? ''); ?>">
             <i class="bi bi-bell"></i>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="adminNotifCountBadge" style="display: none;">0</span>
         </a>
         <div style="position:relative;">
             <button class="profile-trigger" id="adminProfileDropdownBtn" style="background:none;border:none;display:flex;align-items:center;gap:8px;color:#fff;">
@@ -298,15 +331,26 @@ document.addEventListener('DOMContentLoaded', function() {
 </nav>
 <script>
 document.getElementById('adminNotifBell').addEventListener('click', function(e) {
-    e.preventDefault(); // Prevent immediate navigation
-    var badge = document.getElementById('adminNotifBadge');
-    // Mark all as read in backend
-    fetch('../pages/mark_notifications_read.php?admin=1')
-        .then(function(response) {
-            if (badge) badge.remove(); // Remove badge visually
-            // Now redirect to notifications page
+    e.preventDefault();
+    var badge = document.getElementById('adminNotifCountBadge');
+    if (badge) {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+    }
+    fetch('mark_notifications_read.php', {
+        method: 'POST'
+    })
+    .then(response => {
+        if (!response.ok) {
+            console.error('Failed to mark notifications as read via top bell click');
+        } else {
+            fetchAdminNotificationCount();
+        }
+    })
+    .catch(error => {
+        console.error('Error during fetch to mark notifications as read:', error);
+    });
     window.location.href = 'notifications.php';
-        });
 });
 const adminProfileBtn = document.getElementById('adminProfileDropdownBtn');
 const adminProfileDropdown = document.getElementById('adminProfileDropdown');
@@ -324,17 +368,20 @@ if (adminProfileBtn && adminProfileDropdown) {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var notifBell = document.querySelector('.admin-nav-link[href="notifications.php"]');
-    if (notifBell) {
-        notifBell.addEventListener('click', function(e) {
-            // Remove badge visually
-            var badge = notifBell.querySelector('.badge');
-            if (badge) badge.style.display = 'none';
-            // Mark all as read in backend
-            fetch('notifications.php?readall=1')
-                .then(function() {
-                    // Optionally reload or update badge
-                });
+    const notificationLink = document.getElementById('adminNotificationLink');
+    if (notificationLink) {
+        notificationLink.addEventListener('click', function() {
+            fetch('mark_notifications_read.php', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Failed to mark notifications as read via sidebar link click');
+                } else {
+                    fetchAdminNotificationCount();
+                }
+            })
+            .catch(error => console.error('Error marking notifications as read via sidebar link click:', error));
         });
     }
 });

@@ -187,8 +187,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($stmt->execute()) {
         $reservation_id = $mycon->insert_id; // Get the new reservation ID
 
-        // Insert notification for the user
-        $notif_sql = "INSERT INTO user_notifications (guest_id, type, message, created_at, admin_id) VALUES (?, 'reservation', ?, NOW(), ?)";
+        // Insert notification for the user (using updated function)
+        // Was: INSERT INTO user_notifications (guest_id, type, message, created_at, admin_id) VALUES (?, 'reservation', ?, NOW(), ?)
         $notif_msg = "Your reservation has been placed successfully. Ref: " . htmlspecialchars($reference_number) . ".";
 
         // Fetch guest name for admin notification
@@ -206,9 +206,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Prepare admin notification message
         $admin_notif_msg = '';
         if ($reservation_status === 'approved') {
-             $notif_msg .= " Your reservation is approved.";
+             // Append approval message to user notification if approved at booking
              if ($assigned_room_id !== NULL) {
-                 // Fetch room number to include in notification if assigned
+                 // Fetch room number to include in user notification if assigned
                  $room_num_sql = "SELECT room_number FROM tbl_room WHERE room_id = ? LIMIT 1"; // Limit 1 just in case
                  $stmt_room_num = $mycon->prepare($room_num_sql);
                  $stmt_room_num->bind_param("i", $assigned_room_id);
@@ -217,27 +217,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                  $stmt_room_num->fetch();
                  $stmt_room_num->close();
                  if (!empty($room_number)) {
-                    $notif_msg .= " Assigned Room Number: " . htmlspecialchars($room_number) . ".";
-                    $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved. Assigned Room Number: $room_number.";
+                    $notif_msg .= " Your reservation is approved. Assigned Room Number: " . htmlspecialchars($room_number) . ".";
+                    $admin_notif_msg = "New reservation placed by $guest_name (Ref: $reference_number). Approved. Assigned Room Number: $room_number.";
                 } else {
-                    $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
+                    $notif_msg .= " Your reservation is approved."; // Approved but no room assigned?
+                    $admin_notif_msg = "New reservation placed by $guest_name (Ref: $reference_number). Approved (No room assigned).";
                  }
             } else {
-                $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
+                $notif_msg .= " Your reservation is approved."; // Approved but no room assigned?
+                $admin_notif_msg = "New reservation placed by $guest_name (Ref: $reference_number). Approved (No room assigned).";
              }
         } else {
              $notif_msg .= " It is pending admin approval for room assignment and confirmation.";
-            $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Pending approval.";
+            $admin_notif_msg = "New reservation placed by $guest_name (Ref: $reference_number). Pending approval.";
         }
 
-        $notif_stmt = $mycon->prepare($notif_sql);
-        $notif_stmt->bind_param("isi", $guest_id, $notif_msg, $admin_id);
-        $notif_stmt->execute();
-        $notif_stmt->close();
+        // Use the updated add_notification function for user notification
+        include_once __DIR__ . '/notify.php'; // Ensure function is available
+        add_notification($guest_id, 'user', 'reservation', $notif_msg, $mycon, 0, $admin_id, $reservation_id);
 
-        // Add admin notification
-        include_once __DIR__ . '/notify.php';
-        add_notification($admin_id, 'admin', $admin_notif_msg, $mycon, 0, $admin_id);
+        // Use the updated add_notification function for admin notification
+        // Check if an admin is logged in to assign the notification
+        $current_admin_id = $_SESSION['admin_id'] ?? 1; // Default to admin 1 if no admin logged in (e.g., system action)
+        add_notification($current_admin_id, 'admin', 'reservation', $admin_notif_msg, $mycon, 0, null, $reservation_id);
 
         $_SESSION['success'] = "Reservation successful!<br>Your Reference Number: <b>" . htmlspecialchars($reference_number) . "</b>";
 

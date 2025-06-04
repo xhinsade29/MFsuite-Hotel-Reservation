@@ -12,13 +12,13 @@ include '../functions/db_connect.php';
 // Mark as read (single)
 if (isset($_GET['read']) && is_numeric($_GET['read'])) {
     $nid = intval($_GET['read']);
-    mysqli_query($mycon, "UPDATE user_notifications SET is_read = 1 WHERE user_notication_id = $nid AND admin_id = {$_SESSION['admin_id']}");
+    mysqli_query($mycon, "UPDATE admin_notifications SET is_read = 1 WHERE admin_notif_id = $nid AND admin_id = {$_SESSION['admin_id']}");
     header('Location: notifications.php');
     exit();
 }
 // Mark all as read
 if (isset($_GET['readall'])) {
-    mysqli_query($mycon, "UPDATE user_notifications SET is_read = 1 WHERE is_read = 0 AND admin_id = {$_SESSION['admin_id']}");
+    mysqli_query($mycon, "UPDATE admin_notifications SET is_read = 1 WHERE is_read = 0 AND admin_id = {$_SESSION['admin_id']}");
     header('Location: notifications.php');
     exit();
 }
@@ -40,7 +40,7 @@ if ($sort === 'oldest') {
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $per_page = 20;
 $offset = ($page - 1) * $per_page;
-$count_sql = "SELECT COUNT(*) FROM user_notifications n WHERE n.admin_id = ?$type_filter";
+$count_sql = "SELECT COUNT(*) FROM admin_notifications n WHERE n.admin_id = ?$type_filter";
 $count_stmt = mysqli_prepare($mycon, $count_sql);
 if ($types && count($params) > 0) {
     mysqli_stmt_bind_param($count_stmt, $types, ...$params);
@@ -52,7 +52,7 @@ $total = $total_row[0];
 $pages = ceil($total / $per_page);
 mysqli_stmt_close($count_stmt);
 
-$sql = "SELECT n.*, g.first_name, g.last_name FROM user_notifications n LEFT JOIN tbl_guest g ON n.guest_id = g.guest_id WHERE n.admin_id = ?$type_filter ORDER BY $order_by LIMIT $per_page OFFSET $offset";
+$sql = "SELECT n.* FROM admin_notifications n WHERE n.admin_id = ?$type_filter ORDER BY $order_by LIMIT $per_page OFFSET $offset";
 $stmt = mysqli_prepare($mycon, $sql);
 if ($types && count($params) > 0) {
     mysqli_stmt_bind_param($stmt, $types, ...$params);
@@ -71,20 +71,16 @@ if ($res && mysqli_num_rows($res) > 0) {
     }
 }
 
-function is_user_only_message($notif) {
-    $user_only_phrases = [
-        'Your cancellation request has been submitted.',
-        'Your reservation has been placed successfully.',
-        'Your reservation has been approved',
-        'Your reservation is approved',
-        'It is pending admin approval',
-        'Your cancellation request for reservation',
-        // Add more user-only phrases as needed
-    ];
+// Array of phrases that typically indicate a user-only notification
+// Add more phrases here as needed to filter out user-specific messages
+$user_only_phrases = [
+// ... existing code ...
+];
+
+function is_user_only_message($message) {
+    global $user_only_phrases;
     foreach ($user_only_phrases as $phrase) {
-        if (stripos($notif['message'], $phrase) !== false) {
-            return true;
-        }
+// ... existing code ...
     }
     return false;
 }
@@ -141,7 +137,6 @@ function is_user_only_message($notif) {
     ?>
     <?php if (count($notifications) > 0): ?>
         <?php foreach ($notifications as $notif): ?>
-            <?php if ($notif['type'] === 'admin' || !is_user_only_message($notif)): ?>
         <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?>">
             <div class="flex-grow-1">
                 <div class="d-flex align-items-center mb-2">
@@ -162,13 +157,10 @@ function is_user_only_message($notif) {
                     <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
                 </div>
                     <div><?php echo $notif['message']; ?></div>
-                <?php if (!empty($notif['first_name']) || !empty($notif['last_name'])): ?>
-                    <div class="mt-2 text-info small">From: <?php echo htmlspecialchars(trim(($notif['first_name'] ?? '') . ' ' . ($notif['last_name'] ?? ''))); ?></div>
-                <?php endif; ?>
+                </div>
             </div>
         </div>
-            <?php endif; ?>
-        <?php endforeach; ?>
+            <?php endforeach; ?>
     <?php else: ?>
         <div class="alert alert-info">No notifications yet.</div>
     <?php endif; ?>

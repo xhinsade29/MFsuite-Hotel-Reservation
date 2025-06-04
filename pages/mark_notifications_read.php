@@ -11,6 +11,6 @@ if (isset($_SESSION['guest_id'])) {
 
 if (isset($_GET['admin']) && $_GET['admin'] == '1' && isset($_SESSION['admin_id'])) {
     $admin_id = intval($_SESSION['admin_id']);
-    mysqli_query($mycon, "UPDATE user_notifications SET is_read = 1 WHERE admin_id = $admin_id");
+    mysqli_query($mycon, "UPDATE admin_notifications SET is_read = 1 WHERE admin_id = $admin_id");
     exit;
 } 

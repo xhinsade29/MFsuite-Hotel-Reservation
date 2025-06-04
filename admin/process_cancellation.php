@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Notify user if cancellation is approved
         if ($action === 'approve') {
             $admin_id = 1; // Use your default or actual admin_id here
-            add_notification($guest_id, 'reservation', 'Your reservation cancellation has been approved by the admin.', $mycon, 0, $admin_id);
+            add_notification($guest_id, 'user', 'cancellation', 'Your reservation cancellation has been approved by the admin.', $mycon, 0, $admin_id, $reservation_id);
         }
 
         // If approved and eligible for refund
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_close($log_stmt);
 
             $admin_id = 1; // Use your default or actual admin_id here
-            add_notification($guest_id, 'wallet', "Refunded ₱" . number_format($amount, 2) . " to your wallet for cancelled reservation #$reservation_id.", $mycon, 0, $admin_id);
+            add_notification($guest_id, 'user', 'wallet', "Refunded ₱" . number_format($amount, 2) . " to your wallet for cancelled reservation #$reservation_id.", $mycon, 0, $admin_id, $reservation_id);
         }
 
         $msg = $action === 'approve' ? 'Cancellation approved.' : 'Cancellation denied.';

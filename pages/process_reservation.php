@@ -230,17 +230,23 @@ if ($assigned_room_id !== NULL) {
     $admin_notif_msg = "New reservation placed by $guest_name. Ref: $reference_number. Approved.";
 }
 
-// Send notification to user (guest)
-$notif_stmt = $conn->prepare($notif_sql);
-$notif_stmt->bind_param("isi", $guest_id, $notif_msg, $admin_id);
-$notif_stmt->execute();
-$notif_stmt->close();
+// Use the updated add_notification function for user notification
+include_once __DIR__ . '/notify.php'; // Ensure function is available
+add_notification($guest_id, 'user', 'reservation', $notif_msg, $conn, 0, $admin_id, $reservation_id); // Use $conn for the database connection
 
-// Send notification to admin (admin only, not the user message)
-add_notification($admin_id, 'admin', $admin_notif_msg, $conn, 0, $admin_id);
+// Use the updated add_notification function for admin notification
+// Check if an admin is logged in to assign the notification
+$current_admin_id = $_SESSION['admin_id'] ?? 1; // Default to admin 1 if no admin logged in (e.g., system action)
+add_notification($current_admin_id, 'admin', 'reservation', $admin_notif_msg, $conn, 0, null, $reservation_id); // Use $conn for the database connection
+
+$_SESSION['success'] = "Reservation successful!<br>Your Reference Number: <b>" . htmlspecialchars($reference_number) . "</b>";
+
+// Add assigned room number to success message if applicable
+if ($assigned_room_id !== NULL) {
+    $_SESSION['success'] .= "<br>Assigned Room Number: " . htmlspecialchars($assigned_room_id);
+}
 
 $conn->close();
-$_SESSION['success'] = 'Booking successful and paid via wallet!';
 header("Location: /pages/reservations.php?success=1");
 exit;
 ?> 
