@@ -12,7 +12,8 @@ $sql = "SELECT r.*, rt.type_name, rt.description, rt.nightly_rate,
                GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
                p.payment_status, p.payment_method, p.amount, rt.room_type_id
         FROM tbl_reservation r
-        LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
+        LEFT JOIN tbl_room rm ON r.room_id = rm.room_id
+        LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id
         LEFT JOIN reservation_services rs ON r.reservation_id = rs.reservation_id
         LEFT JOIN tbl_services s ON rs.service_id = s.service_id
         LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id

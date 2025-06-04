@@ -389,7 +389,7 @@ while ($row = $services_result->fetch_assoc()) {
                           <th>Delete</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody id="roomListTable<?php echo $room['room_type_id']; ?>">
                         <?php if (empty($room['room_list'])): ?>
                           <tr><td colspan="4" class="text-center text-muted">No rooms yet. Add one above.</td></tr>
                         <?php else: ?>
@@ -515,6 +515,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
   });
+});
+function fetchRoomList(roomTypeId) {
+    fetch('ajax_room_status_table.php?room_type_id=' + roomTypeId)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('roomListTable' + roomTypeId).innerHTML = html;
+        });
+}
+// Attach event listeners to all View Rooms buttons
+// Assumes each button has data-bs-toggle="modal" and data-bs-target="#roomModal{room_type_id}"
+document.querySelectorAll('button[data-bs-target^="#roomModal"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        var roomTypeId = this.getAttribute('data-bs-target').replace('#roomModal', '');
+        fetchRoomList(roomTypeId);
+    });
 });
 </script>
 </body>

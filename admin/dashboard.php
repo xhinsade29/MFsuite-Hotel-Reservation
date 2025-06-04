@@ -787,5 +787,17 @@ new Chart(document.getElementById('bookingsLast7Chart'), {
   }
 });
 </script>
+<script>
+function updateRoomCounts() {
+    fetch('dashboard_details.php')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('availableRoomsCount').textContent = data.available;
+            document.getElementById('occupiedRoomsCount').textContent = data.occupied;
+        });
+}
+setInterval(updateRoomCounts, 5000); // Update every 5 seconds
+document.addEventListener('DOMContentLoaded', updateRoomCounts);
+</script>
 </body>
 </html> 
