@@ -150,9 +150,9 @@ require_once '../functions/payment_helpers.php';
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="cancellationRequestsTableBody">
                         <?php
-                        $cancellation_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name, cr.date_canceled FROM tbl_reservation r JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_room rm ON r.room_id = rm.room_id JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id JOIN cancelled_reservation cr ON r.reservation_id = cr.reservation_id WHERE r.status = 'cancellation_requested' ORDER BY cr.date_canceled DESC";
+                        $cancellation_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name, r.date_created as date_canceled, r.status FROM tbl_reservation r JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_room rm ON r.room_id = rm.room_id JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE r.status IN ('cancellation_requested', 'cancelled') ORDER BY r.date_created DESC";
                         $cancellation_res = mysqli_query($mycon, $cancellation_sql);
 
                         if ($cancellation_res && mysqli_num_rows($cancellation_res) > 0) {
@@ -292,8 +292,7 @@ require_once '../functions/payment_helpers.php';
   <div class="modal-dialog">
     <form id="approveForm" method="POST" action="process_update_status.php">
       <input type="hidden" name="reservation_id" id="approveReservationId">
-      <input type="hidden" name="new_status" value="approved">
-      <input type="hidden" name="action" value="approve">
+      <input type="hidden" name="action" value="approve_reservation">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="approveModalLabel">Approve Reservation</h5>
@@ -338,8 +337,8 @@ require_once '../functions/payment_helpers.php';
   <div class="modal-dialog">
     <form id="completeForm" method="POST" action="process_update_status.php">
       <input type="hidden" name="reservation_id" id="completeReservationId">
-      <input type="hidden" name="new_status" value="completed">
       <input type="hidden" name="action" value="complete">
+      <input type="hidden" name="new_status" value="completed">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="completeModalLabel">Mark as Completed</h5>
@@ -381,6 +380,15 @@ function refreshReservationsTable() {
 }
 setInterval(refreshReservationsTable, 10000);
 document.addEventListener('DOMContentLoaded', refreshReservationsTable);
+function refreshCancellationRequestsTable() {
+    fetch('ajax_cancellation_requests_table.php')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('cancellationRequestsTableBody').innerHTML = html;
+        });
+}
+setInterval(refreshCancellationRequestsTable, 10000);
+document.addEventListener('DOMContentLoaded', refreshCancellationRequestsTable);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
