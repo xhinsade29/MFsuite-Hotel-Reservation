@@ -105,10 +105,15 @@ require_once '../functions/payment_helpers.php';
                     echo '<td>';
                     if ($status === 'approved') {
                         $can_complete = strtotime($row['check_out']) < time();
-                        $btn_disabled = $can_complete ? '' : 'disabled';
                         $btn_class = $can_complete ? 'btn-primary' : 'btn-secondary';
                         $checkout_time = date('M d, Y h:i A', strtotime($row['check_out']));
-                        echo '<button class="btn ' . $btn_class . ' btn-sm mark-complete-btn" data-reservation-id="' . $row['reservation_id'] . '" data-checkout-time="' . htmlspecialchars($checkout_time) . '" ' . $btn_disabled . '>Mark as Completed</button>';
+                        $checkout_timestamp = strtotime($row['check_out']);
+                        // Debugging: Check the output of strtotime
+                        error_log('[DEBUG_PHP] strtotime output for reservation ' . $row['reservation_id'] . ': ' . print_r($checkout_timestamp, true));
+                        // Ensure a valid timestamp is outputted, default to 0 if strtotime fails
+                        $checkout_timestamp_output = ($checkout_timestamp !== false && $checkout_timestamp !== null && is_numeric($checkout_timestamp)) ? $checkout_timestamp : 0;
+                        error_log('[DEBUG_PHP] Output timestamp for reservation ' . $row['reservation_id'] . ': ' . $checkout_timestamp_output);
+                        echo '<button class="btn ' . $btn_class . ' btn-sm mark-complete-btn" data-reservation-id="' . $row['reservation_id'] . '" data-checkout-time="' . htmlspecialchars($checkout_time) . '" data-checkout-timestamp="' . $checkout_timestamp_output . '">Mark as Completed</button>';
                     }
                     echo '</td>';
                     echo '</tr>';
@@ -418,19 +423,27 @@ document.addEventListener('DOMContentLoaded', refreshReservationsTable);
         }
     // Mark as Completed button logic
     if (e.target.classList.contains('mark-complete-btn')) {
+        console.log('[DEBUG] Mark as Completed button clicked.');
         var reservationId = e.target.getAttribute('data-reservation-id');
         var checkoutTime = e.target.getAttribute('data-checkout-time');
-        showToast('Reservation is now eligible for completion!<br>Reservation ID: <b>' + reservationId + '</b><br>Check-out: <b>' + checkoutTime + '</b><br>You can now mark this reservation as completed.');
-        if (e.target.hasAttribute('disabled')) {
-            // Show toast notification for disabled (legacy, but always show above now)
+        var checkoutTimestamp = parseInt(e.target.getAttribute('data-checkout-timestamp'), 10);
+        var now = Math.floor(Date.now() / 1000);
+        console.log('[DEBUG] current time (now):', now);
+        console.log('[DEBUG] checkout timestamp:', checkoutTimestamp);
+
+        if (now < checkoutTimestamp) {
+            // Checkout not finished
+            showToast('Unavailable to mark as complete. The guest has not checked out yet.<br>Check-out: <b>' + checkoutTime + '</b>');
             return;
+        } else {
+            // Checkout finished
+            showCompleteModal(reservationId);
         }
-        showCompleteModal(reservationId);
     }
 });
 // Toast notification function
 function showToast(message) {
-    console.log('[DEBUG] showToast called:', message);
+    console.log('[DEBUG] showToast function called.', message);
     var toastContainer = document.getElementById('customToastContainer');
     if (!toastContainer) {
         toastContainer = document.createElement('div');

@@ -790,13 +790,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (fullyBookedToastEl) {
             fullyBookedToastEl.style.display = '';
             fullyBookedToast && fullyBookedToast.show();
-        }
+                    }
     }
     function hideFullyBookedToast() {
         if (fullyBookedToastEl) {
             fullyBookedToastEl.style.display = 'none';
-        }
-    }
+                    }
+                }
 
     // --- NEW: Show toast immediately if room is fully booked on page load ---
     <?php if ($room_fully_booked): ?>
