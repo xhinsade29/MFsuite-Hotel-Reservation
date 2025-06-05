@@ -18,7 +18,9 @@ while ($r = $room_query->fetch_assoc()) {
     echo '<input type="hidden" name="edit_room_number" value="1">';
     echo '<input type="hidden" name="room_id" value="' . $r['room_id'] . '">';
     echo '<td><input type="text" name="room_number" value="' . htmlspecialchars($r['room_number']) . '" class="form-control form-control-sm" required></td>';
-    echo '<td><span class="badge bg-' . ($is_occupied ? 'danger' : 'success') . '">' . ($is_occupied ? 'Occupied' : 'Available') . '</span></td>';
+    $status = $r['status'];
+    $badge = $status === 'Available' ? 'success' : ($status === 'Occupied' ? 'danger' : 'secondary');
+    echo '<td><span class="badge bg-' . $badge . '">' . htmlspecialchars($status) . '</span></td>';
     echo '<td><button type="submit" class="btn btn-primary btn-sm">Save</button> ';
     echo '<button type="button" class="btn btn-secondary btn-sm" onclick="this.form.querySelector(\'[name=room_number]\').value=\'' . htmlspecialchars($r['room_number']) . '\';">Cancel</button></td>';
     echo '<td><form method="POST" onsubmit="return confirm(\'Delete this room?\');" style="display:inline;">';

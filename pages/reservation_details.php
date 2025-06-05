@@ -381,14 +381,15 @@ $conn->close();
                         <?php endif; ?>
                         <div class="info-row">
                             <strong>Status:</strong>&nbsp;
-                            <?php if ($booking['reservation_status'] === 'approved'): ?>
-                                <span class="badge bg-success">Approved by Admin</span>
-                            <?php elseif ($booking['reservation_status'] === 'pending'): ?>
-                                <span class="badge bg-warning text-dark">Pending Admin Approval</span>
-                            <?php elseif ($booking['reservation_status'] === 'completed'): ?>
-                                <span class="badge bg-primary">Completed</span>
-                            <?php elseif ($booking['reservation_status'] === 'cancelled'): ?>
-                                <span class="badge bg-danger mb-2">Cancelled</span>
+                            <?php $status = trim($booking['reservation_status']); ?>
+                            <?php if ($status === 'approved'): ?>
+                                <span style="color:#28a745; font-weight:600;">Approved by Admin</span>
+                            <?php elseif ($status === 'pending'): ?>
+                                <span style="color:#ffc107; font-weight:600;">Pending Admin Approval</span>
+                            <?php elseif ($status === 'completed'): ?>
+                                <span style="color:#0d6efd; font-weight:600;">Completed</span>
+                            <?php elseif ($status === 'cancelled'): ?>
+                                <span style="color:#dc3545; font-weight:600;">Cancelled</span>
                                 <?php if ($cancellation_details): ?>
                                 <div class="alert alert-danger mt-2" style="background:rgba(255,0,0,0.08);color:#ffb3b3;border:none;">
                                     <strong>Cancellation Details:</strong><br>
@@ -402,10 +403,10 @@ $conn->close();
                                     <strong>Refunded:</strong> The payment for this reservation has been refunded and added to your wallet.
                                 </div>
                                 <?php endif; ?>
-                            <?php elseif ($booking['reservation_status'] === 'cancellation_requested'): ?>
-                                <span class="badge bg-info text-dark">Cancellation Requested</span>
-                            <?php elseif ($booking['reservation_status'] === 'denied'): ?>
-                                <span class="badge bg-secondary">Cancellation Denied</span>
+                            <?php elseif ($status === 'cancellation_requested'): ?>
+                                <span style="color:#17a2b8; font-weight:600;">Cancellation Requested</span>
+                            <?php elseif ($status === 'denied'): ?>
+                                <span style="color:#6c757d; font-weight:600;">Cancellation Denied</span>
                             <?php endif; ?>
                         </div>
                     </div>

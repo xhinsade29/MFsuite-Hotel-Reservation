@@ -87,22 +87,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Approve Reservation action
         if ($action === 'approve_reservation') {
             $approved_status = 'approved';
-            $room_type_id = $row['room_id'];
+            $room_type_id = $row['room_type_id'];
             $check_in = $row['check_in'];
             $check_out = $row['check_out'];
+            error_log("[DEBUG] Approving reservation #$reservation_id for room_type_id=$room_type_id, check_in=$check_in, check_out=$check_out");
             $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (
                 SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
             ) LIMIT 1";
             $stmt_find = mysqli_prepare($mycon, $find_room_sql);
             if (!$stmt_find) {
-                 error_log("Find room prepare failed for reservation #{$reservation_id}: " . mysqli_error($mycon));
+                 error_log("[ERROR] Find room prepare failed for reservation #{$reservation_id}: " . mysqli_error($mycon));
                  add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Assignment Failed: Database error preparing room query for reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
                  header("Location: reservations.php?msg=Database+error+finding+room");
                  exit();
             }
             mysqli_stmt_bind_param($stmt_find, "iss", $room_type_id, $check_out, $check_in);
             if (!mysqli_stmt_execute($stmt_find)) {
-                 error_log("Find room execute failed for reservation #{$reservation_id}: " . mysqli_stmt_error($stmt_find));
+                 error_log("[ERROR] Find room execute failed for reservation #{$reservation_id}: " . mysqli_stmt_error($stmt_find));
                  mysqli_stmt_close($stmt_find); // Close statement before exiting
                  add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Assignment Failed: Database error executing room query for reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
                  header("Location: reservations.php?msg=Database+error+finding+room");
@@ -111,37 +112,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_result($stmt_find, $assigned_room_id);
             $assigned_room_id = null;
             if (mysqli_stmt_fetch($stmt_find)) {
-                error_log("Room found for reservation #{$reservation_id}: Room ID = " . $assigned_room_id);
+                error_log("[DEBUG] Room found for reservation #{$reservation_id}: Room ID = " . $assigned_room_id);
                 mysqli_stmt_close($stmt_find);
                 $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = ?, assigned_room_id = ? WHERE reservation_id = ?");
                 mysqli_stmt_bind_param($stmt, "sii", $approved_status, $assigned_room_id, $reservation_id);
                 if (!mysqli_stmt_execute($stmt)) {
-                    error_log("tbl_reservation update failed for reservation #{$reservation_id}. Error: " . mysqli_stmt_error($stmt));
+                    error_log("[ERROR] tbl_reservation update failed for reservation #{$reservation_id}. Error: " . mysqli_stmt_error($stmt));
                     mysqli_stmt_close($stmt);
                     add_notification($_SESSION['admin_id'], 'admin', 'system', 'Reservation Update Failed: Database error updating reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
                     header("Location: reservations.php?msg=Database+error+updating+reservation");
                     exit();
                 }
-                error_log("tbl_reservation update successful for reservation #{$reservation_id}.");
+                error_log("[DEBUG] tbl_reservation update successful for reservation #{$reservation_id}.");
                 mysqli_stmt_close($stmt);
                 // Mark the room as occupied
-                $stmt = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
-                mysqli_stmt_bind_param($stmt, "i", $assigned_room_id);
-                 if (!mysqli_stmt_execute($stmt)) {
-                     error_log("tbl_room status update failed for room #{$assigned_room_id}. Error: " . mysqli_stmt_error($stmt));
-                     mysqli_stmt_close($stmt);
-                     add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Status Update Failed: Database error updating room status for room #'.$assigned_room_id.'.', $mycon, 0, null, $assigned_room_id);
-                     header("Location: reservations.php?msg=Database+error+updating+room");
-                     exit();
-                 }
-                error_log("tbl_room status update successful for room #{$assigned_room_id}.");
-                mysqli_stmt_close($stmt);
+                if ($assigned_room_id) {
+                    $stmt = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
+                    mysqli_stmt_bind_param($stmt, "i", $assigned_room_id);
+                    if (!mysqli_stmt_execute($stmt)) {
+                        error_log("[ERROR] tbl_room status update failed for room #{$assigned_room_id}. Error: " . mysqli_stmt_error($stmt));
+                        mysqli_stmt_close($stmt);
+                        add_notification($_SESSION['admin_id'], 'admin', 'system', 'Room Status Update Failed: Database error updating room status for room #'.$assigned_room_id.'.', $mycon, 0, null, $assigned_room_id);
+                        header("Location: reservations.php?msg=Database+error+updating+room");
+                        exit();
+                    }
+                    error_log("[DEBUG] tbl_room status update successful for room #{$assigned_room_id}.");
+                    mysqli_stmt_close($stmt);
+                } else {
+                    error_log("[ERROR] No assigned_room_id after room assignment for reservation #{$reservation_id}.");
+                }
                 add_notification($guest_id, 'user', 'reservation', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id, $reservation_id);
                 add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Reservation #'.$reservation_id.' ('.$guest_name.') has been approved.', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Reservation+approved+successfully");
                 exit();
             } else {
-                error_log("No available room found for reservation #{$reservation_id}.");
+                error_log("[ERROR] No available room found for reservation #{$reservation_id}.");
                 add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Room Type Fully Booked: No available room for this type and date for reservation #'.$reservation_id.'. The room type is fully booked and cannot accept any more reservations for the selected dates.', $mycon, 0, null, $reservation_id);
                 header("Location: reservations.php?msg=Room+type+is+fully+booked+and+cannot+accept+any+more+reservations+for+the+selected+dates");
                 exit();
@@ -154,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
             // Assign a room and set reservation to approved for both Cash and Non-Cash payments
-            $room_type_id = $row['room_id'];
+            $room_type_id = $row['room_type_id'];
             $check_in = $row['check_in'];
             $check_out = $row['check_out'];
             $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (

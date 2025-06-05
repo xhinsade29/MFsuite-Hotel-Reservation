@@ -16,6 +16,32 @@ $total_revenue = mysqli_fetch_row(mysqli_query($mycon, "SELECT SUM(amount) FROM 
 $paid_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_payment WHERE payment_status = 'Paid'"))[0];
 $unpaid_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_payment WHERE payment_status = 'Unpaid'"))[0];
 $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_payment WHERE payment_status = 'Refunded'"))[0];
+// --- PHP DATA FOR CHARTS ---
+// 1. Daily Income (last 14 days)
+$daily_income_labels = [];
+$daily_income_data = [];
+for ($i = 13; $i >= 0; $i--) {
+  $date = date('Y-m-d', strtotime("-$i days"));
+  $daily_income_labels[] = date('M d', strtotime($date));
+  $sum = mysqli_fetch_row(mysqli_query($mycon, "SELECT SUM(amount) FROM tbl_payment WHERE payment_status = 'Paid' AND DATE(payment_created) = '$date'"))[0] ?? 0;
+  $daily_income_data[] = floatval($sum);
+}
+// 2. Payment Methods Used (for paid payments)
+$methods_res = mysqli_query($mycon, "SELECT payment_method, COUNT(*) as cnt FROM tbl_payment WHERE payment_status = 'Paid' GROUP BY payment_method");
+$payment_methods_labels = [];
+$payment_methods_data = [];
+while ($row = mysqli_fetch_assoc($methods_res)) {
+  $payment_methods_labels[] = $row['payment_method'] ?: 'N/A';
+  $payment_methods_data[] = intval($row['cnt']);
+}
+// 3. Top 5 Customers by total paid amount
+$top_customers_res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, SUM(p.amount) as total FROM tbl_guest g JOIN tbl_reservation r ON g.guest_id = r.guest_id JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_status = 'Paid' GROUP BY g.guest_id ORDER BY total DESC LIMIT 5");
+$top_customers_labels = [];
+$top_customers_data = [];
+while ($row = mysqli_fetch_assoc($top_customers_res)) {
+  $top_customers_labels[] = trim($row['first_name'].' '.$row['last_name']);
+  $top_customers_data[] = floatval($row['total']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -348,18 +374,13 @@ $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM
             <div class="card shadow mb-4" style="width:100%;margin:auto;">
               <div class="card-body chart-card" style="height:380px;min-height:260px;">
                 <h5 class="card-title mb-3" style="font-size:1.18rem;"><i class="bi bi-pie-chart-fill"></i> Reservations by Status</h5>
-                <canvas id="reservationStatusChart" height="260"></canvas>
+                <canvas id="reservationStatusChart"></canvas>
                 <div class="form-check form-switch mt-2">
                   <input class="form-check-input" type="checkbox" id="toggleStatusChartType">
                   <label class="form-check-label" for="toggleStatusChartType" style="color:#ffa533;font-size:0.95em;">Bar Chart</label>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="card mb-3"><div class="card-body"><h5 class="card-title"><i class="bi bi-graph-up"></i> Reservation Trends</h5><canvas id="reservationTrendsChart" height="80" style="max-width:350px;"></canvas></div></div>
           </div>
         </div>
         <div class="row mb-4">
@@ -490,28 +511,52 @@ $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM
           <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Unpaid</div><div class="kpi-value"><?php echo $unpaid_payments; ?></div></div></div>
           <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Refunded</div><div class="kpi-value"><?php echo $refunded_payments; ?></div></div></div>
         </div>
+        
         <div class="row mb-4">
-          <div class="col-lg-5 col-md-7 mx-auto">
-            <div class="card shadow mb-4" style="max-width:400px;width:100%;margin:auto;margin-top:24px;">
+          <!-- Daily Income Line Chart -->
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
               <div class="card-body chart-card">
-                <div style="width:100%;">
-                  <h5 class="card-title mb-4" style="margin-bottom:24px !important;"><i class="bi bi-pie-chart-fill"></i> Payments by Status</h5>
-                  <canvas id="paymentStatusChart"></canvas>
-                  <div class="form-check form-switch mt-3">
-                    <input class="form-check-input" type="checkbox" id="togglePaymentStatusChartType">
-                    <label class="form-check-label" for="togglePaymentStatusChartType" style="color:#ffa533;">Bar Chart</label>
-                  </div>
+                <h5 class="card-title mb-4"><i class="bi bi-graph-up"></i> Daily Income (Last 14 Days)</h5>
+                <canvas id="dailyIncomeChart" height="120"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- Payment Methods Pie Chart -->
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
+              <div class="card-body chart-card">
+                <h5 class="card-title mb-4"><i class="bi bi-pie-chart"></i> Payment Methods Used</h5>
+                <canvas id="paymentMethodsChart" height="120"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-4">
+          <!-- Top 5 Customers Bar Chart -->
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
+              <div class="card-body chart-card">
+                <h5 class="card-title mb-4"><i class="bi bi-bar-chart"></i> Top 5 Customers (by Paid Amount)</h5>
+                <canvas id="topCustomersChart" height="120"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- Payment Status Donut Chart (already present, just ensure it's styled as a donut) -->
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4" style="width:100%;margin:auto;">
+              <div class="card-body">
+                <h5 class="card-title mb-4"><i class="bi bi-pie-chart-fill"></i> Payment Statuses</h5>
+                <canvas id="paymentStatusChart"></canvas>
+                <div class="form-check form-switch mt-3">
+                  <input class="form-check-input" type="checkbox" id="togglePaymentStatusChartType">
+                  <label class="form-check-label" for="togglePaymentStatusChartType" style="color:#ffa533;">Bar Chart</label>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <!-- Placeholders for trends, summary, recent payments -->
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="card mb-3"><div class="card-body"><h5 class="card-title"><i class="bi bi-graph-up"></i> Revenue Trends</h5><canvas id="revenueTrendsChart" height="120" style="max-width:600px;"></canvas></div></div>
-          </div>
-        </div>
+      
         <div class="row mb-4">
           <div class="col-lg-6"><div class="card mb-3"><div class="card-body"><h5 class="card-title d-flex justify-content-between align-items-center"><span><i class="bi bi-table"></i> Payment Summary</span>
             <span>
@@ -614,6 +659,7 @@ $refunded_payments = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.7.0/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 <script>
 // Date range picker setup
 flatpickr("#reservationDateRange", {
@@ -791,7 +837,7 @@ let paymentStatusChart = new Chart(document.getElementById('paymentStatusChart')
     }]
   },
   options: {
-    cutout: '78%',
+    cutout: '75%',
     plugins: {
       legend: {
         display: true,
@@ -802,6 +848,14 @@ let paymentStatusChart = new Chart(document.getElementById('paymentStatusChart')
         }
       },
       tooltip: {
+        callbacks: {
+          label: function(context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const value = context.parsed;
+            const percent = total ? ((value / total) * 100).toFixed(1) : 0;
+            return `${context.label}: ${value} (${percent}%)`;
+          }
+        },
         backgroundColor: '#232323',
         titleColor: '#ffa533',
         bodyColor: '#fff',
@@ -811,6 +865,15 @@ let paymentStatusChart = new Chart(document.getElementById('paymentStatusChart')
         padding: 12,
         titleFont: { weight: '700', size: 15 },
         bodyFont: { size: 14 }
+      },
+      datalabels: {
+        color: '#fff',
+        font: { weight: 'bold', size: 16 },
+        formatter: function(value, context) {
+          const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+          const percent = total ? ((value / total) * 100).toFixed(1) : 0;
+          return value + '\n' + percent + '%';
+        }
       }
     },
     layout: { padding: 8 },
@@ -818,7 +881,8 @@ let paymentStatusChart = new Chart(document.getElementById('paymentStatusChart')
     responsive: true,
     maintainAspectRatio: false,
     backgroundColor: '#181818'
-  }
+  },
+  plugins: [ChartDataLabels]
 });
 document.getElementById('togglePaymentStatusChartType').addEventListener('change', function() {
   paymentChartType = this.checked ? 'bar' : 'doughnut';
@@ -828,48 +892,15 @@ document.getElementById('togglePaymentStatusChartType').addEventListener('change
     data: {
       labels: paymentStatusData.labels,
       datasets: [{
-        label: 'Payments',
         data: paymentStatusData.data,
         backgroundColor: paymentStatusData.colors,
-        borderColor: paymentChartType === 'bar' ? '#ffa533' : '#181818',
+        borderColor: '#181818',
         borderWidth: 4,
-        borderRadius: paymentChartType === 'bar' ? 14 : 0,
-        hoverOffset: paymentChartType === 'doughnut' ? 10 : 0
+        hoverOffset: 10
       }]
     },
-    options: Object.assign({}, paymentChartType === 'bar' ? {
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#232323',
-          titleColor: '#ffa533',
-          bodyColor: '#fff',
-          borderColor: '#ffa533',
-          borderWidth: 1.5,
-          cornerRadius: 10,
-          padding: 12,
-          titleFont: { weight: '700', size: 15 },
-          bodyFont: { size: 14 }
-        }
-      },
-      layout: { padding: 8 },
-      animation: { duration: 900, easing: 'easeOutQuart' },
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: '#232323' },
-          ticks: { color: '#ffa533', font: { size: 13 } }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#ffa533', font: { size: 13 } }
-        }
-      },
-      backgroundColor: '#181818'
-    } : {
-      cutout: '78%',
+    options: {
+      cutout: '75%',
       plugins: {
         legend: {
           display: true,
@@ -880,6 +911,14 @@ document.getElementById('togglePaymentStatusChartType').addEventListener('change
           }
         },
         tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const value = context.parsed;
+              const percent = total ? ((value / total) * 100).toFixed(1) : 0;
+              return `${context.label}: ${value} (${percent}%)`;
+            }
+          },
           backgroundColor: '#232323',
           titleColor: '#ffa533',
           bodyColor: '#fff',
@@ -889,6 +928,15 @@ document.getElementById('togglePaymentStatusChartType').addEventListener('change
           padding: 12,
           titleFont: { weight: '700', size: 15 },
           bodyFont: { size: 14 }
+        },
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold', size: 16 },
+          formatter: function(value, context) {
+            const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            const percent = total ? ((value / total) * 100).toFixed(1) : 0;
+            return value + '\n' + percent + '%';
+          }
         }
       },
       layout: { padding: 8 },
@@ -896,7 +944,8 @@ document.getElementById('togglePaymentStatusChartType').addEventListener('change
       responsive: true,
       maintainAspectRatio: false,
       backgroundColor: '#181818'
-    })
+    },
+    plugins: [ChartDataLabels]
   });
 });
 // Bookings Over Time Chart Data
@@ -1182,6 +1231,66 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   const recentCardTitle = document.querySelector('#recent-payments-table').closest('.card-body').querySelector('.card-title');
   recentCardTitle.appendChild(clearBtn);
+});
+// --- Daily Income Line Chart ---
+const dailyIncomeData = {
+  labels: <?php echo json_encode($daily_income_labels); ?>,
+  datasets: [{
+    label: 'Income',
+    data: <?php echo json_encode($daily_income_data); ?>,
+    borderColor: '#ffa533',
+    backgroundColor: 'rgba(255,165,51,0.10)',
+    tension: 0.4,
+    fill: true,
+    pointRadius: 4,
+    pointBackgroundColor: '#ffa533',
+    pointBorderColor: '#fff',
+    pointHoverRadius: 6
+  }]
+};
+new Chart(document.getElementById('dailyIncomeChart'), {
+  type: 'line',
+  data: dailyIncomeData,
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } }
+  }
+});
+// --- Payment Methods Pie Chart ---
+const paymentMethodsData = {
+  labels: <?php echo json_encode($payment_methods_labels); ?>,
+  datasets: [{
+    data: <?php echo json_encode($payment_methods_data); ?>,
+    backgroundColor: ['#ffa533', '#2ecc71', '#0d6efd', '#ff4d4d', '#ffc107', '#6c757d', '#8e44ad'],
+    borderColor: '#23234a',
+    borderWidth: 2
+  }]
+};
+new Chart(document.getElementById('paymentMethodsChart'), {
+  type: 'pie',
+  data: paymentMethodsData,
+  options: {
+    plugins: { legend: { labels: { color: '#fff', font: { weight: 'bold' } } } }
+  }
+});
+// --- Top 5 Customers Bar Chart ---
+const topCustomersData = {
+  labels: <?php echo json_encode($top_customers_labels); ?>,
+  datasets: [{
+    label: 'Total Paid',
+    data: <?php echo json_encode($top_customers_data); ?>,
+    backgroundColor: '#ffa533',
+    borderColor: '#23234a',
+    borderWidth: 2
+  }]
+};
+new Chart(document.getElementById('topCustomersChart'), {
+  type: 'bar',
+  data: topCustomersData,
+  options: {
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return '₱' + ctx.parsed.y.toLocaleString(); } } } },
+    scales: { y: { beginAtZero: true, ticks: { color: '#fff', callback: function(val) { return '₱' + val; } } }, x: { ticks: { color: '#fff' } } }
+  }
 });
 </script>
 </body>
