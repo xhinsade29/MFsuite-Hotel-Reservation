@@ -16,8 +16,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
         if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
 
-        // Set reservation status to completed (valid enum value)
-        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'completed' WHERE reservation_id = ?");
+        // 1. Get reservation details (room_type_id, check_in, check_out)
+        $stmt_details = $conn->prepare("SELECT room_id, check_in, check_out, assigned_room_id FROM tbl_reservation WHERE reservation_id = ?");
+        $stmt_details->bind_param("i", $reservation_id);
+        $stmt_details->execute();
+        $stmt_details->bind_result($room_type_id, $check_in, $check_out, $assigned_room_id);
+        $stmt_details->fetch();
+        $stmt_details->close();
+
+        // 2. If not already assigned, find an available room and assign it
+        if (empty($assigned_room_id)) {
+            $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (
+                SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
+            ) LIMIT 1";
+            $stmt_find = $conn->prepare($find_room_sql);
+            $stmt_find->bind_param("iss", $room_type_id, $check_out, $check_in);
+            $stmt_find->execute();
+            $stmt_find->bind_result($new_assigned_room_id);
+            $assigned_room_id = null;
+            if ($stmt_find->fetch()) {
+                $assigned_room_id = $new_assigned_room_id;
+            }
+            $stmt_find->close();
+            if ($assigned_room_id) {
+                // Assign the room to the reservation
+                $stmt_assign = $conn->prepare("UPDATE tbl_reservation SET assigned_room_id = ? WHERE reservation_id = ?");
+                $stmt_assign->bind_param("ii", $assigned_room_id, $reservation_id);
+                $stmt_assign->execute();
+                $stmt_assign->close();
+            }
+        }
+
+        // Set reservation status to approved (not completed)
+        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'approved' WHERE reservation_id = ?");
         $stmt->bind_param("i", $reservation_id);
         $stmt->execute();
         $stmt->close();
@@ -27,6 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt2->bind_param("i", $reservation_id);
         $stmt2->execute();
         $stmt2->close();
+
+        // Set assigned room status to 'Occupied' if a room is assigned
+        if (!empty($assigned_room_id)) {
+            $stmt_update_room = $conn->prepare("UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
+            $stmt_update_room->bind_param("i", $assigned_room_id);
+            $stmt_update_room->execute();
+            $stmt_update_room->close();
+        }
 
         // Add notification for the admin
         $admin_id = $_SESSION['admin_id'] ?? 1; // Get logged-in admin ID or default

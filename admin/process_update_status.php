@@ -127,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_close($stmt);
                 // Mark the room as occupied
                 if ($assigned_room_id) {
+                    error_log("[DEBUG] Attempting to set room #{$assigned_room_id} to Occupied for reservation #{$reservation_id}.");
                     $stmt = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
                     mysqli_stmt_bind_param($stmt, "i", $assigned_room_id);
                     if (!mysqli_stmt_execute($stmt)) {

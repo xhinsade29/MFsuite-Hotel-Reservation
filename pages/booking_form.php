@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
     // --- NEW: Show toast immediately if room is fully booked on page load ---
-    <?php if ($room_fully_booked): ?>
+    <?php if (isset($room_fully_booked) && $room_fully_booked): ?>
     showFullyBookedToast();
     <?php endif; ?>
 });

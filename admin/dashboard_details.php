@@ -8,22 +8,30 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['rol
 include '../functions/db_connect.php';
 $type = $_GET['type'] ?? '';
 $html = '';
+// Add handler for real-time room counts
+if ($type === 'room_counts') {
+    $available = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_room WHERE status = 'Available'"))[0];
+    $occupied = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_room WHERE status = 'Occupied'"))[0];
+    echo json_encode(['available' => $available, 'occupied' => $occupied]);
+    exit;
+}
 switch ($type) {
     case 'available_rooms':
-        $res = mysqli_query($mycon, "SELECT room_number, room_type_id FROM tbl_room WHERE status = 'Available'");
-        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Room Number</th><th>Room Type</th></tr></thead><tbody>";
+        $res = mysqli_query($mycon, "SELECT rm.room_number, rm.room_type_id, rm.status, rt.type_name FROM tbl_room rm LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE rm.status = 'Available'");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Room Type</th><th>Room Number</th><th>Status</th></tr></thead><tbody>";
         while ($r = mysqli_fetch_assoc($res)) {
-            $type_name = mysqli_fetch_row(mysqli_query($mycon, "SELECT type_name FROM tbl_room_type WHERE room_type_id = {$r['room_type_id']}"))[0];
-            $html .= "<tr><td>".htmlspecialchars($r['room_number'])."</td><td>".htmlspecialchars($type_name)."</td></tr>";
+            $html .= "<tr><td>".htmlspecialchars($r['type_name'])."</td><td>".htmlspecialchars($r['room_number'])."</td><td><span class='text-success fw-bold'>".htmlspecialchars($r['status'])."</span></td></tr>";
         }
         $html .= '</tbody></table>';
         break;
     case 'occupied_rooms':
-        $res = mysqli_query($mycon, "SELECT room_number, room_type_id FROM tbl_room WHERE status = 'Occupied'");
-        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Room Number</th><th>Room Type</th></tr></thead><tbody>";
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, rm.room_number, rm.status, rt.type_name, r.check_out FROM tbl_room rm LEFT JOIN tbl_reservation r ON rm.room_id = r.assigned_room_id AND r.status IN ('approved','completed') AND r.check_out > NOW() LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE rm.status = 'Occupied'");
+        $html .= "<div class='text-secondary small mb-2'>[DEBUG] Query: Only rooms with status 'Occupied' and joined to current/future approved/completed reservations</div>";
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Room Type</th><th>Room Number</th><th>Status</th><th>Check-out</th></tr></thead><tbody>";
         while ($r = mysqli_fetch_assoc($res)) {
-            $type_name = mysqli_fetch_row(mysqli_query($mycon, "SELECT type_name FROM tbl_room_type WHERE room_type_id = {$r['room_type_id']}"))[0];
-            $html .= "<tr><td>".htmlspecialchars($r['room_number'])."</td><td>".htmlspecialchars($type_name)."</td></tr>";
+            $guest = ($r['first_name'] || $r['last_name']) ? htmlspecialchars($r['first_name'].' '.$r['last_name']) : '<span class="text-secondary">-</span>';
+            $checkout = $r['check_out'] ? date('M d, Y h:i A', strtotime($r['check_out'])) : '<span class="text-secondary">-</span>';
+            $html .= "<tr><td>".$guest."</td><td>".htmlspecialchars($r['type_name'])."</td><td>".htmlspecialchars($r['room_number'])."</td><td><span class='text-danger fw-bold'>".htmlspecialchars($r['status'])."</span></td><td>".$checkout."</td></tr>";
         }
         $html .= '</tbody></table>';
         break;
@@ -56,6 +64,57 @@ switch ($type) {
         $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Reservation ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Payment Status</th></tr></thead><tbody>";
         while ($r = mysqli_fetch_assoc($res)) {
             $html .= "<tr><td>".htmlspecialchars($r['reservation_id'])."</td><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['type_name'])."</td><td>".date('M d, Y h:i A', strtotime($r['check_in']))."</td><td>".date('M d, Y h:i A', strtotime($r['check_out']))."</td><td>".htmlspecialchars($r['payment_status'])."</td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'todays_checkins':
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, rm.room_number FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id WHERE DATE(r.check_in) = CURDATE()");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Room Number</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['room_number'])."</td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'todays_checkouts':
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, rm.room_number FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id WHERE DATE(r.check_out) = CURDATE()");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Room Number</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['room_number'])."</td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'pending_reservations':
+        $html .= "<div class='text-center py-4'><p>To manage pending reservations, go to the <strong>Reservations Pending Admin Approval</strong> table below.</p><a href='dashboard.php#pending-approval' class='btn btn-warning'>Go to Pending Reservations Table</a></div>";
+        break;
+    case 'completed_reservations':
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, r.check_out, r.status FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE r.status = 'completed' ORDER BY r.check_out DESC");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".date('M d, Y h:i A', strtotime($r['check_out']))."</td><td><span class='text-success fw-bold'>Completed</span></td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'cancelled_requests':
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, cr.reason_text, r.date_created, r.status FROM tbl_reservation r JOIN cancelled_reservation c ON r.reservation_id = c.reservation_id JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_cancellation_reason cr ON c.reason_id = cr.reason_id WHERE r.status = 'cancelled' ORDER BY r.date_created DESC");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Reason</th><th>Date Requested</th><th>Status</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['reason_text'])."</td><td>".date('M d, Y h:i A', strtotime($r['date_created']))."</td><td><span class='text-danger fw-bold'>Cancelled</span></td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'denied_requests':
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, cr.reason_text, r.date_created, r.status FROM tbl_reservation r JOIN cancelled_reservation c ON r.reservation_id = c.reservation_id JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_cancellation_reason cr ON c.reason_id = cr.reason_id WHERE r.status = 'denied' ORDER BY r.date_created DESC");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Date Denied</th><th>Reason</th><th>Status</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".date('M d, Y h:i A', strtotime($r['date_created']))."</td><td>".htmlspecialchars($r['reason_text'])."</td><td><span class='text-warning fw-bold'>Denied</span></td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'approved_cancelled_requests':
+        $res = mysqli_query($mycon, "SELECT g.first_name, g.last_name, cr.reason_text, c.date_canceled, r.status FROM tbl_reservation r JOIN cancelled_reservation c ON r.reservation_id = c.reservation_id JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_cancellation_reason cr ON c.reason_id = cr.reason_id WHERE r.status = 'cancelled' ORDER BY c.date_canceled DESC");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Guest Name</th><th>Reason</th><th>Date Approved</th><th>Status</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['reason_text'])."</td><td>".date('M d, Y h:i A', strtotime($r['date_canceled']))."</td><td><span class='text-success fw-bold'>Approved</span></td></tr>";
         }
         $html .= '</tbody></table>';
         break;

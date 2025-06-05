@@ -74,6 +74,8 @@ $new_admins_sql = "
     LIMIT 5
 ";
 $new_admins = mysqli_query($mycon, $new_admins_sql);
+// Add PHP variable for approved cancelled requests count
+$approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'cancelled'"))[0];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -274,6 +276,13 @@ $new_admins = mysqli_query($mycon, $new_admins_sql);
             <div class="summary-info">
                 <span class="summary-label">Denied Requests</span>
                 <span class="summary-value"><?php echo $denied_requests; ?></span>
+            </div>
+        </div>
+        <div class="summary-card requests" id="approvedCancelledRequestsCard">
+            <span class="summary-icon"><i class="bi bi-check2-circle"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Approved Cancelled Requests</span>
+                <span class="summary-value" id="approvedCancelledRequestsValue"><?php echo $approved_cancelled_requests; ?></span>
             </div>
         </div>
         <div class="summary-card reservations clickable" id="totalBookingsCard">
@@ -497,9 +506,24 @@ $new_admins = mysqli_query($mycon, $new_admins_sql);
         </div>
       </div>
     </div>
+    <!-- Simple Modal for Card Info -->
+    <div class="modal fade" id="cardInfoModal" tabindex="-1" aria-labelledby="cardInfoModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light rounded-4 shadow-lg border-0">
+          <div class="modal-header border-0 pb-0 justify-content-center bg-transparent">
+            <h4 class="modal-title w-100 text-center fw-bold text-warning" id="cardInfoModalLabel">Card Info</h4>
+            <button type="button" class="btn-close btn-close-white position-absolute end-0 me-3 mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center" id="cardInfoModalBody">
+            <!-- Card info will be injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let modalInterval = null;
     function showModal(title, tableHtml) {
         document.getElementById('summaryModalLabel').textContent = title;
         document.getElementById('summaryModalBody').innerHTML = tableHtml;
@@ -511,30 +535,113 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('summaryModalBody').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning" role="status"></div></div>';
         var modal = new bootstrap.Modal(document.getElementById('summaryModal'));
         modal.show();
-        fetch('dashboard_details.php?type=' + encodeURIComponent(type))
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('summaryModalBody').innerHTML = html;
-            })
-            .catch(() => {
-                document.getElementById('summaryModalBody').innerHTML = '<div class="text-danger text-center">Failed to load data.</div>';
-            });
+        function loadModalContent() {
+            fetch('dashboard_details.php?type=' + encodeURIComponent(type))
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('summaryModalBody').innerHTML = html;
+                })
+                .catch(() => {
+                    document.getElementById('summaryModalBody').innerHTML = '<div class="text-danger text-center">Failed to load data.</div>';
+                });
+        }
+        loadModalContent();
+        // Refresh every 5 seconds while modal is open
+        clearInterval(modalInterval);
+        modalInterval = setInterval(loadModalContent, 1000);
+        document.getElementById('summaryModal').addEventListener('hidden.bs.modal', function() {
+            clearInterval(modalInterval);
+        }, { once: true });
     }
-    document.getElementById('availableRoomsCard').onclick = function() {
-        fetchSummary('available_rooms', 'Available Rooms');
-    };
-    document.getElementById('occupiedRoomsCard').onclick = function() {
-        fetchSummary('occupied_rooms', 'Occupied Rooms');
-    };
-    document.getElementById('totalBookingsCard').onclick = function() {
-        fetchSummary('total_bookings', 'All Bookings');
-    };
-    document.getElementById('totalGuestsCard').onclick = function() {
-        fetchSummary('total_guests', 'All Guests');
-    };
-    document.getElementById('totalIncomeCard').onclick = function() {
-        fetchSummary('total_income', 'All Payments');
-    };
+    // Remove the simple modal handler for all summary cards
+    // Only attach the detailed modal handler to the appropriate cards
+    var detailedModalLabels = [
+        "Check-ins",
+        "Check-outs",
+        "Pending Reservations",
+        "Completed Reservations",
+        "Total Bookings",
+        "Total Guests"
+    ];
+    document.querySelectorAll('.summary-card').forEach(function(card) {
+        card.onclick = null;
+    });
+    // Set click handler for Available Rooms card
+    var availableRoomsCard = document.getElementById('availableRoomsCard');
+    if (availableRoomsCard) {
+        availableRoomsCard.onclick = function() {
+            fetchSummary('available_rooms', 'Available Rooms');
+        };
+    }
+    // Set click handler for Occupied Rooms card
+    var occupiedRoomsCard = document.getElementById('occupiedRoomsCard');
+    if (occupiedRoomsCard) {
+        occupiedRoomsCard.onclick = function() {
+            fetchSummary('occupied_rooms', 'Occupied Rooms');
+        };
+    }
+    var checkinsCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Check-ins"));
+    if (checkinsCard) {
+        var card = checkinsCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('todays_checkins', "Today's Check-ins");
+        };
+    }
+    var checkoutsCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Check-outs"));
+    if (checkoutsCard) {
+        var card = checkoutsCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('todays_checkouts', "Today's Check-outs");
+        };
+    }
+    var pendingCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Pending Reservations"));
+    if (pendingCard) {
+        var card = pendingCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('pending_reservations', "Pending Reservations");
+        };
+    }
+    var completedCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Completed Reservations"));
+    if (completedCard) {
+        var card = completedCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('completed_reservations', "Completed Reservations");
+        };
+    }
+    var totalBookingsCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Total Bookings"));
+    if (totalBookingsCard) {
+        var card = totalBookingsCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('total_bookings', "All Bookings");
+        };
+    }
+    var totalGuestsCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Total Guests"));
+    if (totalGuestsCard) {
+        var card = totalGuestsCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('total_guests', "All Guests");
+        };
+    }
+    var cancelledCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Cancelled Requests"));
+    if (cancelledCard) {
+        var card = cancelledCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('cancelled_requests', "Cancelled Requests");
+        };
+    }
+    var deniedCard = Array.from(document.querySelectorAll('.summary-card .summary-label')).find(e => e.textContent.includes("Denied Requests"));
+    if (deniedCard) {
+        var card = deniedCard.closest('.summary-card');
+        card.onclick = function() {
+            fetchSummary('denied_requests', "Denied Requests");
+        };
+    }
+    var approvedCancelledCard = document.getElementById('approvedCancelledRequestsCard');
+    if (approvedCancelledCard) {
+        approvedCancelledCard.onclick = function() {
+            fetchSummary('approved_cancelled_requests', 'Approved Cancelled Requests');
+        };
+    }
     document.getElementById('cardFilter').addEventListener('change', function() {
         var value = this.value;
         var cards = document.querySelectorAll('.summary-card');
@@ -789,14 +896,14 @@ new Chart(document.getElementById('bookingsLast7Chart'), {
 </script>
 <script>
 function updateRoomCounts() {
-    fetch('dashboard_details.php')
+    fetch('dashboard_details.php?type=room_counts')
         .then(response => response.json())
         .then(data => {
-            document.getElementById('availableRoomsCount').textContent = data.available;
-            document.getElementById('occupiedRoomsCount').textContent = data.occupied;
+            document.getElementById('availableRoomsValue').textContent = data.available;
+            document.getElementById('occupiedRoomsValue').textContent = data.occupied;
         });
 }
-setInterval(updateRoomCounts, 5000); // Update every 5 seconds
+setInterval(updateRoomCounts, 500); // Update every .5 seconds
 document.addEventListener('DOMContentLoaded', updateRoomCounts);
 </script>
 </body>

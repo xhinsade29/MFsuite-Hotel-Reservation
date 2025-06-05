@@ -134,7 +134,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $reservation_status = 'approved';
             } else {
                 // No room found for the dates, do not allow booking
-                $_SESSION['error'] = 'Sorry, this room type is fully booked for your selected dates.';
+                $_SESSION['error'] = 'Sorry, all rooms of this type are fully booked or occupied for your selected dates. Please select another room type or date.';
+                // Optionally, add a notification for the user
+                include_once __DIR__ . '/notify.php';
+                add_notification($guest_id, 'user', 'reservation', 'Booking failed: All rooms of this type are fully booked or occupied for your selected dates.', $mycon, 0, null, null);
                 header("Location: ../pages/booking_form.php?room_type_id=" . $room_type_id);
                 exit();
             }
@@ -186,6 +189,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($stmt->execute()) {
         $reservation_id = $mycon->insert_id; // Get the new reservation ID
+
+        // If reservation is auto-approved and a room is assigned, set room status to 'Occupied'
+        if ($reservation_status === 'approved' && !empty($assigned_room_id)) {
+            $stmt_update_room = $mycon->prepare("UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
+            $stmt_update_room->bind_param("i", $assigned_room_id);
+            $stmt_update_room->execute();
+            $stmt_update_room->close();
+        }
 
         // Insert notification for the user (using updated function)
         // Was: INSERT INTO user_notifications (guest_id, type, message, created_at, admin_id) VALUES (?, 'reservation', ?, NOW(), ?)
