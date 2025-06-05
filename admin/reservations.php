@@ -168,7 +168,7 @@ require_once '../functions/payment_helpers.php';
                                 // Approve Cancellation Button
                                 echo '<button class="btn btn-success btn-sm approve-cancellation-btn" data-reservation-id="' . $row['reservation_id'] . '">Approve Cancellation</button>';
                                 // Add Deny Cancellation button if needed
-                                // echo '<button class="btn btn-danger btn-sm deny-cancellation-btn" data-reservation-id="' . $row['reservation_id'] . '">Deny Cancellation</button>';
+                                echo '<button class="btn btn-danger btn-sm deny-cancellation-btn" data-reservation-id="' . $row['reservation_id'] . '">Deny Cancellation</button>';
                                 echo '</td>';
                                 echo '</tr>';
                             }
@@ -389,6 +389,15 @@ function refreshCancellationRequestsTable() {
 }
 setInterval(refreshCancellationRequestsTable, 10000);
 document.addEventListener('DOMContentLoaded', refreshCancellationRequestsTable);
+function fetchRoomList(roomTypeId) {
+    fetch('ajax_room_status_table.php?room_type_id=' + roomTypeId)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('roomListTable' + roomTypeId).innerHTML = html;
+            attachRoomEditListeners();
+            attachRoomRowFormListeners();
+        });
+}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>

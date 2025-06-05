@@ -109,10 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($room_id && $room_number) {
             $stmt = $mycon->prepare("UPDATE tbl_room SET room_number=? WHERE room_id=?");
             $stmt->bind_param('si', $room_number, $room_id);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                echo "<script>setTimeout(function(){ showAdminToast('Error: " . addslashes($stmt->error) . "', 'danger'); }, 500);</script>";
+            } else {
+                echo "<script>setTimeout(function(){ showAdminToast('Room number updated!', 'success'); setTimeout(function(){ location.reload(); }, 1200); }, 100);</script>";
+            }
             $stmt->close();
-            $msg = 'Room number updated!';
-            echo "<script>location.reload();</script>";
             exit;
         }
     }
@@ -120,12 +122,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_room_single'])) {
         $room_id = intval($_POST['room_id']);
         if ($room_id) {
-            $stmt = $mycon->prepare("DELETE FROM tbl_room WHERE room_id=?");
-            $stmt->bind_param('i', $room_id);
-            $stmt->execute();
-            $stmt->close();
-            $msg = 'Room deleted!';
-            echo "<script>location.reload();</script>";
+            // Check if the room is occupied or assigned to a reservation
+            $check = $mycon->prepare("SELECT COUNT(*) FROM tbl_reservation WHERE assigned_room_id=? AND status IN ('pending','approved','completed')");
+            $check->bind_param('i', $room_id);
+            $check->execute();
+            $check->bind_result($count);
+            $check->fetch();
+            $check->close();
+            if ($count > 0) {
+                echo "<script>setTimeout(function(){ showAdminToast('Cannot delete: Room is currently occupied or assigned to a reservation.', 'danger'); }, 500);</script>";
+            } else {
+                $stmt = $mycon->prepare("DELETE FROM tbl_room WHERE room_id=?");
+                $stmt->bind_param('i', $room_id);
+                if (!$stmt->execute()) {
+                    echo "<script>setTimeout(function(){ showAdminToast('Error: " . addslashes($stmt->error) . "', 'danger'); }, 500);</script>";
+                } else {
+                    echo "<script>setTimeout(function(){ showAdminToast('Room deleted successfully!', 'success'); setTimeout(function(){ location.reload(); }, 1200); }, 100);</script>";
+                }
+                $stmt->close();
+            }
             exit;
         }
     }
@@ -385,35 +400,24 @@ while ($row = $services_result->fetch_assoc()) {
                         <tr>
                           <th>Room Number</th>
                           <th>Status</th>
-                          <th>Edit</th>
-                          <th>Delete</th>
                         </tr>
                       </thead>
                       <tbody id="roomListTable<?php echo $room['room_type_id']; ?>">
                         <?php if (empty($room['room_list'])): ?>
-                          <tr><td colspan="4" class="text-center text-muted">No rooms yet. Add one above.</td></tr>
+                          <tr><td colspan="2" class="text-center text-muted">No rooms yet. Add one above.</td></tr>
                         <?php else: ?>
                           <?php foreach ($room['room_list'] as $r): ?>
                           <tr>
-                            <form method="POST">
-                              <input type="hidden" name="edit_room_number" value="1">
+                            <form method="POST" class="room-row-form" data-room-id="<?php echo $r['room_id']; ?>">
                               <input type="hidden" name="room_id" value="<?php echo $r['room_id']; ?>">
-                              <td>
-                                <input type="text" name="room_number" value="<?php echo htmlspecialchars($r['room_number']); ?>" class="form-control form-control-sm" required>
+                              <td class="d-flex align-items-center gap-2">
+                                <input type="text" name="room_number" value="<?php echo htmlspecialchars($r['room_number']); ?>" class="form-control form-control-sm room-number-input" required readonly style="max-width:110px;">
+                                <button type="button" class="btn btn-success btn-sm save-room-btn d-none" title="Save"><i class="bi bi-check"></i></button>
+                                <button type="button" class="btn btn-secondary btn-sm cancel-room-btn d-none" title="Cancel"><i class="bi bi-x"></i></button>
+                                <button type="button" class="btn btn-danger btn-sm delete-room-btn" title="Delete"><i class="bi bi-trash"></i></button>
                               </td>
                               <td>
-                                <span class="badge bg-<?php echo $r['status'] === 'Available' ? 'success' : 'danger'; ?>"><?php echo $r['status']; ?></span>
-                              </td>
-                              <td>
-                                <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="this.form.querySelector('[name=room_number]').value='<?php echo htmlspecialchars($r['room_number']); ?>';">Cancel</button>
-                              </td>
-                              <td>
-                                <form method="POST" onsubmit="return confirm('Delete this room?');" style="display:inline;">
-                                  <input type="hidden" name="delete_room_single" value="1">
-                                  <input type="hidden" name="room_id" value="<?php echo $r['room_id']; ?>">
-                                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                                </form>
+                                <span class="badge bg-<?php echo $r['status'] === 'Available' ? 'success' : ($r['status'] === 'Occupied' ? 'danger' : 'secondary'); ?>"><?php echo htmlspecialchars($r['status']); ?></span>
                               </td>
                             </form>
                           </tr>
@@ -441,18 +445,51 @@ while ($row = $services_result->fetch_assoc()) {
     </div>
   </div>
 </div>
+<!-- Add Edit Room Number Modal -->
+<div class="modal fade" id="editRoomNumberModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-warning">Edit Room Number</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editRoomNumberForm" method="POST">
+        <div class="modal-body">
+          <input type="hidden" name="room_id" id="editRoomId">
+          <input type="hidden" name="edit_room_number" value="1">
+          <div class="mb-3">
+            <label class="form-label">Room Number</label>
+            <input type="text" name="room_number" id="editRoomNumber" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Add Delete Confirmation Modal -->
+<div class="modal fade" id="deleteRoomConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger">Confirm Delete</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this room number?</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteRoomBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function showEditForm(btn) {
-    var tr = btn.closest('.card');
-    tr.querySelector('.edit-form').style.display = '';
-    btn.style.display = 'none';
-}
-function hideEditForm(btn) {
-    var form = btn.closest('.edit-form');
-    form.style.display = 'none';
-    form.closest('.card').querySelector('.btn-warning').style.display = '';
-}
 function showAdminToast(message, type) {
   var toastEl = document.getElementById('adminToast');
   var toastBody = document.getElementById('adminToastBody');
@@ -464,16 +501,114 @@ function showAdminToast(message, type) {
   var toast = new bootstrap.Toast(toastEl);
   toast.show();
 }
-function highlightRoomNumberField(roomNumber) {
-  // Try to find the input field for room number and highlight it
-  var inputs = document.querySelectorAll('input[name="room_number"]');
-  inputs.forEach(function(input) {
-    if (input.value == roomNumber) {
-      input.classList.add('is-invalid');
-      setTimeout(function(){ input.classList.remove('is-invalid'); }, 2000);
-    }
+function attachRoomEditListeners() {
+  // Save Room Number
+  document.querySelectorAll('.save-room-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      var tr = btn.closest('tr');
+      if (!tr) return;
+      var roomIdInput = tr.querySelector('input[name="room_id"]');
+      var roomNumberInput = tr.querySelector('.room-number-input');
+      if (!roomIdInput || !roomNumberInput) return;
+      var roomId = roomIdInput.value;
+      var newRoomNumber = roomNumberInput.value;
+      fetch('', {
+        method: 'POST',
+        body: new URLSearchParams({
+          edit_room_number: 1,
+          room_id: roomId,
+          room_number: newRoomNumber
+        })
+      })
+      .then(response => response.text())
+      .then(() => {
+        showAdminToast('Room number updated successfully!', 'success');
+        roomNumberInput.setAttribute('data-original-value', newRoomNumber);
+      })
+      .catch(() => {
+        showAdminToast('Error updating room number', 'danger');
+      });
+    };
   });
+  // Cancel Room Number Edit
+  document.querySelectorAll('.cancel-room-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      var tr = btn.closest('tr');
+      if (!tr) return;
+      var roomNumberInput = tr.querySelector('.room-number-input');
+      if (!roomNumberInput) return;
+      var originalValue = roomNumberInput.getAttribute('data-original-value');
+      roomNumberInput.value = originalValue;
+    };
+  });
+  // Delete Room with modal confirmation
+  let roomIdToDelete = null;
+  document.querySelectorAll('.delete-room-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      var tr = btn.closest('tr');
+      if (!tr) return;
+      var roomIdInput = tr.querySelector('input[name="room_id"]');
+      var statusBadge = tr.querySelector('span.badge');
+      if (!roomIdInput || !statusBadge) return;
+      var status = statusBadge.textContent.trim();
+      if (status === 'Occupied') {
+        showAdminToast('Cannot delete: Room is currently occupied.', 'danger');
+        return;
+      }
+      roomIdToDelete = { tr: tr, roomId: roomIdInput.value };
+      var deleteModal = new bootstrap.Modal(document.getElementById('deleteRoomConfirmModal'));
+      deleteModal.show();
+    };
+  });
+  var confirmDeleteBtn = document.getElementById('confirmDeleteRoomBtn');
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.onclick = function() {
+      if (!roomIdToDelete) return;
+      var fd = new FormData();
+      fd.append('delete_room_single', '1');
+      fd.append('room_id', roomIdToDelete.roomId);
+      fetch('', { method: 'POST', body: fd })
+        .then(response => response.text())
+        .then(() => {
+          showAdminToast('Room deleted successfully!', 'success');
+          roomIdToDelete.tr.remove();
+          var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteRoomConfirmModal'));
+          if (deleteModal) deleteModal.hide();
+          roomIdToDelete = null;
+        })
+        .catch(() => {
+          showAdminToast('Error deleting room', 'danger');
+        });
+    };
+  }
 }
+
+// Handle Edit Room Number Form Submit
+document.getElementById('editRoomNumberForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  fetch('', {
+    method: 'POST',
+    body: new FormData(this)
+  })
+  .then(response => response.text())
+  .then(() => {
+    // Hide modal
+    bootstrap.Modal.getInstance(document.getElementById('editRoomNumberModal')).hide();
+    
+    // Show success message
+    showAdminToast('Room number updated successfully!', 'success');
+    
+    // Refresh the room list
+    var roomTypeId = document.querySelector('.room-row-form[data-room-id="' + this.querySelector('#editRoomId').value + '"]')
+      .closest('.modal').id.replace('roomModal', '');
+    fetchRoomList(roomTypeId);
+  })
+  .catch(error => {
+    showAdminToast('Error updating room number', 'danger');
+  });
+});
+
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.add-room-form').forEach(function(form) {
     form.addEventListener('submit', function(e) {
@@ -488,26 +623,18 @@ document.addEventListener('DOMContentLoaded', function() {
             var table = form.closest('.modal-body').querySelector('table tbody');
             var tr = document.createElement('tr');
             tr.innerHTML = `
-              <form method="POST">
-                <input type="hidden" name="edit_room_number" value="1">
+              <td class="d-flex align-items-center gap-2">
                 <input type="hidden" name="room_id" value="${data.room.room_id}">
-                <td><input type="text" name="room_number" value="${data.room.room_number}" class="form-control form-control-sm" required></td>
-                <td><span class="badge bg-success">${data.room.status}</span></td>
-                <td>
-                  <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="this.form.querySelector('[name=room_number]').value='${data.room.room_number}';">Cancel</button>
-                </td>
-                <td>
-                  <form method="POST" onsubmit="return confirm('Delete this room?');" style="display:inline;">
-                    <input type="hidden" name="delete_room_single" value="1">
-                    <input type="hidden" name="room_id" value="${data.room.room_id}">
-                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                  </form>
-                </td>
-              </form>
+                <input type="text" name="room_number" value="${data.room.room_number}" class="form-control form-control-sm room-number-input" required style="max-width:110px;" data-original-value="${data.room.room_number}">
+                <button type="button" class="btn btn-success btn-sm save-room-btn" title="Save"><i class="bi bi-check"></i></button>
+                <button type="button" class="btn btn-secondary btn-sm cancel-room-btn" title="Cancel"><i class="bi bi-x"></i></button>
+                <button type="button" class="btn btn-danger btn-sm delete-room-btn" title="Delete"><i class="bi bi-trash"></i></button>
+              </td>
+              <td><span class="badge bg-success">${data.room.status}</span></td>
             `;
             table.appendChild(tr);
             form.reset();
+            attachRoomEditListeners(); // Attach listeners to the new row
           } else {
             showAdminToast(data.message, 'danger');
             highlightRoomNumberField(fd.get('room_number'));
@@ -515,12 +642,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
   });
+  attachRoomEditListeners(); // Attach listeners on page load
 });
 function fetchRoomList(roomTypeId) {
     fetch('ajax_room_status_table.php?room_type_id=' + roomTypeId)
         .then(response => response.text())
         .then(html => {
             document.getElementById('roomListTable' + roomTypeId).innerHTML = html;
+            attachRoomEditListeners(); // Attach listeners after AJAX update
         });
 }
 // Attach event listeners to all View Rooms buttons
