@@ -376,9 +376,6 @@ $conn->close();
                             echo $nights;
                         ?></div>
                         <div class="info-row"><strong>Room Number:</strong>&nbsp;<?php echo $assigned_room_number ? htmlspecialchars($assigned_room_number) : '<span class="text-secondary">Not assigned</span>'; ?></div>
-                        <?php if (!empty($booking['services'])): ?>
-                        <div class="info-row"><strong>Selected Services:</strong>&nbsp;<?php echo htmlspecialchars($booking['services']); ?></div>
-                        <?php endif; ?>
                         <div class="info-row">
                             <strong>Status:</strong>&nbsp;
                             <?php $status = trim($booking['reservation_status']); ?>
@@ -390,26 +387,41 @@ $conn->close();
                                 <span style="color:#0d6efd; font-weight:600;">Completed</span>
                             <?php elseif ($status === 'cancelled'): ?>
                                 <span style="color:#dc3545; font-weight:600;">Cancelled</span>
-                                <?php if ($cancellation_details): ?>
-                                <div class="alert alert-danger mt-2" style="background:rgba(255,0,0,0.08);color:#ffb3b3;border:none;">
-                                    <strong>Cancellation Details:</strong><br>
-                                    <span><strong>Reason:</strong> <?php echo htmlspecialchars($cancellation_details['reason_text'] ?? '-'); ?></span><br>
-                                    <span><strong>Cancelled By:</strong> <?php echo htmlspecialchars($cancellation_details['canceled_by'] ?? '-'); ?></span><br>
-                                    <span><strong>Date Cancelled:</strong> <?php echo htmlspecialchars(date('Y-m-d h:i A', strtotime($cancellation_details['date_canceled'] ?? ''))); ?></span>
-                                </div>
-                                <?php endif; ?>
-                                <?php if ($booking['payment_status'] === 'Refunded'): ?>
-                                <div class="alert alert-success mt-2" style="background:rgba(0,255,0,0.08);color:#b3ffb3;border:none;">
-                                    <strong>Refunded:</strong> The payment for this reservation has been refunded and added to your wallet.
-                                </div>
-                                <?php endif; ?>
                             <?php elseif ($status === 'cancellation_requested'): ?>
                                 <span style="color:#17a2b8; font-weight:600;">Cancellation Requested</span>
                             <?php elseif ($status === 'denied'): ?>
                                 <span style="color:#6c757d; font-weight:600;">Cancellation Denied</span>
                             <?php endif; ?>
                         </div>
+                        <?php if (!empty($booking['services'])): ?>
+                        <div class="info-row"><strong>Selected Services:</strong>&nbsp;<?php echo htmlspecialchars($booking['services']); ?></div>
+                        <?php endif; ?>
                     </div>
+                    <?php if ($status === 'cancelled' && ($cancellation_details || $booking['payment_status'] === 'Refunded')): ?>
+                        <div class="details-section">
+                            <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:flex-start; margin-top:18px;">
+                                <?php if ($cancellation_details): ?>
+                                    <div style="flex:1 1 260px; min-width:220px;">
+                                        <hr style="border:0; border-top:2.5px solid #dc3545; margin:0 0 10px 0;">
+                                        <div class="alert alert-danger mt-2" style="background:rgba(255,0,0,0.08);color:#ffb3b3;border:none; font-size:0.92em; line-height:1.3; padding:10px 16px;">
+                                            <strong style="font-size:1em;">Cancellation Details:</strong><br>
+                                            <span><strong>Reason:</strong> <?php echo htmlspecialchars($cancellation_details['reason_text'] ?? '-'); ?></span><br>
+                                            <span><strong>Cancelled By:</strong> <?php echo htmlspecialchars($cancellation_details['canceled_by'] ?? '-'); ?></span><br>
+                                            <span><strong>Date Cancelled:</strong> <?php echo htmlspecialchars(date('Y-m-d h:i A', strtotime($cancellation_details['date_canceled'] ?? ''))); ?></span>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($booking['payment_status'] === 'Refunded'): ?>
+                                    <div style="flex:1 1 260px; min-width:220px;">
+                                        <hr style="border:0; border-top:2.5px solid #28a745; margin:0 0 10px 0;">
+                                        <div class="alert alert-success mt-2" style="background:rgba(0,255,0,0.08);color:#b3ffb3;border:none; font-size:0.92em; line-height:1.3; padding:10px 16px;">
+                                            <strong style="font-size:1em;">Refunded:</strong> The payment for this reservation has been refunded and added to your wallet.
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     <div class="divider"></div>
                     <div class="details-section">
                         <div class="section-title"><i class="bi bi-credit-card icon"></i>Payment Information</div>
@@ -433,7 +445,20 @@ $conn->close();
                         ?>
                         <div class="info-row"><strong>Account Info:</strong>&nbsp;<?php echo htmlspecialchars($acc_info); ?></div>
                         <div class="info-row"><strong>Total Amount:</strong>&nbsp;₱<?php echo number_format($total_amount, 2); ?></div>
-                        <div class="info-row"><strong>Payment Status:</strong>&nbsp;<?php echo htmlspecialchars($booking['payment_status']); ?></div>
+                        <div class="info-row"><strong>Payment Status:</strong>&nbsp;
+                        <?php $pay_status = trim($booking['payment_status']); ?>
+                        <?php if ($pay_status === 'Paid'): ?>
+                            <span style="color:#28a745; font-weight:600;">Paid</span>
+                        <?php elseif ($pay_status === 'Pending'): ?>
+                            <span style="color:#ffc107; font-weight:600;">Pending</span>
+                        <?php elseif ($pay_status === 'Failed'): ?>
+                            <span style="color:#dc3545; font-weight:600;">Failed</span>
+                        <?php elseif ($pay_status === 'Refunded'): ?>
+                            <span style="color:#dc3545; font-weight:600;">Refunded</span>
+                        <?php else: ?>
+                            <span style="color:#6c757d; font-weight:600;"><?php echo htmlspecialchars($pay_status); ?></span>
+                        <?php endif; ?>
+                        </div>
                         <div class="info-row"><strong>Date Booked:</strong>&nbsp;<?php echo htmlspecialchars($booking['date_created']); ?></div>
                     </div>
                 </div>
