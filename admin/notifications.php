@@ -115,6 +115,23 @@ function is_user_only_message($message) {
             position: relative;
         }
         @media (max-width: 900px) { .container { margin-left: 70px; padding: 18px 4px; } }
+        .notification-card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+        .notif-card.clickable:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-left-color: #ff8c00;
+        }
+        .notif-card.clickable {
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-left-color 0.2s ease-in-out;
+        }
+        .highlight-section {
+            box-shadow: 0 0 0 4px #ff8c00, 0 4px 24px rgba(255,140,0,0.18);
+            transition: box-shadow 0.3s;
+        }
     </style>
 </head>
 <body>
@@ -144,30 +161,55 @@ function is_user_only_message($message) {
     ?>
     <?php if (count($notifications) > 0): ?>
         <?php foreach ($notifications as $notif): ?>
-        <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?>">
-            <div class="flex-grow-1">
-                <div class="d-flex align-items-center mb-2">
-                    <?php if ($notif['type'] === 'reservation'): ?>
-                        <i class="bi bi-calendar2-check notif-type-reservation me-2"></i>
-                    <?php elseif ($notif['type'] === 'wallet'): ?>
-                        <i class="bi bi-wallet2 notif-type-wallet me-2"></i>
-                    <?php elseif ($notif['type'] === 'profile'): ?>
-                        <i class="bi bi-person-circle notif-type-profile me-2"></i>
+            <?php
+                $is_clickable = false;
+                $link_href = '#';
+                if (!empty($notif['related_id'])) {
+                    if ($notif['type'] === 'cancellation') {
+                        $is_clickable = true;
+                        $link_href = 'dashboard.php#pending-cancellations';
+                    } elseif ($notif['type'] === 'payment') {
+                        $is_clickable = true;
+                        $link_href = 'dashboard.php#pending-cash-approvals';
+                    } elseif ($notif['type'] === 'reservation' && strpos($notif['message'], 'Pending approval') !== false) {
+                        $is_clickable = true;
+                        $link_href = 'dashboard.php#pending-cash-approvals';
+                    } elseif ($notif['type'] === 'reservation') {
+                        $is_clickable = true;
+                        $link_href = 'reservations.php?id=' . $notif['related_id'];
+                    }
+                }
+                $tag_open = $is_clickable ? '<a href="' . $link_href . '" class="notification-card-link">' : '';
+                $tag_close = $is_clickable ? '</a>' : '';
+                $card_class = $is_clickable ? 'clickable' : '';
+            ?>
+            <?php echo $tag_open; ?>
+            <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?> <?php echo $card_class; ?>">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center mb-2">
+                        <?php if ($notif['type'] === 'reservation'): ?>
+                            <i class="bi bi-calendar2-check notif-type-reservation me-2"></i>
+                        <?php elseif ($notif['type'] === 'wallet'): ?>
+                            <i class="bi bi-wallet2 notif-type-wallet me-2"></i>
+                        <?php elseif ($notif['type'] === 'profile'): ?>
+                            <i class="bi bi-person-circle notif-type-profile me-2"></i>
                         <?php elseif ($notif['type'] === 'admin'): ?>
                             <i class="bi bi-person-badge notif-type-profile me-2"></i>
-                    <?php else: ?>
-                        <i class="bi bi-info-circle me-2"></i>
-                    <?php endif; ?>
-                    <span class="fw-bold text-capitalize me-2 notif-type-<?php echo htmlspecialchars($notif['type']); ?>">
-                        <?php echo htmlspecialchars($notif['type']); ?>
-                    </span>
-                    <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
-                </div>
+                        <?php elseif ($notif['type'] === 'cancellation'): ?>
+                            <i class="bi bi-x-circle notif-type-reservation me-2"></i>
+                        <?php else: ?>
+                            <i class="bi bi-info-circle me-2"></i>
+                        <?php endif; ?>
+                        <span class="fw-bold text-capitalize me-2 notif-type-<?php echo htmlspecialchars($notif['type']); ?>">
+                            <?php echo htmlspecialchars($notif['type']); ?>
+                        </span>
+                        <span class="notif-date ms-auto"><?php echo date('Y-m-d H:i', strtotime($notif['created_at'])); ?></span>
+                    </div>
                     <div><?php echo $notif['message']; ?></div>
                 </div>
             </div>
-        </div>
-            <?php endforeach; ?>
+            <?php echo $tag_close; ?>
+        <?php endforeach; ?>
     <?php else: ?>
         <div class="alert alert-info">No notifications yet.</div>
     <?php endif; ?>
@@ -187,6 +229,24 @@ function fetchNotifications() {
 }
 setInterval(fetchNotifications, 1000);
 document.addEventListener('DOMContentLoaded', fetchNotifications);
+
+// Highlight Pending Cancellation Requests section if coming from a cancellation notification
+function highlightPendingCancellations() {
+    var anchor = document.getElementById('pending-cancellations');
+    if (anchor) {
+        var section = anchor.closest('.table-section');
+        if (section) {
+            section.classList.add('highlight-section');
+            setTimeout(function() {
+                section.classList.remove('highlight-section');
+            }, 2500);
+        }
+    }
+}
+// If the URL contains #pending-cancellations and a special flag, highlight the section
+if (window.location.hash === '#pending-cancellations') {
+    setTimeout(highlightPendingCancellations, 300); // Wait for DOM/render
+}
 </script>
 </body>
 </html> 

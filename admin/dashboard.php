@@ -309,6 +309,7 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
     </div>
     <!-- Combined Pending Reservations Table -->
     <div class="table-section mt-4">
+        <a id="pending-cancellations"></a>
         <div class="table-title">Pending Cancellation Requests</div>
         <div class="table-responsive">
         <table class="table table-hover table-bordered align-middle">
@@ -361,12 +362,61 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
         </table>
         </div>
     </div>
-    <!-- Debug Output for Chart Data -->
-    <div style="background:#222;color:#ffa533;padding:10px;margin-bottom:10px;font-size:1.1em;">
-      <strong>DEBUG: Chart Data</strong><br>
-      <pre id="debugChartData"></pre>
-      <span id="chartjsStatus"></span>
+
+    <!-- Pending Cash Payment Approvals Table -->
+    <div class="table-section mt-4">
+        <a id="pending-cash-approvals"></a>
+        <div class="table-title">Pending Cash Payment Approvals</div>
+        <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>Reservation ID</th>
+                    <th>Guest</th>
+                    <th>Room Type</th>
+                    <th>Check-in</th>
+                    <th>Check-out</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php
+            // Query to fetch pending reservations with cash payment
+            $cash_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name
+                           FROM tbl_reservation r
+                           JOIN tbl_guest g ON r.guest_id = g.guest_id
+                           JOIN tbl_payment p ON r.payment_id = p.payment_id
+                           JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
+                           WHERE r.status = 'pending' AND p.payment_method = 'Cash'
+                           ORDER BY r.date_created DESC";
+            $cash_res = mysqli_query($mycon, $cash_sql);
+            if ($cash_res && mysqli_num_rows($cash_res) > 0) {
+                while ($row = mysqli_fetch_assoc($cash_res)) {
+                    echo '<tr>';
+                    echo '<td>' . $row['reservation_id'] . '</td>';
+                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
+                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
+                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
+                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
+                    echo '<td>';
+                    echo '<form method="POST" action="process_update_status.php" style="display:inline-block;">';
+                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
+                    echo '<input type="hidden" name="action" value="approve_reservation">';
+                    echo '<button type="submit" class="btn btn-success btn-sm">Approve Cash Payment</button>';
+                    echo '</form>';
+                    echo '</td>';
+                    echo '</tr>';
+                }
+            } else {
+                echo '<tr><td colspan="6" class="text-center text-secondary">No pending cash payment approvals.</td></tr>';
+            }
+            ?>
+            </tbody>
+        </table>
+        </div>
     </div>
+
+    <!-- Debug Output for Chart Data -->
     <!-- Recent Activities Section -->
     <div class="table-section mb-4">
         <div class="table-title d-flex align-items-center">

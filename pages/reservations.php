@@ -751,7 +751,7 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                                 if (match) {
                                     const count = parseInt(match[1], 10) + 1;
                                     trashBtnText.textContent = `Trash (${count})`;
-                                }
+                        }
                             }
                             // Refresh trash modal content via AJAX
                             fetch('reservations.php?get_trash_html=1')
@@ -762,7 +762,7 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                                 });
                         } else {
                             Swal.fire('Error!', response.message || 'Could not move reservation.', 'error');
-                        }
+                            }
                     }, 'json');
                     }
                 });
@@ -809,7 +809,7 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                     }).then(res => res.text()).then(data => {
                         if (data.trim() === 'success') location.reload();
                         else alert('Failed to restore.');
-                    });
+              });
                 } else if (button.classList.contains('delete-single-trash')) {
                     // Delete forever logic
             Swal.fire({
