@@ -236,6 +236,13 @@ if (isset($_SESSION['guest_id'])) {
             background: #fff !important;
             color: #23234a !important;
         }
+        .notification-item-link {
+            cursor: pointer;
+        }
+        .notification-item-link:hover {
+            background-color: #ff8c00 !important;
+            color: #fff !important;
+        }
     </style>
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">

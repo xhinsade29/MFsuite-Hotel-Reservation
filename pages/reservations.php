@@ -764,9 +764,9 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                             Swal.fire('Error!', response.message || 'Could not move reservation.', 'error');
                         }
                     }, 'json');
-                }
+                    }
+                });
             });
-        });
         
         // Sorting functionality
         const sortSelect = document.getElementById('sortSelect');
@@ -802,9 +802,9 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
 
                 if (button.classList.contains('restore-single-trash')) {
                     // Restore logic
-                    fetch('restore_reservation.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+              fetch('restore_reservation.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                         body: 'reservation_id=' + reservationId
                     }).then(res => res.text()).then(data => {
                         if (data.trim() === 'success') location.reload();
@@ -812,12 +812,12 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                     });
                 } else if (button.classList.contains('delete-single-trash')) {
                     // Delete forever logic
-                    Swal.fire({
-                        title: 'Are you absolutely sure?',
+            Swal.fire({
+                title: 'Are you absolutely sure?',
                         text: 'This will permanently delete the reservation. This action cannot be undone.',
-                        icon: 'warning',
+                icon: 'warning',
                         iconColor: '#dc3545',
-                        showCancelButton: true,
+                showCancelButton: true,
                         confirmButtonColor: '#dc3545',
                         cancelButtonColor: '#6c757d',
                         confirmButtonText: 'Yes, delete forever!',
@@ -830,8 +830,8 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                             cancelButton: 'btn btn-secondary px-4'
                         },
                         buttonsStyling: false
-                    }).then((result) => {
-                        if (result.isConfirmed) {
+            }).then((result) => {
+                if (result.isConfirmed) {
                             fetch('delete_forever_reservations.php', {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
