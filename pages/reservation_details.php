@@ -47,14 +47,25 @@ if (!empty($room_type_id) && is_numeric($room_type_id)) {
 } else {
     $included_services = [];
 }
-// Fetch user details including wallet_id
-$user_sql = "SELECT first_name, middle_name, last_name, user_email, phone_number, address, bank_account_number, paypal_email, credit_card_number, gcash_number, wallet_id FROM tbl_guest WHERE guest_id = ?";
+// Fetch user details (no payment columns)
+$user_sql = "SELECT first_name, middle_name, last_name, user_email, phone_number, address FROM tbl_guest WHERE guest_id = ?";
 $stmt_user = $conn->prepare($user_sql);
 $stmt_user->bind_param("i", $booking['guest_id']);
 $stmt_user->execute();
-$stmt_user->bind_result($first_name, $middle_name, $last_name, $user_email, $phone_number, $address, $bank_account_number, $paypal_email, $credit_card_number, $gcash_number, $wallet_id);
+$stmt_user->bind_result($first_name, $middle_name, $last_name, $user_email, $phone_number, $address);
 $stmt_user->fetch();
 $stmt_user->close();
+// Fetch payment accounts
+$payment_accounts = [];
+$acc_sql = "SELECT account_type, account_number, account_email FROM guest_payment_accounts WHERE guest_id = ?";
+$stmt_acc = $conn->prepare($acc_sql);
+$stmt_acc->bind_param("i", $booking['guest_id']);
+$stmt_acc->execute();
+$result_acc = $stmt_acc->get_result();
+while ($row = $result_acc->fetch_assoc()) {
+    $payment_accounts[] = $row;
+}
+$stmt_acc->close();
 // Room images mapping
 $room_images = [
     1 => 'standard.avif',
@@ -328,6 +339,7 @@ $conn->close();
     <?php endif; ?>
     <div class="container d-flex justify-content-center align-items-center min-vh-100">
         <div class="details-container w-100" style="max-width: 900px;">
+        <div id="reservationDetailsContainer" class="details-container w-100" style="max-width: 900px;">
             <div class="details-image">
                 <img src="../assets/rooms/<?php echo htmlspecialchars($image_file); ?>" alt="Room Image" class="img-fluid rounded mb-3" style="max-height:300px;object-fit:cover;">
                 <h4 class="text-warning mt-2"><?php echo htmlspecialchars($booking['type_name']); ?></h4>
@@ -373,7 +385,7 @@ $conn->close();
                         <div class="info-row"><strong>Check-out:</strong>&nbsp;<?php echo date('Y-m-d h:i A', strtotime($booking['check_out'])); ?></div>
                         <div class="info-row"><strong>Number of Nights:</strong>&nbsp;<?php
                             $nights = (strtotime($booking['check_out']) - strtotime($booking['check_in'])) / (60*60*24);
-                            echo $nights;
+                            echo intval(round($nights));
                         ?></div>
                         <div class="info-row"><strong>Room Number:</strong>&nbsp;<?php echo $assigned_room_number ? htmlspecialchars($assigned_room_number) : '<span class="text-secondary">Not assigned</span>'; ?></div>
                         <div class="info-row">
@@ -426,24 +438,6 @@ $conn->close();
                     <div class="details-section">
                         <div class="section-title"><i class="bi bi-credit-card icon"></i>Payment Information</div>
                         <div class="info-row"><strong>Paid via:</strong>&nbsp;<?php echo htmlspecialchars($booking['payment_method']); ?></div>
-                        <?php
-                        $acc_info = '-';
-                        $pm = strtolower($booking['payment_method']);
-                        if (strpos($pm, 'bank') !== false) {
-                            $acc_info = $bank_account_number ?: '-';
-                        } elseif (strpos($pm, 'gcash') !== false) {
-                            $acc_info = $gcash_number ?: '-';
-                        } elseif (strpos($pm, 'paypal') !== false) {
-                            $acc_info = $paypal_email ?: '-';
-                        } elseif (strpos($pm, 'credit') !== false) {
-                            $acc_info = $credit_card_number ?: '-';
-                        } elseif ($pm === 'wallet') {
-                            $acc_info = $wallet_id ? $wallet_id : 'Paid via Wallet';
-                        } elseif ($pm === 'cash') {
-                            $acc_info = 'Pay at front desk';
-                        }
-                        ?>
-                        <div class="info-row"><strong>Account Info:</strong>&nbsp;<?php echo htmlspecialchars($acc_info); ?></div>
                         <div class="info-row"><strong>Total Amount:</strong>&nbsp;₱<?php echo number_format($total_amount, 2); ?></div>
                         <div class="info-row"><strong>Payment Status:</strong>&nbsp;
                         <?php $pay_status = trim($booking['payment_status']); ?>
@@ -525,11 +519,21 @@ $conn->close();
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    setInterval(updateNotifTrashCount, 2000); // for every 2 seconds
+    setInterval(updateNotifTrashCount, 1000); // for every 1 second
     var trashModal = document.getElementById('trashModal');
     trashModal.addEventListener('hidden.bs.modal', function () {
         document.body.focus(); // or focus another visible element
     });
+
+    function fetchReservationDetails() {
+        var reservationId = <?php echo json_encode($_GET['id'] ?? 0); ?>;
+        fetch('ajax_reservation_details.php?id=' + reservationId)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('reservationDetailsContainer').innerHTML = html;
+            });
+    }
+    setInterval(fetchReservationDetails, 1000);
     </script>
 </body>
 </html> 

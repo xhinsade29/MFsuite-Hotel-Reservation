@@ -8,11 +8,15 @@ if (!isset($_SESSION['guest_id'])) {
     exit();
 }
 $guest_id = $_SESSION['guest_id'];
-// Find the latest paid wallet top-up for this user
-$sql = "SELECT reference_number FROM tbl_payment WHERE payment_method = 'Wallet' AND payment_status = 'Paid' AND reference_number IS NOT NULL AND reference_number != '' AND amount > 0 AND payment_id IN (SELECT payment_id FROM tbl_reservation WHERE guest_id = $guest_id) ORDER BY payment_id DESC LIMIT 1";
-$result = $mycon->query($sql);
+// Find the latest paid wallet top-up for this user from wallet_transactions
+$sql = "SELECT reference_number FROM wallet_transactions WHERE guest_id = ? AND type = 'topup' AND reference_number IS NOT NULL AND reference_number != '' ORDER BY created_at DESC LIMIT 1";
+$stmt = $mycon->prepare($sql);
+$stmt->bind_param("i", $guest_id);
+$stmt->execute();
+$result = $stmt->get_result();
 if ($result && $row = $result->fetch_assoc()) {
     echo json_encode(['reference_number' => $row['reference_number']]);
 } else {
     echo json_encode(['reference_number' => '']);
-} 
+}
+$stmt->close(); 

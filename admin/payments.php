@@ -147,6 +147,15 @@ function loadPaymentsTable(sortBy = currentSortBy, sortDir = currentSortDir) {
     });
 }
 
+// Debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
 $(function() {
     // Initial load
     loadPaymentsTable();
@@ -170,8 +179,14 @@ $(function() {
     $('#filter_method, #filter_status').on('change', function() {
         loadPaymentsTable(currentSortBy, currentSortDir);
     });
-    // Remove date range auto-update
-    $('#filter_date_from, #filter_date_to').off('change input');
+    // Auto-update table when Date From or Date To changes
+    $('#filter_date_from, #filter_date_to').on('change input', function() {
+        loadPaymentsTable(currentSortBy, currentSortDir);
+    });
+    // Search input: live update with debounce
+    $('#filter_search').on('input', debounce(function() {
+        loadPaymentsTable(currentSortBy, currentSortDir);
+    }, 350));
 
     // View Receipt button click
     $(document).on('click', '.view-receipt-btn', function() {

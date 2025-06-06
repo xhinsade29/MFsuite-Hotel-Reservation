@@ -14,7 +14,7 @@ include('../functions/db_connect.php');
 
 // Get current user data
 $guest_id = $_SESSION['guest_id'];
-$sql = "SELECT * FROM tbl_guest WHERE guest_id = ?";
+$sql = "SELECT first_name, middle_name, last_name, user_email, phone_number, address, profile_picture FROM tbl_guest WHERE guest_id = ?";
 $stmt = mysqli_prepare($mycon, $sql);
 mysqli_stmt_bind_param($stmt, "i", $guest_id);
 mysqli_stmt_execute($stmt);
@@ -35,13 +35,42 @@ while ($row = mysqli_fetch_assoc($trans_result)) {
     $transactions[] = $row;
 }
 mysqli_stmt_close($trans_stmt);
+
+// Fetch guest payment accounts and balances
+$accounts = [];
+$acc_stmt = mysqli_prepare($mycon, "SELECT account_type, account_number, account_email, balance FROM guest_payment_accounts WHERE guest_id = ?");
+mysqli_stmt_bind_param($acc_stmt, "i", $guest_id);
+mysqli_stmt_execute($acc_stmt);
+$acc_result = mysqli_stmt_get_result($acc_stmt);
+while ($row = $acc_result->fetch_assoc()) {
+    $accounts[$row['account_type']] = $row;
+}
+$acc_stmt->close();
+
+// Calculate total wallet balance for display
+$total_wallet_balance = 0;
+foreach ($accounts as $acc) {
+    if ($acc['account_type'] === 'wallet') {
+        $total_wallet_balance = floatval($acc['balance']);
+        break; // Assuming only one wallet account per guest
+    }
+}
+
+// Check for active reservations (not directly used on this page, but keeping for completeness if needed elsewhere)
+$active_res_sql = "SELECT COUNT(*) FROM tbl_reservation WHERE guest_id = ? AND status IN ('pending','approved')";
+$stmt = $mycon->prepare($active_res_sql);
+$stmt->bind_param('i', $guest_id);
+$stmt->execute();
+$stmt->bind_result($active_res_count);
+$stmt->fetch();
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Profile - MF Suites Hotel</title>
+    <title>User Profile - MF Suites Hotel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
@@ -264,28 +293,59 @@ mysqli_stmt_close($trans_stmt);
         </div>
     </div>
 
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="card shadow">
-                    <div class="card-header text-center">
-                        <!-- <img src="../assets/MFsuites_logo.png" alt="Hotel Logo" class="img-fluid" style="max-height: 100px;" /> -->
-                        <h3 class="mt-3">User Profile</h3>
+    <div class="container mt-5 mb-5 mx-auto">
+        <div class="card p-4 shadow-lg rounded-3" style="max-width: 900px; width: 100%;">
+            <h4 class="mb-3 text-warning">Profile Information</h4>
+            <div class="text-center mb-4">
+                <div class="profile-picture-container">
+                    <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture">
+                </div>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">First Name</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['first_name']); ?>" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Middle Name</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['middle_name']); ?>" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['last_name']); ?>" disabled>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['user_email']); ?>" disabled>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone Number</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['phone_number']); ?>" disabled>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Address</label>
+                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['address']); ?>" disabled>
+                </div>
+            </div>
                     </div>
-                    <div class="card-body">
-                        <!-- Wallet Balance and Actions -->
-                        <div class="mb-4 p-3 rounded d-flex align-items-center justify-content-between" style="background:#23234a;">
+
+        <div class="card p-4 shadow-lg rounded-3 mt-4" style="max-width: 900px; width: 100%;">
+            <h4 class="mb-3 text-warning">Wallet Information</h4>
+            <div class="d-flex align-items-center justify-content-between mb-4 p-3 rounded" style="background:#23234a;">
                             <div>
-                                <div class="mb-1 text-light" style="font-size:0.98em;">
-                                    <i class="bi bi-credit-card-2-front me-1"></i> <strong>Wallet Number:</strong> <span class="text-info"><?php echo htmlspecialchars($user['wallet_id']); ?></span>
-                                </div>
-                                <h5 class="mb-0 text-warning">
-                                    <i class="bi bi-wallet-fill me-2"></i> Wallet Balance:
-                                    <span class="fw-bold">₱<?php echo number_format($user['wallet_balance'], 2); ?></span>
-                                </h5>
+                                <div><strong>Balance:</strong> <span class="text-success">₱<?php echo number_format($total_wallet_balance, 2); ?></span></div>
                             </div>
                             <div>
-                                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#topupModal">
+                                <?php
+                    $has_payment_method = false;
+                    foreach ($accounts as $acc) {
+                        if ($acc['account_type'] !== 'wallet') { // Check for non-wallet payment methods
+                            $has_payment_method = true;
+                            break;
+                        }
+                    }
+                                ?>
+                    <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#topupModal" <?php echo !$has_payment_method ? 'disabled' : ''; ?>>
                                     <i class="bi bi-plus-circle"></i> Top Up
                                 </button>
                                 <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#walletHistoryModal">
@@ -293,7 +353,48 @@ mysqli_stmt_close($trans_stmt);
                                 </button>
                             </div>
                         </div>
-                        <!-- End Wallet Balance and Actions -->
+                        <?php if (!$has_payment_method): ?>
+                            <div class="alert alert-warning text-center mb-4">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Please add at least one payment method (GCash, Bank, PayPal, or Credit Card) in your <a href="settings.php" class="alert-link">settings</a> to enable wallet top-up.
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Linked Payment Accounts (Read-only Display) -->
+        <div class="card p-4 shadow-lg rounded-3 mt-4" style="max-width: 900px; width: 100%;">
+            <h4 class="mb-3 text-warning">Linked Payment Accounts</h4>
+            <?php if (!empty($accounts)): ?>
+                <div class="list-group list-group-flush mb-4">
+                    <?php foreach ($accounts as $type => $account): ?>
+                        <?php if ($type !== 'wallet'): // Exclude wallet from this list ?>
+                            <div class="list-group-item bg-transparent text-light border-secondary mb-2 rounded" style="background-color: #23234a !important;">
+                                <strong class="text-info"><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', $account['account_type']))); ?>:</strong>
+                                <?php
+                                if (!empty($account['account_number'])) {
+                                    echo htmlspecialchars($account['account_number']);
+                                } elseif (!empty($account['account_email'])) {
+                                    echo htmlspecialchars($account['account_email']);
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    To update or manage your payment accounts, please go to your <a href="settings.php" class="alert-link">settings page</a>.
+                </div>
+            <?php else: ?>
+                <div class="alert alert-warning text-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    No external payment accounts linked yet.
+                    <p class="mt-2 mb-0">Please visit your <a href="settings.php" class="alert-link">settings page</a> to add or manage your payment accounts.</p>
+                </div>
+            <?php endif; ?>
+        </div>
 
                         <!-- Top Up Modal -->
                         <div class="modal fade" id="topupModal" tabindex="-1" aria-labelledby="topupModalLabel" aria-hidden="true">
@@ -317,10 +418,13 @@ mysqli_stmt_close($trans_stmt);
                                     <label for="paymentMethod" class="form-label">Select Payment Method</label>
                                     <select name="payment_method" id="paymentMethod" class="form-select" required onchange="updateReferenceNumber()">
                                       <option value="">Select payment method</option>
-                                      <option value="GCash" <?php echo empty($user['gcash_number']) ? 'disabled' : ''; ?>>GCash</option>
-                                      <option value="Bank" <?php echo empty($user['bank_account_number']) ? 'disabled' : ''; ?>>Bank</option>
-                                      <option value="PayPal" <?php echo empty($user['paypal_email']) ? 'disabled' : ''; ?>>PayPal</option>
-                                      <option value="Credit Card" <?php echo empty($user['credit_card_number']) ? 'disabled' : ''; ?>>Credit Card</option>
+                                    <?php
+                                    foreach ($accounts as $type => $account) {
+                                        if ($type !== 'wallet') { // Exclude wallet as a payment method for top-up
+                                            echo '<option value="' . htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) . '">' . htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) . '</option>';
+                                        }
+                                    }
+                                    ?>
                                     </select>
                                   </div>
                                 </div>
@@ -383,114 +487,18 @@ mysqli_stmt_close($trans_stmt);
                           </div>
                         </div>
                         <!-- End Wallet History Modal -->
-
-                        <div class="row">
-                            <!-- Left: User Info (Read-only) -->
-                            <div class="col-md-6 border-end" style="padding-right:2rem;">
-                                <h4 class="mb-4 text-warning"><i class="bi bi-person-circle me-2"></i>User Information</h4>
-                                <div class="text-center mb-4">
-                                    <div class="profile-picture-container">
-                                        <img src="<?php echo $profile_pic; ?>" alt="Profile Picture" class="profile-picture" id="profile-preview">
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="form-label">First Name</label>
-                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['first_name']); ?>" disabled>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="form-label">Middle Name</label>
-                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['middle_name']); ?>" disabled>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label class="form-label">Last Name</label>
-                                            <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['last_name']); ?>" disabled>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Phone Number</label>
-                                            <input type="tel" class="form-control" value="<?php echo htmlspecialchars($user['phone_number']); ?>" disabled>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label">Email Address</label>
-                                            <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['user_email']); ?>" disabled>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" rows="2" disabled><?php echo htmlspecialchars($user['address']); ?></textarea>
-                                </div>
-                                <hr class="my-4" style="border-color: rgba(255, 255, 255, 0.1);">
-                                <div class="alert alert-info mt-3">To update your profile, payment methods, or password, please go to <a href="settings.php" class="text-warning">Settings</a>.</div>
-                            </div>
-                            <!-- Right: Payment Details (Read-only) -->
-                            <div class="col-md-6" style="padding-left:2rem;">
-                                <h4 class="mb-4 text-warning"><i class="bi bi-credit-card me-2"></i>Payment Methods</h4>
-                                <div class="mb-3">
-                                    <label class="form-label">Bank Account Number</label>
-                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['bank_account_number'] ?? ''); ?>" disabled>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">PayPal Email</label>
-                                    <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['paypal_email'] ?? ''); ?>" disabled>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Credit Card Number</label>
-                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['credit_card_number'] ?? ''); ?>" disabled>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">GCash Number</label>
-                                    <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['gcash_number'] ?? ''); ?>" disabled>
-                                </div>
-                                <div class="alert alert-info mt-3">To update your payment methods, please go to <a href="settings.php" class="text-warning">Settings</a>.</div>
-                            </div>
-                        </div>
-                        <div class="d-grid gap-2 mt-4">
-                            <a href="../index.php" class="btn btn-outline-secondary">Back to Home</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
-        function togglePassword(inputId) {
-            const input = document.getElementById(inputId);
-            const icon = event.currentTarget.querySelector('i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'bi bi-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'bi bi-eye';
-            }
-        }
-
+        // Preview image for profile picture (kept as display is here)
         function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('profile-preview').src = e.target.result;
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
+            // This function is for the profile picture preview in settings.php, not needed here for display only
+            // If you later decide to have editable profile picture here, uncomment its logic
         }
 
+        // Generate a random 16-character hex string (8 bytes)
         function generateReferenceNumber() {
-            // Generate a random 16-character hex string (8 bytes)
             return Math.random().toString(16).substr(2, 8).toUpperCase() + Math.random().toString(16).substr(2, 8).toUpperCase();
         }
 
@@ -507,23 +515,69 @@ mysqli_stmt_close($trans_stmt);
             }
         }
 
-        // Initialize all toasts
-        document.addEventListener('DOMContentLoaded', function() {
-            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-            var toastList = toastElList.map(function(toastEl) {
-                return new bootstrap.Toast(toastEl, {
-                    autohide: true,
-                    delay: 3000
+        // Show toast messages
+        $(document).ready(function() {
+            // Check if there's a success or error message from PHP session
+            <?php if (isset($_SESSION['success'])): ?>
+                showToast("<?php echo $_SESSION['success']; ?>", "success");
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['error'])): ?>
+                showToast("<?php echo $_SESSION['error']; ?>", "danger");
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+
+            // Function to show custom toast
+            window.showToast = function(message, type) {
+                var toastHtml = `
+                    <div class="toast toast-${type}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+                        <div class="toast-header">
+                            <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'} text-${type === 'success' ? 'success' : 'danger'} me-2"></i>
+                            <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                    </div>
+                `;
+                $('.toast-container').append(toastHtml);
+                var toastEl = $('.toast-container .toast:last');
+                var toast = new bootstrap.Toast(toastEl[0]);
+                toast.show();
+                toastEl.on('hidden.bs.toast', function () {
+                    $(this).remove();
+                });
+            };
+
+            // Theme switcher
+            $('#themeSelect').on('change', function() {
+                var theme = $(this).val();
+                $('body').removeClass('light-mode').removeClass('dark-mode').addClass(theme === 'light' ? 'light-mode' : '');
+
+                $.ajax({
+                    url: 'process_update_profile.php',
+                    type: 'POST',
+                    data: { theme_preference: theme },
+                    success: function(response) {
+                        // Handle success if needed, e.g., show a small success message
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle error
+                        console.error('Theme update failed:', error);
+                    }
                 });
             });
             
-            toastList.forEach(toast => {
-                toast.show();
-            });
-        });
+            // Set initial theme
+            var initialTheme = "<?php echo $theme_preference; ?>";
+            if (initialTheme === 'light') {
+                $('body').addClass('light-mode');
+            }
+            $('#themeSelect').val(initialTheme);
 
         // Show toast if ?topup=success is in the URL
-        document.addEventListener('DOMContentLoaded', function() {
             var url = new URL(window.location.href);
             if (url.searchParams.get('topup') === 'success' && !document.getElementById('successToast')) {
                 var topupToast = document.getElementById('topupToast');
@@ -534,26 +588,6 @@ mysqli_stmt_close($trans_stmt);
                 }
             }
         });
-
-        function normalize_service_key($name) {
-            // Remove all non-alphanumeric, then remove spaces, then lowercase
-            return strtolower(str_replace(' ', '', trim(preg_replace('/[^a-zA-Z0-9 ]/', '', $name))));
-        }
-        $service_icons = [
-            'spa' => 'bi-spa',
-            'swimmingpool' => 'bi-water',
-            'restaurant' => 'bi-cup-straw',
-            'airportshuttle' => 'bi-bus-front',
-            'businesscenter' => 'bi-briefcase',
-            'concierge' => 'bi-person-badge',
-            'fitnesscenter' => 'bi-barbell',
-            'luggagestorage' => 'bi-suitcase',
-            'laundrydrycleaning' => 'bi-droplet',
-            'roomservice' => 'bi-door-open',
-            'housekeeping' => 'bi-bucket',
-            'conferenceroom' => 'bi-easel',
-            'wifi' => 'bi-wifi'
-        ];
     </script>
 </body>
 </html> 

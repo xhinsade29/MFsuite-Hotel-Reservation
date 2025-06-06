@@ -6,29 +6,46 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['rol
 }
 include '../functions/db_connect.php';
 $admin_id = $_SESSION['admin_id'];
+
+// Fetch admin's main wallet balance from admin_payment_accounts
+$admin_wallet_balance = 0.00;
+$stmt_admin_wallet = $mycon->prepare("SELECT balance FROM admin_payment_accounts WHERE admin_id = ? AND account_type = 'wallet' LIMIT 1");
+if ($stmt_admin_wallet) {
+    $stmt_admin_wallet->bind_param('i', $admin_id);
+    $stmt_admin_wallet->execute();
+    $stmt_admin_wallet->bind_result($fetched_balance);
+    if ($stmt_admin_wallet->fetch()) {
+        $admin_wallet_balance = $fetched_balance;
+    }
+    $stmt_admin_wallet->close();
+} else {
+    error_log("Failed to prepare statement for admin wallet balance: " . $mycon->error);
+}
+
 $admin = [
     'full_name' => $_SESSION['full_name'] ?? '',
     'email' => $_SESSION['email'] ?? '',
     'username' => $_SESSION['username'] ?? '',
     'role' => $_SESSION['role'] ?? '',
 ];
-$sql = "SELECT full_name, email, username, role, wallet_id, wallet_balance, profile_picture, last_login FROM tbl_admin WHERE admin_id = ? LIMIT 1";
+$sql = "SELECT full_name, email, username, role, profile_picture, last_login FROM tbl_admin WHERE admin_id = ? LIMIT 1";
 $stmt = $mycon->prepare($sql);
 $stmt->bind_param('i', $admin_id);
 $stmt->execute();
-$stmt->bind_result($full_name, $email, $username, $role, $wallet_id, $wallet_balance, $profile_picture, $last_login);
+$stmt->bind_result($full_name, $email, $username, $role, $profile_picture, $last_login);
 if ($stmt->fetch()) {
     $admin['full_name'] = $full_name;
     $admin['email'] = $email;
     $admin['username'] = $username;
     $admin['role'] = $role;
-    $admin['wallet_id'] = $wallet_id;
-    $admin['wallet_balance'] = $wallet_balance;
     $admin['profile_picture'] = $profile_picture;
     $admin['last_login'] = $last_login;
 }
 $stmt->close();
 $success = isset($_GET['msg']) ? $_GET['msg'] : '';
+if (isset($_GET['wallet_update']) && $_GET['wallet_update'] == '1') {
+    echo '<div class="alert alert-success mt-3">Your wallet has been credited from a new reservation payment.</div>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -148,12 +165,13 @@ $success = isset($_GET['msg']) ? $_GET['msg'] : '';
                     <div>
                         <div class="wallet-box mb-4">
                             <div class="wallet-label mb-1"><i class="bi bi-wallet2 me-2"></i>Wallet Info</div>
-                            <div class="mb-1"><strong>ID:</strong> <?php echo htmlspecialchars($admin['wallet_id']); ?></div>
-                            <div><strong>Balance:</strong> <span class="text-success">₱<?php echo number_format($admin['wallet_balance'],2); ?></span></div>
+                            <div><strong>Balance:</strong> <span class="text-success" id="adminWalletBalance">₱<?php echo number_format(abs($admin_wallet_balance),2); ?></span>
+                                <button class="btn btn-sm btn-outline-warning ms-2" id="refreshWalletBtn" title="Refresh Wallet Balance"><i class="bi bi-arrow-clockwise"></i></button>
+                            </div>
                         </div>
                         <div class="section-header mb-2"><i class="bi bi-credit-card me-2"></i>Payment Accounts</div>
                         <?php
-                        $sql = "SELECT account_type, account_number, account_email, balance FROM admin_payment_accounts WHERE admin_id = ?";
+                        $sql = "SELECT account_type, account_number, account_email, balance FROM admin_payment_accounts WHERE admin_id = ? AND account_type != 'wallet'";
                         $stmt = $mycon->prepare($sql);
                         $stmt->bind_param('i', $admin_id);
                         $stmt->execute();
@@ -177,7 +195,7 @@ $success = isset($_GET['msg']) ? $_GET['msg'] : '';
                                 echo htmlspecialchars($row['account_number']);
                             }
                             echo '</td>';
-                            echo '<td>₱' . number_format($row['balance'], 2) . '</td>';
+                            echo '<td>₱' . number_format(max(0, $row['balance']), 2) . '</td>';
                             echo '</tr>';
                         }
                         echo '</tbody></table>';
@@ -191,4 +209,35 @@ $success = isset($_GET['msg']) ? $_GET['msg'] : '';
     </div>
 </div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(function() {
+    $('#refreshWalletBtn').on('click', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $.get('profile.php?ajax_wallet=1', function(data) {
+            if (data && data.balance !== undefined) {
+                $('#adminWalletBalance').text('₱' + parseFloat(data.balance).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
+            }
+        }, 'json').always(function() {
+            $btn.prop('disabled', false);
+        });
+    });
+});
+</script>
+<?php
+if (isset($_GET['ajax_wallet']) && $_GET['ajax_wallet'] == 1) {
+    header('Content-Type: application/json');
+    $stmt = $mycon->prepare('SELECT balance FROM admin_payment_accounts WHERE admin_id = ? AND account_type = \'wallet\' LIMIT 1');
+    $stmt->bind_param('i', $admin_id);
+    $stmt->execute();
+    $stmt->bind_result($wallet_balance);
+    $stmt->fetch();
+    $stmt->close();
+    echo json_encode(['balance' => $wallet_balance]);
+    exit();
+}
+?>
 </html> 

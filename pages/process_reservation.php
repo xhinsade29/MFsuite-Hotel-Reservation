@@ -53,53 +53,37 @@ if (!$guest_id) {
     die("Not logged in.");
 }
 
-// If payment method is 'Top Up', add to wallet and log
-if (strtolower($payment_type) === 'top up' || strtolower($payment_type) === 'topup') {
-    if ($reference_amount > 0 && $reference_number !== '') {
-        // Add to wallet
-        $sql = "UPDATE tbl_guest SET wallet_balance = wallet_balance + ? WHERE guest_id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("di", $reference_amount, $guest_id);
-        $stmt->execute();
-        $stmt->close();
-        // Log the top-up
-        $desc = 'Wallet top-up for booking';
-        $log_sql = "INSERT INTO wallet_transactions (guest_id, amount, type, description, payment_method, reference_number) VALUES (?, ?, 'topup', ?, ?, ?)";
-        $log_stmt = $conn->prepare($log_sql);
-        $log_stmt->bind_param("idsss", $guest_id, $reference_amount, $desc, $payment_type, $reference_number);
-        $log_stmt->execute();
-        $log_stmt->close();
-    }
-}
+// Get selected payment method for wallet (from form, e.g., $_POST['wallet_payment_method'])
+$wallet_payment_method = strtolower($_POST['wallet_payment_method'] ?? 'gcash'); // default to gcash if not set
 
-// WALLET PAYMENT CHECK
-$wallet_sql = "SELECT wallet_balance FROM tbl_guest WHERE guest_id = ?";
-$stmt_wallet = $conn->prepare($wallet_sql);
-$stmt_wallet->bind_param("i", $guest_id);
-$stmt_wallet->execute();
-$stmt_wallet->bind_result($wallet_balance);
-$stmt_wallet->fetch();
-$stmt_wallet->close();
+// WALLET PAYMENT CHECK (per-account)
+$account_balance = 0;
+$account_id = null;
+$stmt = $conn->prepare("SELECT account_id, balance FROM guest_payment_accounts WHERE guest_id = ? AND account_type = ? LIMIT 1");
+$stmt->bind_param("is", $guest_id, $wallet_payment_method);
+$stmt->execute();
+$stmt->bind_result($account_id, $account_balance);
+$stmt->fetch();
+$stmt->close();
 
-if ($wallet_balance < $amount) {
-    $_SESSION['error'] = 'Insufficient wallet balance to complete this booking.';
+if ($account_balance < $amount) {
+    $_SESSION['error'] = 'Insufficient wallet balance in your selected account to complete this booking.';
     $conn->close();
     header("Location: /pages/booking_form.php?room_id=$room_id");
     exit;
 }
 
-// Deduct from wallet
-$update_wallet_sql = "UPDATE tbl_guest SET wallet_balance = wallet_balance - ? WHERE guest_id = ?";
-$stmt_update_wallet = $conn->prepare($update_wallet_sql);
-$stmt_update_wallet->bind_param("di", $amount, $guest_id);
+// Deduct from selected account
+$stmt_update_wallet = $conn->prepare("UPDATE guest_payment_accounts SET balance = balance - ? WHERE account_id = ?");
+$stmt_update_wallet->bind_param("di", $amount, $account_id);
 $stmt_update_wallet->execute();
 $stmt_update_wallet->close();
 
 // Log wallet payment (include reference number if top up)
 $desc = "Booking payment";
-$log_sql = "INSERT INTO wallet_transactions (guest_id, amount, type, description, reference_number) VALUES (?, ?, 'payment', ?, ?)";
+$log_sql = "INSERT INTO wallet_transactions (guest_id, amount, type, description, payment_method, reference_number) VALUES (?, ?, 'payment', ?, ?, ?)";
 $stmt_log = $conn->prepare($log_sql);
-$stmt_log->bind_param("idss", $guest_id, $amount, $desc, $reference_number);
+$stmt_log->bind_param("idsss", $guest_id, $amount, $desc, $wallet_payment_method, $reference_number);
 $stmt_log->execute();
 $stmt_log->close();
 
@@ -110,19 +94,65 @@ if ($admin_result && $admin_result->num_rows > 0) {
     $row = $admin_result->fetch_assoc();
     $admin_id = $row['admin_id'];
 }
-// Credit admin wallet
-$update_admin_wallet_sql = "UPDATE tbl_admin SET wallet_balance = wallet_balance + ? WHERE admin_id = ?";
-$stmt_admin_wallet = $conn->prepare($update_admin_wallet_sql);
-$stmt_admin_wallet->bind_param("di", $amount, $admin_id);
-$stmt_admin_wallet->execute();
-$stmt_admin_wallet->close();
-// Log admin wallet transaction
-$desc_admin = "Received payment from guest (ID: $guest_id) for reservation.";
-$log_sql_admin = "INSERT INTO wallet_transactions (admin_id, amount, type, description, reference_number, created_at) VALUES (?, ?, 'credit', ?, ?, NOW())";
-$stmt_log_admin = $conn->prepare($log_sql_admin);
-$stmt_log_admin->bind_param("idss", $admin_id, $amount, $desc_admin, $reference_number);
-$stmt_log_admin->execute();
-$stmt_log_admin->close();
+
+// DEBUG: Log all relevant variables before admin wallet update
+error_log('DEBUG: About to update admin wallet. amount=' . $amount . ', admin_id=' . $admin_id);
+
+// Credit admin wallet (use direct query for reliability)
+$direct_update_sql = "UPDATE tbl_admin SET wallet_balance = wallet_balance + $amount WHERE admin_id = $admin_id";
+$conn->query($direct_update_sql);
+if ($conn->error) {
+    error_log('Direct query failed: ' . $conn->error);
+} else {
+    error_log('Direct query succeeded for admin wallet update.');
+}
+// Update admin payment account balance for the payment method used
+$admin_account_type = strtolower($payment_type ?: $wallet_payment_method);
+error_log('DEBUG: payment_type=' . $payment_type . ', admin_account_type=' . $admin_account_type);
+if (!in_array($admin_account_type, ['wallet', 'cash', ''])) {
+    $stmt = $conn->prepare("SELECT account_id FROM admin_payment_accounts WHERE admin_id = ? AND account_type = ? LIMIT 1");
+    $stmt->bind_param("is", $admin_id, $admin_account_type);
+    $stmt->execute();
+    $stmt->bind_result($admin_account_id);
+    $has_admin_account = $stmt->fetch();
+    $stmt->close();
+    if ($has_admin_account) {
+        // Add to the selected admin account's balance
+        $stmt = $conn->prepare("UPDATE admin_payment_accounts SET balance = balance + ? WHERE account_id = ?");
+        $stmt->bind_param("di", $amount, $admin_account_id);
+        $stmt->execute();
+        $stmt->close();
+    } else {
+        // Create the admin account if it doesn't exist
+        $stmt = $conn->prepare("INSERT INTO admin_payment_accounts (admin_id, account_type, balance) VALUES (?, ?, ?)");
+        $stmt->bind_param("isd", $admin_id, $admin_account_type, $amount);
+        $stmt->execute();
+        $admin_account_id = $stmt->insert_id;
+        $stmt->close();
+    }
+    // Log admin payment account transaction
+    $admin_acc_desc = "Received payment for reservation via $admin_account_type (Guest ID: $guest_id)";
+    $admin_acc_log_sql = "INSERT INTO wallet_transactions (admin_id, amount, type, description, payment_method, reference_number) VALUES (?, ?, 'credit', ?, ?, ?)";
+    $stmt_admin_acc_log = $conn->prepare($admin_acc_log_sql);
+    $stmt_admin_acc_log->bind_param("idsss", $admin_id, $amount, $admin_acc_desc, $admin_account_type, $reference_number);
+    $stmt_admin_acc_log->execute();
+    $stmt_admin_acc_log->close();
+    // Notify admin of payment account update
+    $notif_msg = "Your $admin_account_type account was credited with ₱" . number_format($amount, 2) . " for a new reservation (Guest ID: $guest_id, Ref: $reference_number).";
+    add_notification($admin_id, 'admin', 'wallet', $notif_msg, $conn, 0, null, $guest_id);
+}
+// Fetch and log the new admin wallet balance
+$check_balance = $conn->prepare("SELECT wallet_balance FROM tbl_admin WHERE admin_id = ?");
+if (!$check_balance) {
+    error_log('DEBUG: Prepare failed for balance check: ' . $conn->error);
+} else {
+    $check_balance->bind_param("i", $admin_id);
+    $check_balance->execute();
+    $check_balance->bind_result($new_balance);
+    $check_balance->fetch();
+    error_log('Admin new wallet balance: ' . $new_balance);
+    $check_balance->close();
+}
 
 // Fetch admin payment account info for the selected payment method
 $admin_account_info = '';

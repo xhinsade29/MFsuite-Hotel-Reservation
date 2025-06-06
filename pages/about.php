@@ -111,6 +111,10 @@ $current_page = 'about.php';
             transform: translateY(-8px) scale(1.03);
             box-shadow: 0 12px 36px rgba(255,140,0,0.18), 0 2px 0 #ffa533;
         }
+        .team-member:hover img {
+            transform: scale(1.18);
+            transition: transform 0.22s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
         .team-member img {
             width: 80px;
             height: 80px;
@@ -119,6 +123,7 @@ $current_page = 'about.php';
             margin-bottom: 14px;
             border: 3px solid #ffa533;
             box-shadow: 0 2px 12px rgba(255,140,0,0.10);
+            transition: transform 0.22s cubic-bezier(0.4, 0.2, 0.2, 1);
         }
         .team-member .name {
             color: #ffa533;
@@ -250,15 +255,22 @@ $current_page = 'about.php';
             <div class="role">Concierge</div>
         </div>
     </div>
-    <h4 class="about-section-title">System Developer</h4>
-    <div class="developer-section">
-        <span class="dev-badge">System Developer</span>
-        <img src="../assets/me.jpg" alt="Developer">
-        <div class="name">Kristine L. Lopez</div>
-        <div class="role">Full Stack Developer</div>
-        <div class="about-list">
-            Developer of the MF Suites Hotel Reservation System.<br>
-            <i class="bi bi-envelope"></i> kristine.lopez@email.com
+    <h3 class="text-warning">System Developer</h3>
+    <div class="about-team">
+        <div class="team-member">
+            <img src="../assets/system_developer.jfif" alt="Lead Developer">
+            <div class="name">Kristine L. Lopez</div>
+            <div class="role">Lead Developer</div>
+        </div>
+        <div class="team-member">
+            <img src="../assets/project_manager.jpg" alt="Project">
+            <div class="name">Evelyn Saldivar</div>
+            <div class="role">Project Manager</div>
+        </div>
+        <div class="team-member">
+            <img src="../assets/dev_tester.jpg" alt="Tester">
+            <div class="name">Trisha Ann Satina</div>
+            <div class="role">Project Tester</div>
         </div>
     </div>
     <h4 class="about-section-title">Contact Us</h4>

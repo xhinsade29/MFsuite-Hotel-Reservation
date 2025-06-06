@@ -307,7 +307,7 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
             </div>
         </div>
     </div>
-    <!-- Pending Cancellation Requests -->
+    <!-- Combined Pending Reservations Table -->
     <div class="table-section mt-4">
         <div class="table-title">Pending Cancellation Requests</div>
         <div class="table-responsive">
@@ -316,29 +316,36 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
                 <tr>
                     <th>Reservation ID</th>
                     <th>Guest</th>
+                    <th>Room Type</th>
                     <th>Check-in</th>
                     <th>Check-out</th>
-                    <th>Reason</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
             <?php
-            $cancel_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, cr.reason_text FROM tbl_reservation r JOIN cancelled_reservation c ON r.reservation_id = c.reservation_id JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_cancellation_reason cr ON c.reason_id = cr.reason_id WHERE r.status = 'cancellation_requested' ORDER BY r.date_created DESC";
+            // Corrected and simplified query to fetch ALL cancellation requests
+            $cancel_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name
+                           FROM tbl_reservation r
+                           JOIN tbl_guest g ON r.guest_id = g.guest_id
+                           JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
+                           WHERE r.status = 'cancellation_requested'
+                           ORDER BY r.date_created DESC";
             $cancel_res = mysqli_query($mycon, $cancel_sql);
             if ($cancel_res && mysqli_num_rows($cancel_res) > 0) {
                 while ($row = mysqli_fetch_assoc($cancel_res)) {
                     echo '<tr>';
                     echo '<td>' . $row['reservation_id'] . '</td>';
                     echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
+                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
                     echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
                     echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['reason_text']) . '</td>';
                     echo '<td>';
-                    echo '<form method="POST" action="process_cancellation.php" style="display:inline-block;">';
+                    // The form now correctly points to process_cancellation.php for both approve and deny actions
+                    echo '<form method="POST" action="process_cancellation.php" style="display:inline-block; margin-right: 5px;">';
                     echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
                     echo '<button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form> ';
+                    echo '</form>';
                     echo '<form method="POST" action="process_cancellation.php" style="display:inline-block;">';
                     echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
                     echo '<button type="submit" name="action" value="deny" class="btn btn-danger btn-sm">Deny</button>';
@@ -348,101 +355,6 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
                 }
             } else {
                 echo '<tr><td colspan="6" class="text-center text-secondary">No pending cancellation requests.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
-    </div>
-    <!-- Pending Cash Payment Bookings -->
-    <div class="table-section mt-4">
-        <div class="table-title">Pending Cash Payment Bookings</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Room</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Amount</th>
-                    <th>Reference #</th>
-                    <th>Payment Method</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $cash_sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, rt.type_name, p.amount, p.reference_number, p.payment_method FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND r.status = 'pending' ORDER BY r.date_created DESC";
-            $cash_res = mysqli_query($mycon, $cash_sql);
-            if ($cash_res && mysqli_num_rows($cash_res) > 0) {
-                while ($row = mysqli_fetch_assoc($cash_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>₱' . number_format($row['amount'], 2) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['reference_number']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['payment_method']) . '</td>';
-                    echo '<td>';
-                    echo '<form method="POST" action="process_cash_approval.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="9" class="text-center text-secondary">No pending cash payment bookings.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
-    </div>
-    <!-- Reservations Pending Admin Approval -->
-    <div class="table-section mt-4">
-        <div class="table-title">Reservations Pending Admin Approval</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Room</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Payment Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            $pending_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name, p.payment_status FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE r.status = 'pending' ORDER BY r.date_created DESC";
-            $pending_res = mysqli_query($mycon, $pending_sql);
-            if ($pending_res && mysqli_num_rows($pending_res) > 0) {
-                while ($row = mysqli_fetch_assoc($pending_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['payment_status']) . '</td>';
-                    echo '<td>';
-                    echo '<form method="POST" action="process_update_status.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<input type="hidden" name="action" value="approve_reservation">';
-                    echo '<button type="submit" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="7" class="text-center text-secondary">No reservations pending admin approval.</td></tr>';
             }
             ?>
             </tbody>

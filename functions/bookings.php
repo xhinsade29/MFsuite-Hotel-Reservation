@@ -16,8 +16,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $guest_id = $_SESSION['guest_id'];
     $room_type_id = isset($_POST['room_type_id']) ? intval($_POST['room_type_id']) : 0;
     // Ensure checkin_datetime and checkout_datetime are received and correctly formatted
-    $check_in = isset($_POST['checkin_datetime']) ? $_POST['checkin_datetime'] : '';
-    $check_out = isset($_POST['checkout_datetime']) ? $_POST['checkout_datetime'] : '';
+    $check_in = isset($_POST['check_in_date']) ? $_POST['check_in_date'] : '';
+    $check_out = isset($_POST['check_out_date']) ? $_POST['check_out_date'] : '';
 
     // Validate dates are not empty
     if (empty($check_in) || empty($check_out)) {
@@ -77,8 +77,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // WALLET DEDUCTION LOGIC
         if (strtolower($payment_method) === 'wallet') {
-            // 1. Get current wallet balance
-            $wallet_sql = "SELECT wallet_balance FROM tbl_guest WHERE guest_id = ?";
+            // 1. Get current wallet balance from guest_payment_accounts
+            $wallet_sql = "SELECT balance FROM guest_payment_accounts WHERE guest_id = ? AND account_type = 'wallet'";
             $stmt_wallet = $mycon->prepare($wallet_sql);
             $stmt_wallet->bind_param("i", $guest_id);
             $stmt_wallet->execute();
@@ -93,8 +93,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit();
             }
 
-            // 3. Deduct from wallet
-            $update_wallet_sql = "UPDATE tbl_guest SET wallet_balance = wallet_balance - ? WHERE guest_id = ?";
+            // 3. Deduct from wallet in guest_payment_accounts
+            $update_wallet_sql = "UPDATE guest_payment_accounts SET balance = balance - ? WHERE guest_id = ? AND account_type = 'wallet'";
             $stmt_update_wallet = $mycon->prepare($update_wallet_sql);
             $stmt_update_wallet->bind_param("di", $amount, $guest_id);
             $stmt_update_wallet->execute();
@@ -251,6 +251,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Check if an admin is logged in to assign the notification
         $current_admin_id = $_SESSION['admin_id'] ?? 1; // Default to admin 1 if no admin logged in (e.g., system action)
         add_notification($current_admin_id, 'admin', 'reservation', $admin_notif_msg, $mycon, 0, null, $reservation_id);
+
+        // --- CREDIT ADMIN PAYMENT ACCOUNT AND NOTIFY ---
+        if ($reservation_status === 'approved' && strtolower($payment_method) !== 'cash') {
+            $admin_account_type = strtolower($payment_method) === 'wallet' ? 'wallet' : strtolower($payment_method);
+            // Ensure the admin payment account row exists
+            $check_admin_acc_sql = "SELECT account_id FROM admin_payment_accounts WHERE admin_id = ? AND account_type = ? LIMIT 1";
+            $stmt_check_admin_acc = $mycon->prepare($check_admin_acc_sql);
+            $stmt_check_admin_acc->bind_param("is", $admin_id, $admin_account_type);
+            $stmt_check_admin_acc->execute();
+            $stmt_check_admin_acc->store_result();
+            if ($stmt_check_admin_acc->num_rows === 0) {
+                // Insert the row if it doesn't exist
+                $insert_admin_acc_sql = "INSERT INTO admin_payment_accounts (admin_id, account_type, balance, date_created) VALUES (?, ?, 0, NOW())";
+                $stmt_insert_admin_acc = $mycon->prepare($insert_admin_acc_sql);
+                $stmt_insert_admin_acc->bind_param("is", $admin_id, $admin_account_type);
+                $stmt_insert_admin_acc->execute();
+                $stmt_insert_admin_acc->close();
+            }
+            $stmt_check_admin_acc->close();
+            // Now update the balance
+            $credit_sql = "UPDATE admin_payment_accounts SET balance = balance + ? WHERE admin_id = ? AND account_type = ?";
+            $stmt_credit = $mycon->prepare($credit_sql);
+            $stmt_credit->bind_param("dis", $amount, $admin_id, $admin_account_type);
+            $stmt_credit->execute();
+            $stmt_credit->close();
+            // Add admin notification for credit
+            $credit_notif_msg = "Payment of ₱" . number_format($amount, 2) . " received for reservation (Ref: $reference_number) via $payment_method.";
+            add_notification($admin_id, 'admin', 'payment', $credit_notif_msg, $mycon, 0, null, $reservation_id);
+        }
+        // --- END CREDIT ADMIN PAYMENT ACCOUNT AND NOTIFY ---
 
         $_SESSION['success'] = "Reservation successful!<br>Your Reference Number: <b>" . htmlspecialchars($reference_number) . "</b>";
 

@@ -74,30 +74,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Store actual password (NOT RECOMMENDED for security reasons)
     $actual_password = $password;
 
-    // Generate a unique wallet_id
-    function generate_wallet_id() {
-        return bin2hex(random_bytes(16)); // 32-char hex string
-    }
-    $wallet_id = generate_wallet_id();
-    // Ensure uniqueness (very unlikely to collide, but check)
-    $exists = mysqli_query($mycon, "SELECT 1 FROM tbl_guest WHERE wallet_id = '$wallet_id' UNION SELECT 1 FROM tbl_admin WHERE wallet_id = '$wallet_id'");
-    while (mysqli_num_rows($exists) > 0) {
-        $wallet_id = generate_wallet_id();
-        $exists = mysqli_query($mycon, "SELECT 1 FROM tbl_guest WHERE wallet_id = '$wallet_id' UNION SELECT 1 FROM tbl_admin WHERE wallet_id = '$wallet_id'");
-    }
-
     // Insert new guest
-    $sql = "INSERT INTO tbl_guest (first_name, middle_name, last_name, phone_number, user_email, password, address, wallet_id, date_created) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+    $sql = "INSERT INTO tbl_guest (first_name, middle_name, last_name, phone_number, user_email, password, address, date_created) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
     
     $stmt = mysqli_prepare($mycon, $sql);
-    mysqli_stmt_bind_param($stmt, "ssssssss", $first_name, $middle_name, $last_name, $phone_number, $user_email, $actual_password, $address, $wallet_id);
+    mysqli_stmt_bind_param($stmt, "sssssss", $first_name, $middle_name, $last_name, $phone_number, $user_email, $actual_password, $address);
 
     if (mysqli_stmt_execute($stmt)) {
+        $new_guest_id = mysqli_insert_id($mycon);
+
+        // Create default 'wallet' entry in guest_payment_accounts for the new guest
+        $insert_wallet_sql = "INSERT INTO guest_payment_accounts (guest_id, account_type, balance) VALUES (?, ?, ?)";
+        $stmt_wallet = mysqli_prepare($mycon, $insert_wallet_sql);
+        $initial_balance = 0.00;
+        $account_type = 'wallet';
+        mysqli_stmt_bind_param($stmt_wallet, "isd", $new_guest_id, $account_type, $initial_balance);
+        mysqli_stmt_execute($stmt_wallet);
+        mysqli_stmt_close($stmt_wallet);
+
         // Set success message
         $_SESSION['success'] = "Registration successful! You may now log in.";
         // Clear form data from session
         unset($_SESSION['form_data']);
+        // Notify admin of new user registration
+        $admin_id = 1; // Notify the first admin (or loop through all admins if needed)
+        $notif_type = 'profile';
+        $notif_message = 'A new user has registered: ' . $first_name . ' ' . $last_name . ' (' . $user_email . ')';
+        $notif_sql = "INSERT INTO admin_notifications (admin_id, type, message, created_at) VALUES (?, ?, ?, NOW())";
+        $notif_stmt = mysqli_prepare($mycon, $notif_sql);
+        mysqli_stmt_bind_param($notif_stmt, "iss", $admin_id, $notif_type, $notif_message);
+        mysqli_stmt_execute($notif_stmt);
+        mysqli_stmt_close($notif_stmt);
         // Redirect to login page
         header("Location: login.php");
         exit();

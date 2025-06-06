@@ -14,16 +14,34 @@ $guest = null;
 $reservations = [];
 $payments = [];
 $preferred_payment = '';
-// Fetch guest info
-$stmt = $mycon->prepare("SELECT * FROM tbl_guest WHERE guest_id = ? LIMIT 1");
+$guest_payment_accounts = [];
+$guest_wallet_balance = 0.00;
+
+// Fetch guest basic info (excluding removed wallet and payment columns)
+$stmt = $mycon->prepare("SELECT guest_id, first_name, middle_name, last_name, phone_number, user_email, address, profile_picture FROM tbl_guest WHERE guest_id = ? LIMIT 1");
 $stmt->bind_param('i', $guest_id);
 $stmt->execute();
 $guest = $stmt->get_result()->fetch_assoc();
 $stmt->close();
+
 if (!$guest) {
     echo '<div class="text-danger">Guest not found.</div>';
     exit;
 }
+
+// Fetch guest payment accounts from the new table
+$stmt_accounts = $mycon->prepare("SELECT account_type, account_number, account_email, balance FROM guest_payment_accounts WHERE guest_id = ?");
+$stmt_accounts->bind_param('i', $guest_id);
+$stmt_accounts->execute();
+$result_accounts = $stmt_accounts->get_result();
+while ($row_account = $result_accounts->fetch_assoc()) {
+    $guest_payment_accounts[$row_account['account_type']] = $row_account;
+    if ($row_account['account_type'] === 'wallet') {
+        $guest_wallet_balance = floatval($row_account['balance']);
+    }
+}
+$stmt_accounts->close();
+
 // Fetch reservations
 $res = $mycon->query("SELECT * FROM tbl_reservation WHERE guest_id = $guest_id ORDER BY check_in DESC");
 while ($row = $res->fetch_assoc()) {
@@ -65,15 +83,14 @@ foreach ($reservations as $r) {
         <div class="mb-2"><span class="text-warning fw-bold">Email:</span> <?php echo htmlspecialchars($guest['user_email']); ?></div>
         <div class="mb-2"><span class="text-warning fw-bold">Phone:</span> <?php echo htmlspecialchars($guest['phone_number']); ?></div>
         <div class="mb-2"><span class="text-warning fw-bold">Address:</span> <?php echo htmlspecialchars($guest['address']); ?></div>
-        <div class="mb-2"><span class="text-warning fw-bold">Wallet ID:</span> <?php echo htmlspecialchars($guest['wallet_id']); ?></div>
-        <div class="mb-2"><span class="text-warning fw-bold">Wallet Balance:</span> <span class="text-success">₱<?php echo number_format($guest['wallet_balance'],2); ?></span></div>
+        <div class="mb-2"><span class="text-warning fw-bold">Wallet Balance:</span> <span class="text-success">₱<?php echo number_format($guest_wallet_balance,2); ?></span></div>
         <div class="mb-2"><span class="text-warning fw-bold">Preferred Payment Method:</span> <span class="fw-bold text-warning"><?php echo $preferred_payment ?: '-'; ?></span></div>
         <div class="mt-4 p-3 bg-dark border border-warning rounded-3">
             <div class="fw-bold text-warning mb-2"><i class="bi bi-credit-card-2-front me-2"></i>Payment Account Info</div>
-            <div class="mb-1"><span class="text-warning">GCash:</span> <?php echo isset($guest['gcash_number']) && $guest['gcash_number'] ? htmlspecialchars($guest['gcash_number']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
-            <div class="mb-1"><span class="text-warning">Bank Account #:</span> <?php echo isset($guest['bank_account_number']) && $guest['bank_account_number'] ? htmlspecialchars($guest['bank_account_number']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
-            <div class="mb-1"><span class="text-warning">PayPal Email:</span> <?php echo isset($guest['paypal_email']) && $guest['paypal_email'] ? htmlspecialchars($guest['paypal_email']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
-            <div class="mb-1"><span class="text-warning">Credit Card #:</span> <?php echo isset($guest['credit_card_number']) && $guest['credit_card_number'] ? htmlspecialchars($guest['credit_card_number']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
+            <div class="mb-1"><span class="text-warning">GCash:</span> <?php echo isset($guest_payment_accounts['gcash']['account_number']) && $guest_payment_accounts['gcash']['account_number'] ? htmlspecialchars($guest_payment_accounts['gcash']['account_number']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
+            <div class="mb-1"><span class="text-warning">Bank Account #:</span> <?php echo isset($guest_payment_accounts['bank']['account_number']) && $guest_payment_accounts['bank']['account_number'] ? htmlspecialchars($guest_payment_accounts['bank']['account_number']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
+            <div class="mb-1"><span class="text-warning">PayPal Email:</span> <?php echo isset($guest_payment_accounts['paypal']['account_email']) && $guest_payment_accounts['paypal']['account_email'] ? htmlspecialchars($guest_payment_accounts['paypal']['account_email']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
+            <div class="mb-1"><span class="text-warning">Credit Card #:</span> <?php echo isset($guest_payment_accounts['credit_card']['account_number']) && $guest_payment_accounts['credit_card']['account_number'] ? htmlspecialchars($guest_payment_accounts['credit_card']['account_number']) : '<span class=\'text-secondary\'>-</span>'; ?></div>
         </div>
     </div>
     <!-- Right: Stats & History -->
