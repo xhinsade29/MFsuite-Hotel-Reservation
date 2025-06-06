@@ -109,6 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        $response = ['success' => true];
+        $response['message'] = $action === 'approve' ? 'Cancellation approved.' : 'Cancellation denied.';
+        
         // If approved and eligible for refund
         if ($action === 'approve' && $payment_status === 'Paid' && $payment_method !== 'Cash') {
             $account_type = strtolower($payment_method); // e.g., 'gcash', 'bank', 'paypal', 'credit_card'
@@ -192,15 +195,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     add_notification($guest_id, 'user', 'wallet', "Refunded ₱" . number_format($amount, 2) . " to your wallet for cancelled reservation #$reservation_id (original method: " . ucfirst($payment_method) . ").", $mycon, 0, $admin_id, $reservation_id);
                 } else {
                     error_log("No guest payment account or wallet found for guest_id=$guest_id. Refund skipped.");
-                    // Optionally, show a message or create a wallet account
+                    $response['message'] .= " However, the refund could not be processed automatically as no payment account was found for the guest.";
                 }
             }
         }
 
         $msg = $action === 'approve' ? 'Cancellation approved.' : 'Cancellation denied.';
-        header("Location: dashboard.php?msg=" . urlencode($msg));
+        $_SESSION['msg'] = $msg;
+        $_SESSION['msg_type'] = 'success';
+
+        header('Content-Type: application/json');
+        echo json_encode($response);
         exit();
     }
 }
-header("Location: dashboard.php?msg=Invalid+request");
+
+$response = ['success' => false, 'message' => 'Invalid Request'];
+header('Content-Type: application/json');
+echo json_encode($response);
 exit(); 

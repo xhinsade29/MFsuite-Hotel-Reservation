@@ -20,6 +20,7 @@ if ($active_res && mysqli_num_rows($active_res) > 0) {
             $status==='cancellation_requested'?'info text-dark':'secondary'))))).'">'.ucfirst($status).'</span></td>';
         // Action column
         echo '<td>';
+        echo '<a href="reservation_details.php?id=' . $row['reservation_id'] . '" class="btn btn-info btn-sm me-1">View Details</a>';
         if ($status === 'approved') {
             $can_complete = strtotime($row['check_out']) < time();
             $btn_class = $can_complete ? 'btn-primary' : 'btn-secondary';

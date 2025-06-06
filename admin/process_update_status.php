@@ -174,7 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  exit();
             }
             mysqli_stmt_bind_result($stmt_find, $assigned_room_id);
-            $assigned_room_id = null;
             if (mysqli_stmt_fetch($stmt_find)) {
                 error_log("[DEBUG] Room found for reservation #{$reservation_id}: Room ID = " . $assigned_room_id);
                 mysqli_stmt_close($stmt_find);
@@ -223,6 +222,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_param($stmt, "i", $payment_id);
             mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
+
+            // After approving payment, also approve the reservation and assign a room
+            if ($row['status'] !== 'approved') {
+                // This logic is duplicated from 'approve_reservation' action.
+                // It's better to refactor this into a function if used in more than two places.
+                $room_type_id = $row['room_type_id'];
+                $check_in = $row['check_in'];
+                $check_out = $row['check_out'];
+
+                $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (
+                    SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
+                ) LIMIT 1";
+                $stmt_find = mysqli_prepare($mycon, $find_room_sql);
+                mysqli_stmt_bind_param($stmt_find, "iss", $room_type_id, $check_out, $check_in);
+                mysqli_stmt_execute($stmt_find);
+                mysqli_stmt_bind_result($stmt_find, $assigned_room_id);
+                
+                if (mysqli_stmt_fetch($stmt_find)) {
+                    mysqli_stmt_close($stmt_find);
+                    
+                    $approved_status = 'approved';
+                    $stmt_approve = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = ?, assigned_room_id = ? WHERE reservation_id = ?");
+                    mysqli_stmt_bind_param($stmt_approve, "sii", $approved_status, $assigned_room_id, $reservation_id);
+                    mysqli_stmt_execute($stmt_approve);
+                    mysqli_stmt_close($stmt_approve);
+
+                    $stmt_room = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
+                    mysqli_stmt_bind_param($stmt_room, "i", $assigned_room_id);
+                    mysqli_stmt_execute($stmt_room);
+                    mysqli_stmt_close($stmt_room);
+                    
+                    add_notification($guest_id, 'user', 'reservation', 'Your reservation has been approved and a room has been assigned.', $mycon, 0, $admin_id, $reservation_id);
+                } else {
+                    mysqli_stmt_close($stmt_find);
+                    add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Room Type Fully Booked: No available room for this type and date for reservation #'.$reservation_id.'.', $mycon, 0, null, $reservation_id);
+                }
+            }
 
             // Update admin wallet (if applicable) and notify admin
             $admin_id = 1; // Or $_SESSION['admin_id']
@@ -365,7 +401,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      exit();
                 }
                 mysqli_stmt_bind_result($stmt_find, $assigned_room_id);
-                $assigned_room_id = null;
                 if (mysqli_stmt_fetch($stmt_find)) {
                     error_log("[DEBUG] Room found for manual approval of reservation #{$reservation_id}: Room ID = " . $assigned_room_id);
                     mysqli_stmt_close($stmt_find);

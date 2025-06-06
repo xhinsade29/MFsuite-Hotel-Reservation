@@ -92,60 +92,6 @@ require_once '../functions/payment_helpers.php';
         </div>
     </div>
 
-    <!-- Collapsible: Pending Cancellation Requests -->
-    <div class="table-section mb-4">
-        <div class="table-title d-flex justify-content-between align-items-center">
-            <span>Pending Cancellation Requests</span>
-            <button class="btn btn-link text-warning p-0" type="button" data-bs-toggle="collapse" data-bs-target="#pendingCancellationTable" aria-expanded="false" aria-controls="pendingCancellationTable">
-                <i class="bi bi-chevron-down"></i>
-            </button>
-        </div>
-        <div class="collapse" id="pendingCancellationTable">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle table-sm">
-                    <thead>
-                        <tr>
-                            <th>Reservation ID</th>
-                            <th>Guest</th>
-                            <th>Room Type</th>
-                            <th>Check-in</th>
-                            <th>Check-out</th>
-                            <th>Requested On</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cancellationRequestsTableBody">
-                        <?php
-                        $cancellation_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name, r.date_created as date_canceled, r.status FROM tbl_reservation r JOIN tbl_guest g ON r.guest_id = g.guest_id JOIN tbl_room rm ON r.room_id = rm.room_id JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE r.status IN ('cancellation_requested', 'cancelled') ORDER BY r.date_created DESC";
-                        $cancellation_res = mysqli_query($mycon, $cancellation_sql);
-
-                        if ($cancellation_res && mysqli_num_rows($cancellation_res) > 0) {
-                            while ($row = mysqli_fetch_assoc($cancellation_res)) {
-                                echo '<tr>';
-                                echo '<td>' . $row['reservation_id'] . '</td>';
-                                echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                                echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                                echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                                echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                                echo '<td>' . date('M d, Y h:i A', strtotime($row['date_canceled'])) . '</td>';
-                                echo '<td>';
-                                // Approve Cancellation Button
-                                echo '<button class="btn btn-success btn-sm approve-cancellation-btn" data-reservation-id="' . $row['reservation_id'] . '">Approve Cancellation</button>';
-                                // Add Deny Cancellation button if needed
-                                echo '<button class="btn btn-danger btn-sm deny-cancellation-btn" data-reservation-id="' . $row['reservation_id'] . '">Deny Cancellation</button>';
-                                echo '</td>';
-                                echo '</tr>';
-                            }
-                        } else {
-                            echo '<tr><td colspan="7" class="text-center text-secondary">No pending cancellation requests.</td></tr>';
-                        }
-                        ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <!-- Reservation List (with filters and sorting) -->
     <div class="table-section mb-4">
         <div class="table-title d-flex justify-content-between align-items-center">
@@ -153,6 +99,18 @@ require_once '../functions/payment_helpers.php';
         </div>
         <div>
             <form id="reservationFilterForm" method="GET" class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label for="list_status" class="form-label me-2">Filter by Status:</label>
+                    <select name="list_status" id="list_status" class="form-select d-inline-block w-auto">
+                        <option value="all" <?php if (($list_status ?? '') == 'all') echo 'selected'; ?>>All</option>
+                        <option value="completed" <?php if (($list_status ?? '') == 'completed') echo 'selected'; ?>>Completed</option>
+                        <option value="cancelled" <?php if (($list_status ?? '') == 'cancelled') echo 'selected'; ?>>Cancelled</option>
+                        <option value="denied" <?php if (($list_status ?? '') == 'denied') echo 'selected'; ?>>Denied</option>
+                        <option value="approved" <?php if (($list_status ?? '') == 'approved') echo 'selected'; ?>>Approved</option>
+                        <option value="pending" <?php if (($list_status ?? '') == 'pending') echo 'selected'; ?>>Pending</option>
+                        <option value="cancellation_requested" <?php if (($list_status ?? '') == 'cancellation_requested') echo 'selected'; ?>>Cancellation Requested</option>
+                    </select>
+                </div>
                 <div class="col-md-4">
                     <input type="text" name="guest" class="form-control" placeholder="Filter by Guest Name" value="<?php echo htmlspecialchars($_GET['guest'] ?? ''); ?>">
                 </div>
@@ -167,16 +125,6 @@ require_once '../functions/payment_helpers.php';
                         }
                         ?>
                     </select>
-                </div>
-                <div class="col-12 text-end">
-                    <label for="list_sort" class="form-label me-2">Sort by:</label>
-                    <select name="list_sort" id="list_sort" class="form-select d-inline-block w-auto">
-                        <option value="date_desc" <?php if (($list_sort ?? '') == 'date_desc') echo 'selected'; ?>>Newest</option>
-                        <option value="date_asc" <?php if (($list_sort ?? '') == 'date_asc') echo 'selected'; ?>>Oldest</option>
-                        <option value="guest" <?php if (($list_sort ?? '') == 'guest') echo 'selected'; ?>>Guest Name</option>
-                    </select>
-                    <button type="submit" class="btn btn-warning ms-2">Filter</button>
-                    <a href="#" id="resetReservationFilter" class="btn btn-secondary ms-2">Reset</a>
                 </div>
             </form>
             <div class="table-responsive">
@@ -206,10 +154,15 @@ require_once '../functions/payment_helpers.php';
                     $rtype = intval($_GET['room_type']);
                     $where[] = "rt.room_type_id = $rtype";
                 }
-                $list_sort = $_GET['list_sort'] ?? 'date_desc';
+                
+                $filter_status = $_GET['list_status'] ?? 'all';
+                if ($filter_status !== 'all') {
+                    $status_to_filter = mysqli_real_escape_string($mycon, $filter_status);
+                    $where[] = "r.status = '$status_to_filter'";
+                }
+
                 $list_order = 'ORDER BY r.date_created DESC';
-                if ($list_sort === 'date_asc') $list_order = 'ORDER BY r.date_created ASC';
-                if ($list_sort === 'guest') $list_order = 'ORDER BY g.last_name ASC, g.first_name ASC';
+
                 $where_sql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
                 $sql = "SELECT r.reservation_id, r.check_in, r.check_out, r.status, g.first_name, g.last_name, rt.type_name, p.amount, p.payment_method, p.payment_status, p.reference_number FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id $where_sql $list_order";
                 $res = mysqli_query($mycon, $sql);
@@ -244,8 +197,11 @@ require_once '../functions/payment_helpers.php';
         </div>
     </div>
 
-    <!-- Pending Cancellation Requests, Pending Cash Payment Bookings, and Reservations Pending Admin Approval sections removed (now on dashboard) -->
+    <div id="reservations-table-container">
+        <!-- Main reservations table will be loaded here by AJAX -->
+    </div>
 </div>
+
 <!-- Approve Modal -->
 <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -337,17 +293,16 @@ function refreshActiveReservationsTable() {
             document.getElementById('activeReservationsTableBody').innerHTML = html;
         });
 }
-setInterval(refreshActiveReservationsTable, 500);
-document.addEventListener('DOMContentLoaded', refreshActiveReservationsTable);
-function refreshCancellationRequestsTable() {
-    fetch('ajax_cancellation_requests_table.php')
+function refreshCompletedReservationsTable() {
+    fetch('ajax_completed_reservations_table.php')
         .then(response => response.text())
         .then(html => {
-            document.getElementById('cancellationRequestsTableBody').innerHTML = html;
+            document.getElementById('completedReservationsTableBody').innerHTML = html;
         });
 }
-setInterval(refreshCancellationRequestsTable, 500);
-document.addEventListener('DOMContentLoaded', refreshCancellationRequestsTable);
+setInterval(refreshActiveReservationsTable, 5000); // Refreshes every 5 seconds
+document.addEventListener('DOMContentLoaded', refreshActiveReservationsTable);
+document.addEventListener('DOMContentLoaded', refreshCompletedReservationsTable);
 function fetchRoomList(roomTypeId) {
     fetch('ajax_room_status_table.php?room_type_id=' + roomTypeId)
         .then(response => response.text())
@@ -407,6 +362,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 350); // debounce for 350ms
         });
     }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    var statusSelect = document.getElementById('list_status');
+    var guestInput = document.querySelector('input[name="guest"]');
+    var roomTypeSelect = document.querySelector('select[name="room_type"]');
+    var tableBody = document.getElementById('reservationListTableBody');
+
+    function fetchTable() {
+        var params = new URLSearchParams();
+        params.append('list_status', statusSelect.value);
+        if (guestInput && guestInput.value) params.append('guest', guestInput.value);
+        if (roomTypeSelect && roomTypeSelect.value) params.append('room_type', roomTypeSelect.value);
+        fetch('ajax_reservations_table.php?' + params.toString())
+            .then(response => response.text())
+            .then(html => { tableBody.innerHTML = html; });
+    }
+
+    if (statusSelect) statusSelect.addEventListener('change', fetchTable);
+    if (guestInput) guestInput.addEventListener('input', function() { setTimeout(fetchTable, 300); });
+    if (roomTypeSelect) roomTypeSelect.addEventListener('change', fetchTable);
+
+    // Initial load
+    fetchTable();
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

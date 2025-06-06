@@ -1,7 +1,17 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+header('Content-Type: application/json'); // Set content type to JSON
 session_start();
+
+$response = ['success' => false, 'message' => 'Invalid request.'];
+
 if (!isset($_SESSION['admin_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: admin_login.php');
+    $response['message'] = 'Unauthorized access.';
+    http_response_code(403);
+    echo json_encode($response);
     exit();
 }
 
@@ -13,71 +23,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($reservation_id && $action === 'approve') {
-        $conn = new mysqli("localhost", "root", "", "db_mfsuite_reservation");
-        if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
-
-        // 1. Get reservation details (room_type_id, check_in, check_out)
-        $stmt_details = $conn->prepare("SELECT room_id, check_in, check_out, assigned_room_id FROM tbl_reservation WHERE reservation_id = ?");
-        $stmt_details->bind_param("i", $reservation_id);
-        $stmt_details->execute();
-        $stmt_details->bind_result($room_type_id, $check_in, $check_out, $assigned_room_id);
-        $stmt_details->fetch();
-        $stmt_details->close();
+        
+        // 1. Get room_type_id, guest_id, check_in, check_out, assigned_room_id for the reservation
+        $stmt_details = mysqli_prepare($mycon, "SELECT r.room_id, r.guest_id, r.check_in, r.check_out, r.assigned_room_id FROM tbl_reservation r WHERE r.reservation_id = ?");
+        mysqli_stmt_bind_param($stmt_details, "i", $reservation_id);
+        mysqli_stmt_execute($stmt_details);
+        mysqli_stmt_bind_result($stmt_details, $room_type_id, $guest_id, $check_in, $check_out, $assigned_room_id);
+        mysqli_stmt_fetch($stmt_details);
+        mysqli_stmt_close($stmt_details);
 
         // 2. If not already assigned, find an available room and assign it
         if (empty($assigned_room_id)) {
             $find_room_sql = "SELECT r.room_id FROM tbl_room r WHERE r.room_type_id = ? AND r.status = 'Available' AND r.room_id NOT IN (
                 SELECT res.assigned_room_id FROM tbl_reservation res WHERE res.check_in < ? AND res.check_out > ? AND res.status IN ('pending','approved','completed') AND res.assigned_room_id IS NOT NULL
             ) LIMIT 1";
-            $stmt_find = $conn->prepare($find_room_sql);
-            $stmt_find->bind_param("iss", $room_type_id, $check_out, $check_in);
-            $stmt_find->execute();
-            $stmt_find->bind_result($new_assigned_room_id);
-            $assigned_room_id = null;
-            if ($stmt_find->fetch()) {
+            $stmt_find = mysqli_prepare($mycon, $find_room_sql);
+            mysqli_stmt_bind_param($stmt_find, "iss", $room_type_id, $check_out, $check_in);
+            mysqli_stmt_execute($stmt_find);
+            mysqli_stmt_bind_result($stmt_find, $new_assigned_room_id);
+            
+            if (mysqli_stmt_fetch($stmt_find)) {
                 $assigned_room_id = $new_assigned_room_id;
             }
-            $stmt_find->close();
-            if ($assigned_room_id) {
-                // Assign the room to the reservation
-                $stmt_assign = $conn->prepare("UPDATE tbl_reservation SET assigned_room_id = ? WHERE reservation_id = ?");
-                $stmt_assign->bind_param("ii", $assigned_room_id, $reservation_id);
-                $stmt_assign->execute();
-                $stmt_assign->close();
+            mysqli_stmt_close($stmt_find);
+
+            if(empty($assigned_room_id)) {
+                // Halt approval if no room is available
+                $response['message'] = 'Approval failed: No available room found for the selected dates.';
+                echo json_encode($response);
+                exit();
+            }
+
+            // Assign the found room to the reservation
+            $stmt_assign = mysqli_prepare($mycon, "UPDATE tbl_reservation SET assigned_room_id = ? WHERE reservation_id = ?");
+            mysqli_stmt_bind_param($stmt_assign, "ii", $assigned_room_id, $reservation_id);
+            mysqli_stmt_execute($stmt_assign);
+            mysqli_stmt_close($stmt_assign);
+        }
+        
+        // Set reservation status to approved
+        $result = mysqli_query($mycon, "UPDATE tbl_reservation SET status = 'approved' WHERE reservation_id = $reservation_id");
+        if (!$result) {
+            error_log('Failed to update reservation status: ' . mysqli_error($mycon));
+        }
+
+        // Set payment status to Paid
+        $result2 = mysqli_query($mycon, "UPDATE tbl_payment p JOIN tbl_reservation r ON p.payment_id = r.payment_id SET p.payment_status = 'Paid' WHERE r.reservation_id = $reservation_id");
+        if (!$result2) {
+            error_log('Failed to update payment status: ' . mysqli_error($mycon));
+        }
+
+        // Set assigned room status to 'Occupied'
+        if (!empty($assigned_room_id)) {
+            $result3 = mysqli_query($mycon, "UPDATE tbl_room SET status = 'Occupied' WHERE room_id = $assigned_room_id");
+            if (!$result3) {
+                error_log('Failed to update room status: ' . mysqli_error($mycon));
             }
         }
 
-        // Set reservation status to approved (not completed)
-        $stmt = $conn->prepare("UPDATE tbl_reservation SET status = 'approved' WHERE reservation_id = ?");
-        $stmt->bind_param("i", $reservation_id);
-        $stmt->execute();
-        $stmt->close();
-
-        // Set payment status to Paid
-        $stmt2 = $conn->prepare("UPDATE tbl_payment p JOIN tbl_reservation r ON p.payment_id = r.payment_id SET p.payment_status = 'Paid' WHERE r.reservation_id = ?");
-        $stmt2->bind_param("i", $reservation_id);
-        $stmt2->execute();
-        $stmt2->close();
-
-        // Set assigned room status to 'Occupied' if a room is assigned
-        if (!empty($assigned_room_id)) {
-            $stmt_update_room = $conn->prepare("UPDATE tbl_room SET status = 'Occupied' WHERE room_id = ?");
-            $stmt_update_room->bind_param("i", $assigned_room_id);
-            $stmt_update_room->execute();
-            $stmt_update_room->close();
+        $admin_id = $_SESSION['admin_id'] ?? 1;
+        // Notify Admin
+        $admin_notif_msg = "Cash payment approved for reservation #" . $reservation_id . ". Room assigned.";
+        add_notification($admin_id, 'admin', 'payment', $admin_notif_msg, $mycon, 0, null, $reservation_id);
+        
+        // Notify User
+        if($guest_id) {
+            $user_notif_msg = "Your cash payment for reservation #" . $reservation_id . " has been approved. Your booking is confirmed.";
+            add_notification($guest_id, 'user', 'payment', $user_notif_msg, $mycon, 0, $admin_id, $reservation_id);
         }
 
-        // Add notification for the admin
-        $admin_id = $_SESSION['admin_id'] ?? 1; // Get logged-in admin ID or default
-        $admin_notif_msg = "Cash payment approved for reservation #" . $reservation_id . ".";
-        add_notification($admin_id, 'admin', 'payment', $admin_notif_msg, $conn, 0, null, $reservation_id);
-
-        $conn->close();
-
-        header("Location: dashboard.php?msg=" . urlencode('Booking marked as completed and paid.'));
-        exit();
+        $response['success'] = true;
+        $response['message'] = 'Cash payment approved and room assigned successfully.';
     }
 }
 
-header("Location: dashboard.php?msg=Invalid+request");
+echo json_encode($response);
 exit(); 

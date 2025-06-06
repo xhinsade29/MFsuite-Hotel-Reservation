@@ -9,6 +9,10 @@ if (!empty($_GET['room_type'])) {
     $rtype = intval($_GET['room_type']);
     $where[] = "rt.room_type_id = $rtype";
 }
+if (!empty($_GET['list_status']) && $_GET['list_status'] !== 'all') {
+    $status = mysqli_real_escape_string($mycon, $_GET['list_status']);
+    $where[] = "r.status = '$status'";
+}
 $list_sort = $_GET['list_sort'] ?? 'date_desc';
 $list_order = 'ORDER BY r.date_created DESC';
 if ($list_sort === 'date_asc') $list_order = 'ORDER BY r.date_created ASC';
@@ -36,6 +40,7 @@ if ($res && mysqli_num_rows($res) > 0) {
         echo '<td>' . htmlspecialchars($row['payment_method'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($row['payment_status'] ?? '-') . '</td>';
         echo '<td>' . htmlspecialchars($row['reference_number'] ?? '-') . '</td>';
+        echo '<td><a href="reservation_details.php?id=' . $row['reservation_id'] . '" class="btn btn-info btn-sm">View Details</a></td>';
         echo '</tr>';
     }
 } else {

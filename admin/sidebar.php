@@ -42,13 +42,13 @@ include '../functions/db_connect.php';
           </ul>
         </div>
         <a href="reservations.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reservations.php') ? 'active' : ''; ?>">
-            <i class="bi bi-calendar2-check-fill"></i> Reservations
+            <i class="bi bi-calendar2-week-fill me-2"></i> Reservations
         </a>
         <a href="guests.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'guests.php') ? 'active' : ''; ?>">
             <i class="bi bi-people-fill"></i> Guests
         </a>
         <a href="payments.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'payments.php') ? 'active' : ''; ?>">
-            <i class="bi bi-credit-card-fill"></i> Payments
+            <i class="bi bi-credit-card-fill me-2"></i> Payments
         </a>
         <a href="reports.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reports.php') ? 'active' : ''; ?>">
             <i class="bi bi-bar-chart-fill"></i> Reports

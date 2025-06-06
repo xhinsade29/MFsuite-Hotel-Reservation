@@ -42,18 +42,15 @@ foreach ($notifications as $notif): ?>
     $is_clickable = false;
     $link_href = '#';
     if (!empty($notif['related_id'])) {
-        if ($notif['type'] === 'cancellation') {
+        if (in_array($notif['type'], ['cancellation', 'payment'])) {
             $is_clickable = true;
-            $link_href = 'dashboard.php#pending-cancellations';
-        } elseif ($notif['type'] === 'payment') {
-            $is_clickable = true;
-            $link_href = 'dashboard.php#pending-cash-approvals';
+            $link_href = 'reservation_details.php?id=' . $notif['related_id'];
         } elseif ($notif['type'] === 'reservation' && strpos($notif['message'], 'Pending approval') !== false) {
             $is_clickable = true;
-            $link_href = 'dashboard.php#pending-cash-approvals';
+            $link_href = 'reservation_details.php?id=' . $notif['related_id'];
         } elseif ($notif['type'] === 'reservation') {
             $is_clickable = true;
-            $link_href = 'reservations.php?id=' . $notif['related_id'];
+            $link_href = 'reservation_details.php?id=' . $notif['related_id'];
         }
     }
     $tag_open = $is_clickable ? '<a href="' . $link_href . '" class="notification-card-link">' : '<div class="notif-wrapper">';

@@ -9,7 +9,7 @@ function add_notification($recipient_id, $recipient_type, $type, $message, $myco
             return false; // Return false on failure
         }
         // Bind parameters: admin_id, type, message, is_read, related_id
-        mysqli_stmt_bind_param($stmt, "issii", $recipient_id, $type, $message, $is_read, $related_id);
+        mysqli_stmt_bind_param($stmt, "isssi", $recipient_id, $type, $message, $is_read, $related_id);
 
     } else { // Assuming 'user' or 'guest'
         // Insert into user_notifications table

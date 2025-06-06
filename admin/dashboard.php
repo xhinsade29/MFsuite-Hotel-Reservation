@@ -307,115 +307,10 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
             </div>
         </div>
     </div>
-    <!-- Combined Pending Reservations Table -->
-    <div class="table-section mt-4">
-        <a id="pending-cancellations"></a>
-        <div class="table-title">Pending Cancellation Requests</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Room Type</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            // Corrected and simplified query to fetch ALL cancellation requests
-            $cancel_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name
-                           FROM tbl_reservation r
-                           JOIN tbl_guest g ON r.guest_id = g.guest_id
-                           JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
-                           WHERE r.status = 'cancellation_requested'
-                           ORDER BY r.date_created DESC";
-            $cancel_res = mysqli_query($mycon, $cancel_sql);
-            if ($cancel_res && mysqli_num_rows($cancel_res) > 0) {
-                while ($row = mysqli_fetch_assoc($cancel_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>';
-                    // The form now correctly points to process_cancellation.php for both approve and deny actions
-                    echo '<form method="POST" action="process_cancellation.php" style="display:inline-block; margin-right: 5px;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>';
-                    echo '</form>';
-                    echo '<form method="POST" action="process_cancellation.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<button type="submit" name="action" value="deny" class="btn btn-danger btn-sm">Deny</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="6" class="text-center text-secondary">No pending cancellation requests.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
+    <div class="row mt-4 g-4">
+        <!-- This section is intentionally left blank as per the new workflow. -->
+        <!-- Pending requests are now handled directly from the reservation details page via notifications. -->
     </div>
-
-    <!-- Pending Cash Payment Approvals Table -->
-    <div class="table-section mt-4">
-        <a id="pending-cash-approvals"></a>
-        <div class="table-title">Pending Cash Payment Approvals</div>
-        <div class="table-responsive">
-        <table class="table table-hover table-bordered align-middle">
-            <thead>
-                <tr>
-                    <th>Reservation ID</th>
-                    <th>Guest</th>
-                    <th>Room Type</th>
-                    <th>Check-in</th>
-                    <th>Check-out</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php
-            // Query to fetch pending reservations with cash payment
-            $cash_sql = "SELECT r.reservation_id, r.check_in, r.check_out, g.first_name, g.last_name, rt.type_name
-                           FROM tbl_reservation r
-                           JOIN tbl_guest g ON r.guest_id = g.guest_id
-                           JOIN tbl_payment p ON r.payment_id = p.payment_id
-                           JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
-                           WHERE r.status = 'pending' AND p.payment_method = 'Cash'
-                           ORDER BY r.date_created DESC";
-            $cash_res = mysqli_query($mycon, $cash_sql);
-            if ($cash_res && mysqli_num_rows($cash_res) > 0) {
-                while ($row = mysqli_fetch_assoc($cash_res)) {
-                    echo '<tr>';
-                    echo '<td>' . $row['reservation_id'] . '</td>';
-                    echo '<td>' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name']) . '</td>';
-                    echo '<td>' . htmlspecialchars($row['type_name']) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_in'])) . '</td>';
-                    echo '<td>' . date('M d, Y h:i A', strtotime($row['check_out'])) . '</td>';
-                    echo '<td>';
-                    echo '<form method="POST" action="process_update_status.php" style="display:inline-block;">';
-                    echo '<input type="hidden" name="reservation_id" value="' . $row['reservation_id'] . '">';
-                    echo '<input type="hidden" name="action" value="approve_reservation">';
-                    echo '<button type="submit" class="btn btn-success btn-sm">Approve Cash Payment</button>';
-                    echo '</form>';
-                    echo '</td>';
-                    echo '</tr>';
-                }
-            } else {
-                echo '<tr><td colspan="6" class="text-center text-secondary">No pending cash payment approvals.</td></tr>';
-            }
-            ?>
-            </tbody>
-        </table>
-        </div>
-    </div>
-
     <!-- Debug Output for Chart Data -->
     <!-- Recent Activities Section -->
     <div class="table-section mb-4">
@@ -867,6 +762,12 @@ function updateRoomCounts() {
 }
 setInterval(updateRoomCounts, 500); // Update every .5 seconds
 document.addEventListener('DOMContentLoaded', updateRoomCounts);
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // The cash approval and cancellation tables are no longer loaded via AJAX on the dashboard.
+        // This logic has been moved to the reservation_details.php page.
+    });
 </script>
 </body>
 </html> 
