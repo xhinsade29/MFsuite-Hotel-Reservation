@@ -15,9 +15,6 @@ include '../functions/db_connect.php';
         <span class="admin-hotel-name">MF Suites Hotel</span>
     </div>
     <nav class="admin-nav">
-        <a href="profile.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'profile.php') ? 'active' : ''; ?>">
-            <i class="bi bi-person"></i> Profile
-        </a>
         <a href="dashboard.php" class="admin-nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
             <i class="bi bi-grid-1x2-fill"></i> Dashboard
         </a>
@@ -250,6 +247,32 @@ include '../functions/db_connect.php';
 .sidebar-dropdown.open .chevron-icon {
   transform: rotate(180deg);
 }
+.admin-profile-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 48px;
+    min-width: 180px;
+    background: #23234a;
+    color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(31,38,135,0.18);
+    z-index: 3000;
+    padding: 0.5rem 0;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.admin-profile-dropdown .dropdown-item {
+    display: block;
+    padding: 12px 22px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+.admin-profile-dropdown .dropdown-item:hover {
+    background: #ff8c00;
+    color: #fff;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -323,7 +346,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span class="fw-semibold d-none d-md-inline"> <?php echo htmlspecialchars($admin_full_name); ?> </span>
                 <i class="bi bi-chevron-down d-none d-md-inline"></i>
             </button>
-            <div class="profile-dropdown" id="adminProfileDropdown" style="display:none;position:absolute;right:0;top:48px;min-width:160px;background:#23234a;color:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(31,38,135,0.18);z-index:3000;padding:0.5rem 0;border:1px solid rgba(255,255,255,0.08);">
+            <div class="profile-dropdown admin-profile-dropdown" id="adminProfileDropdown">
+                <a href="profile.php" class="dropdown-item"><i class="bi bi-person me-2"></i> View Profile</a>
                 <a href="logout.php" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i> Log Out</a>
             </div>
         </div>

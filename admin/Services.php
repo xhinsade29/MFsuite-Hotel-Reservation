@@ -12,13 +12,24 @@ if (isset($_POST['ajax_delete_service'])) {
     if ($service_id) {
         // Only need to delete from tbl_services; ON DELETE CASCADE will handle tbl_room_services
         $stmt = $mycon->prepare("DELETE FROM tbl_services WHERE service_id=?");
+        if (!$stmt) {
+            error_log('Prepare failed: ' . $mycon->error, 3, __DIR__ . '/../logs/service_delete_error.log');
+            echo json_encode(['status' => 'error', 'message' => 'Prepare failed: ' . $mycon->error]);
+            exit;
+        }
         $stmt->bind_param('i', $service_id);
-        $stmt->execute();
+        if (!$stmt->execute()) {
+            error_log('Execute failed: ' . $stmt->error, 3, __DIR__ . '/../logs/service_delete_error.log');
+            echo json_encode(['status' => 'error', 'message' => 'Execute failed: ' . $stmt->error]);
+            $stmt->close();
+            exit;
+        }
         $stmt->close();
         echo json_encode(['status' => 'success']);
         exit;
     }
-    echo json_encode(['status' => 'error']);
+    error_log('Invalid service_id for delete: ' . var_export($_POST, true), 3, __DIR__ . '/../logs/service_delete_error.log');
+    echo json_encode(['status' => 'error', 'message' => 'Invalid service_id.']);
     exit;
 }
 // Handle add, edit actions for services only
@@ -196,6 +207,24 @@ function get_service_icon($name) {
     </div>
   </div>
 </div>
+<!-- Delete Service Confirmation Modal -->
+<div class="modal fade" id="deleteServiceModal" tabindex="-1" aria-labelledby="deleteServiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger" id="deleteServiceModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this service?
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteServiceBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
   <div id="adminToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
@@ -219,28 +248,40 @@ function showAdminToast(message, type) {
   var toast = new bootstrap.Toast(toastEl);
   toast.show();
 }
-// AJAX delete for service
-const deleteBtns = document.querySelectorAll('.delete-service-btn');
-deleteBtns.forEach(btn => {
+
+let serviceIdToDelete = null;
+document.querySelectorAll('.delete-service-btn').forEach(btn => {
   btn.addEventListener('click', function() {
-    const serviceId = this.getAttribute('data-service-id');
-    if (!confirm('Delete this service?')) return;
-    fetch('', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'ajax_delete_service=1&service_id=' + encodeURIComponent(serviceId)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'success') {
-        const card = document.getElementById('serviceCard' + serviceId);
-        if (card) card.remove();
-        showAdminToast('Service deleted!', 'success');
-      } else {
-        showAdminToast('Failed to delete service.', 'danger');
-      }
-    })
-    .catch(() => showAdminToast('Failed to delete service.', 'danger'));
+    serviceIdToDelete = this.getAttribute('data-service-id');
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteServiceModal'));
+    deleteModal.show();
+  });
+});
+document.getElementById('confirmDeleteServiceBtn').addEventListener('click', function() {
+  if (!serviceIdToDelete) return;
+  fetch('', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'ajax_delete_service=1&service_id=' + encodeURIComponent(serviceIdToDelete)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      const card = document.getElementById('serviceCard' + serviceIdToDelete);
+      if (card) card.remove();
+      showAdminToast('Service deleted!', 'success');
+    } else {
+      showAdminToast('Failed to delete service.', 'danger');
+    }
+    var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteServiceModal'));
+    if (deleteModal) deleteModal.hide();
+    serviceIdToDelete = null;
+  })
+  .catch(() => {
+    showAdminToast('Failed to delete service.', 'danger');
+    var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteServiceModal'));
+    if (deleteModal) deleteModal.hide();
+    serviceIdToDelete = null;
   });
 });
 </script>

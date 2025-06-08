@@ -277,6 +277,12 @@ if (isset($_SESSION['guest_id'])) {
                 <i class="bi bi-chevron-down"></i>
             </button>
             <div class="profile-dropdown" id="profileDropdown">
+                <a href="../pages/update_profile.php" class="dropdown-item">
+                    <i class="bi bi-person me-2"></i> View Profile
+                </a>
+                <a href="../pages/settings.php" class="dropdown-item">
+                    <i class="bi bi-gear me-2"></i> Settings
+                </a>
                 <a href="../pages/logout.php" class="dropdown-item">
                     <i class="bi bi-box-arrow-right me-2"></i> Log Out
                 </a>
@@ -288,9 +294,6 @@ if (isset($_SESSION['guest_id'])) {
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-    <a href="../pages/update_profile.php" class="<?php echo ($current_page == 'update_profile.php') ? 'active' : ''; ?>">
-        <i class="bi bi-person"></i> Profile
-    </a>
     <a href="../pages/rooms.php" class="<?php echo ($current_page == 'rooms.php') ? 'active' : ''; ?>">
         <i class="bi bi-house"></i> Rooms
     </a>
@@ -299,9 +302,6 @@ if (isset($_SESSION['guest_id'])) {
     </a>
     <a href="../pages/notifications.php" class="<?php echo ($current_page == 'notifications.php') ? 'active' : ''; ?>">
         <i class="bi bi-bell"></i> Notifications
-    </a>
-    <a href="../pages/settings.php" class="<?php echo ($current_page == 'settings.php') ? 'active' : ''; ?>">
-        <i class="bi bi-gear"></i> Settings
     </a>
     <hr>
     <a href="../pages/about.php" class="<?php echo ($current_page == 'about.php') ? 'active' : ''; ?>">

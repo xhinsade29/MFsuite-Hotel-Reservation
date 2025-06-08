@@ -94,12 +94,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_room'])) {
         $room_type_id = intval($_POST['room_type_id']);
         if ($room_type_id) {
+            // Check for active reservations for any room under this room type
+            $active_res_sql = "SELECT COUNT(*) FROM tbl_reservation r JOIN tbl_room rm ON r.assigned_room_id = rm.room_id WHERE rm.room_type_id = ? AND r.status IN ('pending','approved','completed')";
+            $active_res_stmt = $mycon->prepare($active_res_sql);
+            $active_res_stmt->bind_param('i', $room_type_id);
+            $active_res_stmt->execute();
+            $active_res_stmt->bind_result($active_count);
+            $active_res_stmt->fetch();
+            $active_res_stmt->close();
+            if ($active_count > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'Cannot delete: There are active reservations for this room type.']);
+                exit;
+            }
             $stmt = $mycon->prepare("DELETE FROM tbl_room_type WHERE room_type_id=?");
             $stmt->bind_param('i', $room_type_id);
             $stmt->execute();
             $stmt->close();
-            $msg = 'Room type deleted!';
-            echo "<script>setTimeout(function(){ showAdminToast('Room type deleted successfully!', 'success'); }, 500);</script>";
+            echo json_encode(['status' => 'success', 'message' => 'Room type deleted successfully!']);
+            exit;
         }
     }
     // Handle room number edit
@@ -315,6 +327,7 @@ while ($row = $services_result->fetch_assoc()) {
                 <div class="mb-1"><i class="bi bi-people"></i> Max Occupancy: <?php echo htmlspecialchars($room['max_occupancy']); ?></div>
                 <p class="card-text"><?php echo htmlspecialchars($room['description']); ?></p>
                 <button class="btn btn-info btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#roomModal<?php echo $room['room_type_id']; ?>">View Rooms</button>
+                <button class="btn btn-danger btn-sm mt-2 ms-2 delete-room-type-btn" data-room-type-id="<?php echo $room['room_type_id']; ?>" title="Delete Room Type"><i class="bi bi-trash"></i></button>
               </div>
             </div>
             <!-- Modal for Room List -->
@@ -484,6 +497,24 @@ while ($row = $services_result->fetch_assoc()) {
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-danger" id="confirmDeleteRoomBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Delete Room Type Confirmation Modal -->
+<div class="modal fade" id="deleteRoomTypeModal" tabindex="-1" aria-labelledby="deleteRoomTypeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger" id="deleteRoomTypeModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete this room type? All rooms under this type will also be deleted.
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteRoomTypeBtn">Delete</button>
       </div>
     </div>
   </div>
@@ -659,6 +690,41 @@ document.querySelectorAll('button[data-bs-target^="#roomModal"]').forEach(btn =>
         var roomTypeId = this.getAttribute('data-bs-target').replace('#roomModal', '');
         fetchRoomList(roomTypeId);
     });
+});
+let roomTypeIdToDelete = null;
+document.querySelectorAll('.delete-room-type-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    roomTypeIdToDelete = this.getAttribute('data-room-type-id');
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteRoomTypeModal'));
+    deleteModal.show();
+  });
+});
+document.getElementById('confirmDeleteRoomTypeBtn').addEventListener('click', function() {
+  if (!roomTypeIdToDelete) return;
+  fetch('', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'delete_room=1&room_type_id=' + encodeURIComponent(roomTypeIdToDelete)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      var card = document.querySelector('.delete-room-type-btn[data-room-type-id="' + roomTypeIdToDelete + '"]').closest('.col-md-4');
+      if (card) card.remove();
+      showAdminToast(data.message, 'success');
+    } else {
+      showAdminToast(data.message || 'Failed to delete room type.', 'danger');
+    }
+    var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteRoomTypeModal'));
+    if (deleteModal) deleteModal.hide();
+    roomTypeIdToDelete = null;
+  })
+  .catch(() => {
+    showAdminToast('Failed to delete room type.', 'danger');
+    var deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteRoomTypeModal'));
+    if (deleteModal) deleteModal.hide();
+    roomTypeIdToDelete = null;
+  });
 });
 </script>
 </body>
