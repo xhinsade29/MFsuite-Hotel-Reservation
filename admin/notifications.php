@@ -91,6 +91,17 @@ function is_user_only_message($message) {
     }
     return false;
 }
+
+// Count unread reservation and payment notifications
+$unread_reservation_count = 0;
+$unread_payment_count = 0;
+$res_count = mysqli_query($mycon, "SELECT type, COUNT(*) as cnt FROM admin_notifications WHERE admin_id = {$_SESSION['admin_id']} AND is_read = 0 AND type IN ('reservation','payment') GROUP BY type");
+if ($res_count) {
+    while ($row = mysqli_fetch_assoc($res_count)) {
+        if ($row['type'] === 'reservation') $unread_reservation_count = $row['cnt'];
+        if ($row['type'] === 'payment') $unread_payment_count = $row['cnt'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -138,6 +149,14 @@ function is_user_only_message($message) {
 <?php include './sidebar.php'; ?>
 <div class="container py-5">
     <h2 class="mb-4 text-warning"><i class="bi bi-bell-fill"></i> Admin Notifications</h2>
+    <div class="mb-3">
+        <?php if ($unread_reservation_count > 0): ?>
+            <span class="badge bg-warning text-dark me-2">Unread Reservation: <?php echo $unread_reservation_count; ?></span>
+        <?php endif; ?>
+        <?php if ($unread_payment_count > 0): ?>
+            <span class="badge bg-success me-2">Unread Payment: <?php echo $unread_payment_count; ?></span>
+        <?php endif; ?>
+    </div>
     <form method="get" class="mb-3 d-flex align-items-center gap-2">
         <label for="sort" class="form-label mb-0">Sort/Filter by:</label>
         <select name="sort" id="sort" class="form-select w-auto" onchange="this.form.submit()">
@@ -179,6 +198,13 @@ function is_user_only_message($message) {
                 $tag_open = $is_clickable ? '<a href="' . $link_href . '" class="notification-card-link">' : '';
                 $tag_close = $is_clickable ? '</a>' : '';
                 $card_class = $is_clickable ? 'clickable' : '';
+                // Add badge for reservation/payment
+                $type_badge = '';
+                if ($notif['type'] === 'reservation') {
+                    $type_badge = '<span class="badge bg-warning text-dark me-2">Reservation</span>';
+                } elseif ($notif['type'] === 'payment') {
+                    $type_badge = '<span class="badge bg-success me-2">Payment</span>';
+                }
             ?>
             <?php echo $tag_open; ?>
             <div class="notif-card p-4 mb-3 d-flex align-items-start <?php if(!$notif['is_read']) echo 'notif-unread-new'; ?> <?php echo $card_class; ?>">
@@ -197,6 +223,7 @@ function is_user_only_message($message) {
                         <?php else: ?>
                             <i class="bi bi-info-circle me-2"></i>
                         <?php endif; ?>
+                        <?php echo $type_badge; ?>
                         <span class="fw-bold text-capitalize me-2 notif-type-<?php echo htmlspecialchars($notif['type']); ?>">
                             <?php echo htmlspecialchars($notif['type']); ?>
                         </span>

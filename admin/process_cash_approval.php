@@ -95,6 +95,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $response['success'] = true;
         $response['message'] = 'Cash payment approved and room assigned successfully.';
     }
+    elseif ($reservation_id && $action === 'deny') {
+        // Get guest_id for notification
+        $stmt_details = mysqli_prepare($mycon, "SELECT guest_id FROM tbl_reservation WHERE reservation_id = ?");
+        mysqli_stmt_bind_param($stmt_details, "i", $reservation_id);
+        mysqli_stmt_execute($stmt_details);
+        mysqli_stmt_bind_result($stmt_details, $guest_id);
+        mysqli_stmt_fetch($stmt_details);
+        mysqli_stmt_close($stmt_details);
+
+        // Set reservation status to denied
+        $result = mysqli_query($mycon, "UPDATE tbl_reservation SET status = 'denied' WHERE reservation_id = $reservation_id");
+        // Set payment status to Denied
+        $result2 = mysqli_query($mycon, "UPDATE tbl_payment p JOIN tbl_reservation r ON p.payment_id = r.payment_id SET p.payment_status = 'Denied' WHERE r.reservation_id = $reservation_id");
+
+        $admin_id = $_SESSION['admin_id'] ?? 1;
+        // Notify Admin
+        $admin_notif_msg = "Cash payment denied for reservation #" . $reservation_id . ".";
+        add_notification($admin_id, 'admin', 'payment', $admin_notif_msg, $mycon, 0, null, $reservation_id);
+        // Notify User
+        if($guest_id) {
+            $user_notif_msg = "Your cash payment for reservation #" . $reservation_id . " has been denied by the admin.";
+            add_notification($guest_id, 'user', 'payment', $user_notif_msg, $mycon, 0, $admin_id, $reservation_id);
+        }
+
+        $response['success'] = true;
+        $response['message'] = 'Cash payment denied and reservation updated.';
+    }
 }
 
 echo json_encode($response);

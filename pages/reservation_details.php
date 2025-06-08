@@ -248,10 +248,7 @@ $conn->close();
             align-items: stretch;
             justify-content: flex-start;
             min-width: 0;
-            flex: 1 1 0%;
-            min-height: 100%;
-            box-shadow: none;
-            width: 100%;
+            flex-grow: 1;
         }
         .card-modern {
             background: rgba(24,24,47,0.98);
@@ -304,6 +301,12 @@ $conn->close();
             .details-container { flex-direction: column; border-radius: 22px; max-width: 98vw; }
             .details-image, .details-content { border-radius: 22px 22px 0 0; min-width: unset; max-width: unset; padding: 28px 12px; }
             .card-modern { padding: 24px 10px 18px 10px; }
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
         }
     </style>
 </head>
@@ -359,11 +362,6 @@ $conn->close();
                     <a href="reservations.php" class="btn btn-outline-light d-inline-flex align-items-center" style="gap: 0.5em; font-weight: 500; border-radius: 2em; box-shadow: 0 2px 8px rgba(0,0,0,0.10);">
                         <i class="bi bi-arrow-left-circle" style="font-size: 1.3em;"></i> Back to My Reservations
                     </a>
-                    <?php if ($booking['reservation_status'] !== 'cancellation_requested' && $booking['reservation_status'] !== 'cancelled' && $booking['reservation_status'] !== 'denied' && $booking['reservation_status'] !== 'completed'): ?>
-                    <button id="cancelBtn" class="btn btn-outline-danger d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#cancelModal" style="gap:0.5em; font-weight:500; border-radius:2em; box-shadow:0 2px 8px rgba(0,0,0,0.10);">
-                        <i class="bi bi-trash3" style="font-size:1.2em;"></i> Cancel Reservation
-                    </button>
-                    <?php endif; ?>
                 </div>
             </div>
             <div class="details-content">
@@ -455,6 +453,21 @@ $conn->close();
                         </div>
                         <div class="info-row"><strong>Date Booked:</strong>&nbsp;<?php echo htmlspecialchars($booking['date_created']); ?></div>
                     </div>
+                    <div class="action-buttons">
+                        <?php if ($booking['reservation_status'] === 'pending' && $booking['payment_status'] !== 'Paid'): ?>
+                            <button class="btn btn-success" id="pay-now-btn">Pay Now</button>
+                        <?php endif; ?>
+
+                        <?php
+                        // Show "View Receipt" button if payment is 'Paid' or 'Refunded'
+                        if ($booking['payment_status'] === 'Paid' || $booking['payment_status'] === 'Refunded') {
+                            echo '<button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#receiptModal" data-paymentid="' . $booking['payment_id'] . '">View Receipt</button>';
+                        }
+                        ?>
+                        <?php if (!in_array($booking['reservation_status'], ['cancellation_requested', 'cancelled', 'denied', 'completed'])): ?>
+                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">Cancel Reservation</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -517,23 +530,49 @@ $conn->close();
         </div>
       </div>
     </div>
+    <!-- Receipt Modal -->
+    <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="background: transparent; border: none;">
+                <div class="modal-body" id="receipt-content" style="min-height: 400px; padding: 0;">
+                    <!-- Receipt will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    setInterval(updateNotifTrashCount, 1000); // for every 1 second
-    var trashModal = document.getElementById('trashModal');
-    trashModal.addEventListener('hidden.bs.modal', function () {
-        document.body.focus(); // or focus another visible element
+    console.log('JS loaded');
+    document.addEventListener('DOMContentLoaded', function() {
+        var receiptModal = document.getElementById('receiptModal');
+        if (receiptModal) { // Check if modal exists
+            receiptModal.addEventListener('show.bs.modal', function(event) {
+                var button = event.relatedTarget;
+                var paymentId = button.getAttribute('data-paymentid');
+                var receiptContent = document.getElementById('receipt-content');
+                receiptContent.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;"><span class="visually-hidden">Loading...</span></div></div>';
+
+                fetch('ajax_get_receipt.php?payment_id=' + paymentId)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok. Status: ' + response.status);
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        receiptContent.innerHTML = data;
+                    })
+                    .catch(error => {
+                        receiptContent.innerHTML = '<div class="alert alert-danger m-3">Failed to load receipt. Please try again.</div>';
+                        console.error('Error fetching receipt:', error);
+                    });
+            });
+        }
     });
 
-    function fetchReservationDetails() {
-        var reservationId = <?php echo json_encode($_GET['id'] ?? 0); ?>;
-        fetch('ajax_reservation_details.php?id=' + reservationId)
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById('reservationDetailsContainer').innerHTML = html;
-            });
+    const themeToggleButton = document.getElementById('theme-toggle-btn');
+    if (themeToggleButton) {
     }
-    setInterval(fetchReservationDetails, 1000);
     </script>
 </body>
 </html> 

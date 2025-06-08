@@ -118,6 +118,22 @@ switch ($type) {
         }
         $html .= '</tbody></table>';
         break;
+    case 'pending_cash_approval':
+        $res = mysqli_query($mycon, "SELECT r.reservation_id, g.first_name, g.last_name, rt.type_name, r.check_in, r.check_out, p.amount, p.created_at FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND p.payment_status = 'Pending' ORDER BY p.created_at ASC");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Reservation ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Amount</th><th>Date Requested</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['reservation_id'])."</td><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['type_name'])."</td><td>".date('M d, Y h:i A', strtotime($r['check_in']))."</td><td>".date('M d, Y h:i A', strtotime($r['check_out']))."</td><td>₱".number_format($r['amount'],2)."</td><td>".date('M d, Y h:i A', strtotime($r['created_at']))."</td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
+    case 'pending_cancellation_requests':
+        $res = mysqli_query($mycon, "SELECT r.reservation_id, g.first_name, g.last_name, rt.type_name, r.check_in, r.check_out, r.date_created FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE r.status = 'cancellation_requested' ORDER BY r.date_created ASC");
+        $html .= "<table class='table table-hover table-bordered align-middle'><thead><tr><th>Reservation ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Date Requested</th></tr></thead><tbody>";
+        while ($r = mysqli_fetch_assoc($res)) {
+            $html .= "<tr><td>".htmlspecialchars($r['reservation_id'])."</td><td>".htmlspecialchars($r['first_name'].' '.$r['last_name'])."</td><td>".htmlspecialchars($r['type_name'])."</td><td>".date('M d, Y h:i A', strtotime($r['check_in']))."</td><td>".date('M d, Y h:i A', strtotime($r['check_out']))."</td><td>".date('M d, Y h:i A', strtotime($r['date_created']))."</td></tr>";
+        }
+        $html .= '</tbody></table>';
+        break;
     default:
         $html = '<div class="text-danger">Invalid summary type.</div>';
 }

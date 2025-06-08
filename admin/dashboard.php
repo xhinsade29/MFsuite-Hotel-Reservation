@@ -76,6 +76,17 @@ $new_admins_sql = "
 $new_admins = mysqli_query($mycon, $new_admins_sql);
 // Add PHP variable for approved cancelled requests count
 $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'cancelled'"))[0];
+$pending_cash_approvals = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation r LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND p.payment_status = 'Pending'"))[0];
+$pending_cancellation_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COUNT(*) FROM tbl_reservation WHERE status = 'cancellation_requested'"))[0];
+// Fetch unread admin notifications count
+$unread_admin_notif_count = 0;
+$admin_id = $_SESSION['admin_id'] ?? 0;
+if ($admin_id) {
+    $notif_res = mysqli_query($mycon, "SELECT COUNT(*) as cnt FROM notifications WHERE recipient_id = $admin_id AND recipient_type = 'admin' AND is_read = 0");
+    if ($notif_res && $row = mysqli_fetch_assoc($notif_res)) {
+        $unread_admin_notif_count = (int)$row['cnt'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -125,6 +136,40 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
         @media (max-width: 900px) {
             .summary-cards { flex-direction: column; gap: 18px; }
             .summary-card { max-width: 100%; min-width: 0; }
+        }
+        .admin-action-btn {
+            font-size: 1.08em;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 28px;
+            margin: 0 6px 8px 0;
+            box-shadow: 0 2px 8px rgba(255,140,0,0.10);
+            transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+        }
+        .admin-action-btn.approve {
+            background: linear-gradient(90deg,#00c896 60%,#1e90ff 100%);
+            color: #fff;
+            border: none;
+        }
+        .admin-action-btn.approve:hover {
+            background: linear-gradient(90deg,#1e90ff 60%,#00c896 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(0,200,150,0.18);
+        }
+        .admin-action-btn.deny {
+            background: linear-gradient(90deg,#ff4d4d 60%,#c0392b 100%);
+            color: #fff;
+            border: none;
+        }
+        .admin-action-btn.deny:hover {
+            background: linear-gradient(90deg,#c0392b 60%,#ff4d4d 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(255,77,77,0.18);
+        }
+        .highlight-notif {
+            background: linear-gradient(90deg,#ffb347 60%,#ff4d4d 100%) !important;
+            color: #fff !important;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -306,6 +351,20 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
                 <span class="summary-value" id="totalIncomeValue">₱<?php echo number_format($total_income, 2); ?></span>
             </div>
         </div>
+        <div class="summary-card requests clickable" id="pendingCashApprovalCard">
+            <span class="summary-icon"><i class="bi bi-cash-coin"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Pending Cash Approvals</span>
+                <span class="summary-value" id="pendingCashApprovalValue"><?php echo json_encode($pending_cash_approvals); ?></span>
+            </div>
+        </div>
+        <div class="summary-card requests clickable" id="pendingCancellationRequestsCard">
+            <span class="summary-icon"><i class="bi bi-x-octagon"></i></span>
+            <div class="summary-info">
+                <span class="summary-label">Pending Cancellation Requests</span>
+                <span class="summary-value" id="pendingCancellationRequestsValue"><?php echo json_encode($pending_cancellation_requests); ?></span>
+            </div>
+        </div>
     </div>
     <div class="row mt-4 g-4">
         <!-- This section is intentionally left blank as per the new workflow. -->
@@ -376,6 +435,94 @@ $approved_cancelled_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT COU
           </div>
         </div>
       </div>
+    </div>
+    <!-- Pending Cash Approvals Table -->
+    <div class="table-section mb-4">
+        <div class="table-title d-flex align-items-center">
+            <i class="bi bi-cash-coin me-2"></i> Pending Cash Approval Payments
+        </div>
+        <div class="table-responsive">
+            <table id="pendingCashApprovalTable" class="table table-hover table-bordered align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Reservation ID</th>
+                        <th>Guest</th>
+                        <th>Room</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Amount</th>
+                        <th>Date Requested</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                $res = mysqli_query($mycon, "SELECT r.reservation_id, g.first_name, g.last_name, rt.type_name, r.check_in, r.check_out, p.amount, p.created_at FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id LEFT JOIN tbl_payment p ON r.payment_id = p.payment_id WHERE p.payment_method = 'Cash' AND p.payment_status = 'Pending' AND r.status = 'pending' ORDER BY p.created_at ASC");
+                if ($res && mysqli_num_rows($res) > 0) {
+                    while ($r = mysqli_fetch_assoc($res)) {
+                        echo '<tr>';
+                        echo '<td>' . htmlspecialchars($r['reservation_id']) . '</td>';
+                        echo '<td>' . htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) . '</td>';
+                        echo '<td>' . htmlspecialchars($r['type_name']) . '</td>';
+                        echo '<td>' . date('M d, Y h:i A', strtotime($r['check_in'])) . '</td>';
+                        echo '<td>' . date('M d, Y h:i A', strtotime($r['check_out'])) . '</td>';
+                        echo '<td>₱' . number_format($r['amount'], 2) . '</td>';
+                        echo '<td>' . date('M d, Y h:i A', strtotime($r['created_at'])) . '</td>';
+                        echo '<td>';
+                        echo '<a href="reservation_details.php?id=' . htmlspecialchars($r['reservation_id']) . '" class="btn btn-warning btn-sm"><i class="bi bi-eye"></i> View Details</a>';
+                        echo '</td>';
+                        echo '</tr>';
+                    }
+                } else {
+                    echo '<tr><td colspan="8" class="text-center text-secondary">No pending cash approval payments.</td></tr>';
+                }
+                ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Pending Cancellation Requests Table -->
+    <div class="table-section mb-4">
+        <div class="table-title d-flex align-items-center">
+            <i class="bi bi-x-octagon me-2"></i> Pending Cancellation Requests
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Reservation ID</th>
+                        <th>Guest</th>
+                        <th>Room</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Date Requested</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                $res = mysqli_query($mycon, "SELECT r.reservation_id, g.first_name, g.last_name, rt.type_name, r.check_in, r.check_out, r.date_created FROM tbl_reservation r LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE r.status = 'cancellation_requested' ORDER BY r.date_created ASC");
+                if ($res && mysqli_num_rows($res) > 0) {
+                    while ($r = mysqli_fetch_assoc($res)) {
+                        echo '<tr>';
+                        echo '<td>' . htmlspecialchars($r['reservation_id']) . '</td>';
+                        echo '<td>' . htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) . '</td>';
+                        echo '<td>' . htmlspecialchars($r['type_name']) . '</td>';
+                        echo '<td>' . date('M d, Y h:i A', strtotime($r['check_in'])) . '</td>';
+                        echo '<td>' . date('M d, Y h:i A', strtotime($r['check_out'])) . '</td>';
+                        echo '<td>' . date('M d, Y h:i A', strtotime($r['date_created'])) . '</td>';
+                        echo '<td>';
+                        echo '<a href="reservation_details.php?id=' . htmlspecialchars($r['reservation_id']) . '" class="btn btn-warning btn-sm"><i class="bi bi-eye"></i> View Details</a>';
+                        echo '</td>';
+                        echo '</tr>';
+                    }
+                } else {
+                    echo '<tr><td colspan="7" class="text-center text-secondary">No pending cancellation requests.</td></tr>';
+                }
+                ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 <script>
@@ -499,6 +646,18 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchSummary('approved_cancelled_requests', 'Approved Cancelled Requests');
         };
     }
+    var pendingCashApprovalCard = document.getElementById('pendingCashApprovalCard');
+    if (pendingCashApprovalCard) {
+        pendingCashApprovalCard.onclick = function() {
+            fetchSummary('pending_cash_approval', 'Pending Cash Approval Payments');
+        };
+    }
+    var pendingCancellationRequestsCard = document.getElementById('pendingCancellationRequestsCard');
+    if (pendingCancellationRequestsCard) {
+        pendingCancellationRequestsCard.onclick = function() {
+            fetchSummary('pending_cancellation_requests', 'Pending Cancellation Requests');
+        };
+    }
     document.getElementById('cardFilter').addEventListener('change', function() {
         var value = this.value;
         var cards = document.querySelectorAll('.summary-card');
@@ -518,6 +677,17 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('DOMContentLoaded', function() {
         document.getElementById('cardFilter').dispatchEvent(new Event('change'));
     });
+    // Highlight Notifications menu if there are unread notifications
+    var notifMenu = document.querySelector('.sidebar .nav-link[href="notifications.php"]');
+    if (notifMenu && <?php echo $unread_admin_notif_count; ?> > 0) {
+        notifMenu.classList.add('highlight-notif');
+        if (!notifMenu.querySelector('.notif-dot')) {
+            var dot = document.createElement('span');
+            dot.className = 'notif-dot';
+            dot.style.cssText = 'display:inline-block;width:12px;height:12px;background:#ff4d4d;border-radius:50%;margin-left:8px;vertical-align:middle;';
+            notifMenu.appendChild(dot);
+        }
+    }
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -765,8 +935,82 @@ document.addEventListener('DOMContentLoaded', updateRoomCounts);
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // The cash approval and cancellation tables are no longer loaded via AJAX on the dashboard.
-        // This logic has been moved to the reservation_details.php page.
+        // Event delegation for Approve/Deny Cash Payment buttons (specific to Pending Cash Approval Payments table)
+        document.getElementById('pendingCashApprovalTable')?.addEventListener('click', function(e) {
+            var btn = e.target.closest('.admin-action-btn.approve, .admin-action-btn.deny');
+            if (!btn) return;
+            var action = btn.classList.contains('approve') ? 'approve' : 'deny';
+            var reservationId = btn.getAttribute('data-reservation-id');
+            var confirmMsg = action === 'approve' ? 'Approve this cash payment?' : 'Deny this cash payment?';
+            if (confirm(confirmMsg)) {
+                var button = btn;
+                var originalHtml = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                fetch('process_cash_approval.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'reservation_id=' + encodeURIComponent(reservationId) + '&action=' + action
+                })
+                .then(res => res.json())
+                .then(resp => {
+                    if (resp.success) {
+                        var td = button.closest('td');
+                        td.innerHTML = '<span class="text-success fw-bold">' + (action === 'approve' ? 'Approved' : 'Denied') + '</span>';
+                    } else {
+                        alert(resp.message || 'Failed to process payment.');
+                        button.disabled = false;
+                        button.innerHTML = originalHtml;
+                    }
+                })
+                .catch(() => {
+                    alert('An error occurred.');
+                    button.disabled = false;
+                    button.innerHTML = originalHtml;
+                });
+            }
+        });
+        // Approve/Deny Cancellation
+        document.querySelectorAll('.approve-cancel-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (confirm('Approve this cancellation request?')) {
+                    var reservationId = this.getAttribute('data-reservation-id');
+                    fetch('process_cancellation.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'reservation_id=' + encodeURIComponent(reservationId) + '&action=approve'
+                    })
+                    .then(res => res.json())
+                    .then(resp => {
+                        if (resp.success) {
+                            location.reload();
+                        } else {
+                            alert(resp.message || 'Failed to approve cancellation.');
+                        }
+                    });
+                }
+            });
+        });
+        document.querySelectorAll('.deny-cancel-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (confirm('Deny this cancellation request?')) {
+                    var reservationId = this.getAttribute('data-reservation-id');
+                    fetch('process_cancellation.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'reservation_id=' + encodeURIComponent(reservationId) + '&action=deny'
+                    })
+                    .then(res => res.json())
+                    .then(resp => {
+                        if (resp.success) {
+                            location.reload();
+                        } else {
+                            alert(resp.message || 'Failed to deny cancellation.');
+                        }
+                    });
+                }
+            });
+        });
     });
 </script>
 </body>

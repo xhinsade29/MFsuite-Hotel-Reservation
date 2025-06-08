@@ -129,7 +129,7 @@ $stmt->close();
                 <input type="text" name="middle_name" class="form-control" value="<?php echo htmlspecialchars($middle_name); ?>">
             </div>
             <div class="col-md-4">
-                <label class="form-label">Last Name</l
+                <label class="form-label">Last Name</label>
                 <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($last_name); ?>" required>
             </div>
         </div>

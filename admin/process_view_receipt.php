@@ -12,11 +12,11 @@ if (!$payment_id) {
     exit;
 }
 
-$sql = "SELECT p.amount, p.payment_method, p.payment_status, p.reference_number, p.created_at, r.reservation_id, r.guest_id, CONCAT(g.first_name, ' ', IFNULL(g.middle_name, ''), ' ', g.last_name) AS guest_name, g.user_email as guest_email FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id WHERE p.payment_id = ? LIMIT 1";
+$sql = "SELECT p.amount, p.payment_method, p.payment_status, p.reference_number, p.created_at, r.reservation_id, r.guest_id, CONCAT(g.first_name, ' ', IFNULL(g.middle_name, ''), ' ', g.last_name) AS guest_name, g.user_email as guest_email, rt.type_name AS room_type FROM tbl_payment p LEFT JOIN tbl_reservation r ON p.payment_id = r.payment_id LEFT JOIN tbl_guest g ON r.guest_id = g.guest_id LEFT JOIN tbl_room rm ON r.assigned_room_id = rm.room_id LEFT JOIN tbl_room_type rt ON rm.room_type_id = rt.room_type_id WHERE p.payment_id = ? LIMIT 1";
 $stmt = $mycon->prepare($sql);
 $stmt->bind_param('i', $payment_id);
 $stmt->execute();
-$stmt->bind_result($amount, $payment_method, $payment_status, $reference_number, $created_at, $reservation_id, $guest_id, $guest_name, $guest_email);
+$stmt->bind_result($amount, $payment_method, $payment_status, $reference_number, $created_at, $reservation_id, $guest_id, $guest_name, $guest_email, $room_type);
 if ($stmt->fetch()) {
     echo '<div class="d-flex justify-content-center align-items-center" style="min-height:60vh;">';
     echo '<div class="card shadow-lg border-0" style="max-width:480px;width:100%;border-radius:22px;background:#fff;">';
@@ -31,6 +31,7 @@ if ($stmt->fetch()) {
     echo '<div class="col-6 small text-secondary">Guest</div><div class="col-6 fw-semibold">' . htmlspecialchars($guest_name) . '</div>';
     echo '<div class="col-6 small text-secondary">Email</div><div class="col-6">' . htmlspecialchars($guest_email) . '</div>';
     echo '<div class="col-6 small text-secondary">Reservation ID</div><div class="col-6">' . htmlspecialchars($reservation_id) . '</div>';
+    echo '<div class="col-6 small text-secondary">Room Type</div><div class="col-6">' . htmlspecialchars($room_type ?? 'N/A') . '</div>';
     echo '<div class="col-6 small text-secondary">Reference #</div><div class="col-6">' . htmlspecialchars($reference_number) . '</div>';
     echo '<div class="col-6 small text-secondary">Payment Method</div><div class="col-6">' . htmlspecialchars($payment_method) . '</div>';
     echo '<div class="col-6 small text-secondary">Status</div><div class="col-6"><span class="badge bg-'.($payment_status=='Paid'?'success':($payment_status=='Pending'?'warning text-dark':'danger')).' px-3 py-2" style="font-size:1em;">' . htmlspecialchars($payment_status) . '</span></div>';

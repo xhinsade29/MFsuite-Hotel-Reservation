@@ -109,6 +109,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Notify user if cancellation is denied
+        if ($action === 'deny') {
+            $admin_id = 1; // Use your default or actual admin_id here
+            if (!empty($guest_id) && is_numeric($guest_id) && $guest_id > 0) {
+                add_notification($guest_id, 'user', 'cancellation', 'Your reservation cancellation request has been denied by the admin.', $mycon, 0, $admin_id, $reservation_id);
+            }
+            // Notify admin as well
+            $guest_name = isset($row['first_name']) ? trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')) : '';
+            add_notification($admin_id, 'admin', 'cancellation', 'Cancellation request for reservation #' . $reservation_id . ($guest_name ? ' (' . $guest_name . ')' : '') . ' has been denied.', $mycon, 0, null, $reservation_id);
+        }
+
         $response = ['success' => true];
         $response['message'] = $action === 'approve' ? 'Cancellation approved.' : 'Cancellation denied.';
         

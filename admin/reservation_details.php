@@ -295,6 +295,36 @@ $conn->close();
             padding: 0.4em 0.8em;
             margin-right: 8px;
         }
+        /* Custom styles for admin action buttons */
+        .admin-action-btn {
+            font-size: 1.08em;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 28px;
+            margin: 0 6px 8px 0;
+            box-shadow: 0 2px 8px rgba(255,140,0,0.10);
+            transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+        }
+        .admin-action-btn.approve {
+            background: linear-gradient(90deg,#00c896 60%,#1e90ff 100%);
+            color: #fff;
+            border: none;
+        }
+        .admin-action-btn.approve:hover {
+            background: linear-gradient(90deg,#1e90ff 60%,#00c896 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(0,200,150,0.18);
+        }
+        .admin-action-btn.deny {
+            background: linear-gradient(90deg,#ff4d4d 60%,#c0392b 100%);
+            color: #fff;
+            border: none;
+        }
+        .admin-action-btn.deny:hover {
+            background: linear-gradient(90deg,#c0392b 60%,#ff4d4d 100%);
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(255,77,77,0.18);
+        }
     </style>
 </head>
 <body>
@@ -379,9 +409,9 @@ $conn->close();
                 <div class="text-center text-secondary small" style="font-size:0.98em;">This is an electronically generated receipt.<br>Thank you for your payment!</div>
             </div>
             <?php endif; ?>
-        </div>
-        <div class="col-12 text-center" id="admin-actions-container">
-            <!-- Admin action buttons will be injected here by JavaScript -->
+            <div class="col-12 text-center" id="admin-actions-container">
+                <!-- Admin action buttons will be injected here by JavaScript -->
+            </div>
         </div>
         <div class="col-12 text-center">
             <a href="reservations.php" class="btn btn-warning mt-3">Back to Reservations</a>
@@ -406,12 +436,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     <form class="action-form d-inline-block me-2" data-action="process_cancellation.php">
                         <input type="hidden" name="reservation_id" value="${reservationId}">
                         <input type="hidden" name="action" value="approve">
-                        <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i> Approve Cancellation</button>
+                        <button type="submit" class="admin-action-btn approve"><i class="bi bi-check-circle me-1"></i> Approve Cancellation</button>
                     </form>
                     <form class="action-form d-inline-block" data-action="process_cancellation.php">
                         <input type="hidden" name="reservation_id" value="${reservationId}">
                         <input type="hidden" name="action" value="deny">
-                        <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i> Deny Cancellation</button>
+                        <button type="submit" class="admin-action-btn deny"><i class="bi bi-x-circle me-1"></i> Deny Cancellation</button>
                     </form>
                 </div>
             `;
@@ -419,10 +449,15 @@ document.addEventListener('DOMContentLoaded', function() {
             buttonsHtml = `
                 <div class="card bg-dark bg-opacity-75 rounded-4 p-4 mb-4">
                     <h4 class="text-warning mb-3">Admin Actions</h4>
-                    <form class="action-form d-inline-block" data-action="process_cash_approval.php">
+                    <form class="action-form d-inline-block me-2" data-action="process_cash_approval.php">
                         <input type="hidden" name="reservation_id" value="${reservationId}">
                         <input type="hidden" name="action" value="approve">
-                        <button type="submit" class="btn btn-primary"><i class="bi bi-cash-stack me-1"></i> Approve Cash Payment</button>
+                        <button type="submit" class="admin-action-btn approve"><i class="bi bi-cash-stack me-1"></i> Approve Cash Payment</button>
+                    </form>
+                    <form class="action-form d-inline-block" data-action="process_cash_approval.php">
+                        <input type="hidden" name="reservation_id" value="${reservationId}">
+                        <input type="hidden" name="action" value="deny">
+                        <button type="submit" class="admin-action-btn deny"><i class="bi bi-x-circle me-1"></i> Deny Cash Payment</button>
                     </form>
                 </div>
             `;
@@ -442,33 +477,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch(url, {
             method: 'POST',
-            body: formData
+            body: new URLSearchParams(formData)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Remove action buttons
-                actionsContainer.innerHTML = '';
-                // Update status display on the page
-                const statusElement = document.querySelector('.badge.bg-info'); // Find the status badge
-                if(statusElement) {
-                    statusElement.textContent = 'Action Completed'; // A generic success message
-                    statusElement.classList.remove('bg-info');
-                    statusElement.classList.add('bg-success');
-                }
-                 // Optionally, reload the page to see all changes
-                location.reload();
+        .then(res => res.json())
+        .then(resp => {
+            if (resp.success) {
+                // Hide the admin actions and show a message
+                const actionsContainer = document.getElementById('admin-actions-container');
+                actionsContainer.innerHTML = '<div class="alert alert-success mt-3">' + (formData.get('action') === 'approve' ? 'Cash payment approved.' : 'Cash payment denied.') + '</div>';
             } else {
-                alert('Error: ' + data.message); // Simple alert for error
+                alert(resp.message || 'Failed to process action.');
                 submitButton.disabled = false;
-                submitButton.innerHTML = 'Try Again';
+                submitButton.innerHTML = form.querySelector('button[type="submit"]').dataset.originalText || 'Submit';
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An unexpected error occurred.');
+        .catch(() => {
+            alert('An error occurred.');
             submitButton.disabled = false;
-            submitButton.innerHTML = 'Try Again';
+            submitButton.innerHTML = form.querySelector('button[type="submit"]').dataset.originalText || 'Submit';
         });
     }
 

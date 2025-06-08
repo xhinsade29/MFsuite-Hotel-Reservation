@@ -94,6 +94,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['middle_name'] = $middle_name;
             $_SESSION['last_name'] = $last_name;
             $_SESSION['user_email'] = $user_email;
+            if ($profile_picture) {
+                $_SESSION['profile_picture'] = $profile_picture;
+            }
             // Add notification
             add_notification($guest_id, 'user', 'profile', 'Your profile details have been updated.', $mycon, 0, 1); // Admin ID 1 for system notification
         } else {
