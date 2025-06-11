@@ -116,10 +116,10 @@ function show_log_notifications($limit = 20) {
         --notif-card-shadow: 0 2px 12px rgba(0,0,0,0.06);
         --notif-border: 1px solid #eee;
     }
-    body {
+    body { 
         background: var(--notif-bg);
         color: var(--notif-text);
-        font-family: 'Poppins', sans-serif;
+        font-family: 'Poppins', sans-serif; 
         transition: background 0.3s, color 0.3s;
     }
     .notif-card { 

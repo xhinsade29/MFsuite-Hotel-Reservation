@@ -82,7 +82,7 @@ $pending_cancellation_requests = mysqli_fetch_row(mysqli_query($mycon, "SELECT C
 $unread_admin_notif_count = 0;
 $admin_id = $_SESSION['admin_id'] ?? 0;
 if ($admin_id) {
-    $notif_res = mysqli_query($mycon, "SELECT COUNT(*) as cnt FROM notifications WHERE recipient_id = $admin_id AND recipient_type = 'admin' AND is_read = 0");
+    $notif_res = mysqli_query($mycon, "SELECT COUNT(*) as cnt FROM admin_notifications WHERE admin_id = $admin_id AND is_read = 0");
     if ($notif_res && $row = mysqli_fetch_assoc($notif_res)) {
         $unread_admin_notif_count = (int)$row['cnt'];
     }

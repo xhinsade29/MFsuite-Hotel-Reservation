@@ -28,9 +28,12 @@ $stmt_accounts->execute();
 $result_accounts = $stmt_accounts->get_result();
 
 while ($row_account = $result_accounts->fetch_assoc()) {
-    if ($row_account['account_type'] === 'wallet') {
+    $normalized_account_type = strtolower(trim($row_account['account_type']));
+    if ($normalized_account_type === 'wallet') {
         $total_wallet_balance = floatval($row_account['balance']);
     } else {
+        // Ensure the account_type is normalized before adding to the list
+        $row_account['account_type'] = $normalized_account_type;
         $guest_payment_accounts[] = $row_account;
     }
 }
@@ -166,7 +169,7 @@ $stmt->close();
                 <select class="form-select" id="paymentType" name="payment_account_type" required>
                     <option value="">Select Type</option>
                     <option value="gcash">GCash</option>
-                    <option value="bank">Bank</option>
+                    <option value="bank_transfer">Bank Transfer</option>
                     <option value="paypal">PayPal</option>
                     <option value="credit_card">Credit Card</option>
                 </select>
@@ -184,22 +187,36 @@ $stmt->close();
         <h6 class="text-warning mt-4 mb-2">Currently Linked Accounts:</h6>
         <?php if (!empty($guest_payment_accounts)): ?>
             <div class="list-group list-group-flush bg-dark" id="linkedAccountsList">
-                <?php foreach ($guest_payment_accounts as $account): ?>
-                    <div class="list-group-item bg-dark text-light border-secondary d-flex justify-content-between align-items-center mb-2 rounded" id="account-<?php echo $account['account_id']; ?>">
-                        <div>
-                            <strong class="text-info"><?php echo ucfirst(str_replace('_', ' ', $account['account_type'])); ?>:</strong>
-                            <?php
-                            if (!empty($account['account_number'])) {
-                                echo htmlspecialchars($account['account_number']);
-                            } elseif (!empty($account['account_email'])) {
-                                echo htmlspecialchars($account['account_email']);
-                            } else {
-                                echo 'N/A';
-                            }
-                            ?>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-danger unlink-btn" data-bs-toggle="modal" data-bs-target="#unlinkAccountModal" data-account-id="<?php echo $account['account_id']; ?>" data-account-type="<?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', $account['account_type']))); ?>"><i class="bi bi-trash"></i> Unlink</button>
+                <?php
+                $shown_types = [];
+                foreach ($guest_payment_accounts as $account):
+                    $normalized_account_type = strtolower(trim($account['account_type'] ?? ''));
+                    // Skip wallet, empty, or duplicate types
+                    if ($normalized_account_type === 'wallet' || empty($normalized_account_type)) continue;
+                    // Only show each account type once per account_number/email
+                    $unique_key = $normalized_account_type . '|' . ($account['account_number'] ?? '') . '|' . ($account['account_email'] ?? '');
+                    if (in_array($unique_key, $shown_types)) continue;
+                    $shown_types[] = $unique_key;
+                    $display_account_type = $normalized_account_type === 'bank_transfer' ? 'Bank Transfer' : ucfirst(str_replace('_', ' ', $normalized_account_type));
+                    if (empty(trim($display_account_type))) continue;
+                ?>
+                <div class="list-group-item bg-dark text-light border-secondary d-flex justify-content-between align-items-center mb-2 rounded" id="account-<?php echo $account['account_id']; ?>">
+                    <div>
+                        <strong class="text-info">
+                            <?php echo htmlspecialchars($display_account_type); ?>:
+                        </strong>
+                        <?php
+                        if (!empty($account['account_number'])) {
+                            echo htmlspecialchars($account['account_number']);
+                        } elseif (!empty($account['account_email'])) {
+                            echo htmlspecialchars($account['account_email']);
+                        } else {
+                            echo 'N/A';
+                        }
+                        ?>
                     </div>
+                    <button type="button" class="btn btn-sm btn-danger unlink-btn" data-bs-toggle="modal" data-bs-target="#unlinkAccountModal" data-account-id="<?php echo $account['account_id']; ?>" data-account-type="<?php echo htmlspecialchars($display_account_type); ?>"><i class="bi bi-trash"></i> Unlink</button>
+                </div>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>

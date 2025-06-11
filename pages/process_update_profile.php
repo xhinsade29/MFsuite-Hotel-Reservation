@@ -112,20 +112,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $account_email = mysqli_real_escape_string($mycon, $_POST['account_email'] ?? '');
 
         if (!empty($account_type) && (!empty($account_number) || !empty($account_email))) {
-            // Check if this account type already exists for the user
-            $check_sql = "SELECT account_id FROM guest_payment_accounts WHERE guest_id = ? AND account_type = ? LIMIT 1";
+            $check_sql = "";
+            $check_stmt_types = "";
+            $check_stmt_params = [];
+
+            if ($account_type === 'bank_transfer') {
+                // If linking 'bank_transfer', check for both 'bank' and 'bank_transfer' as existing types
+                $check_sql = "SELECT account_id FROM guest_payment_accounts WHERE guest_id = ? AND (account_type = ? OR account_type = ?) LIMIT 1";
+                $check_stmt_types = "iss";
+                $check_stmt_params = [$guest_id, 'bank', 'bank_transfer'];
+            } else {
+                // For other account types, check for exact match
+                $check_sql = "SELECT account_id FROM guest_payment_accounts WHERE guest_id = ? AND account_type = ? LIMIT 1";
+                $check_stmt_types = "is";
+                $check_stmt_params = [$guest_id, $account_type];
+            }
+
             $check_stmt = mysqli_prepare($mycon, $check_sql);
-            mysqli_stmt_bind_param($check_stmt, "is", $guest_id, $account_type);
+            mysqli_stmt_bind_param($check_stmt, $check_stmt_types, ...$check_stmt_params);
             mysqli_stmt_execute($check_stmt);
             mysqli_stmt_bind_result($check_stmt, $existing_account_id);
             $has_existing_account = mysqli_stmt_fetch($check_stmt);
             mysqli_stmt_close($check_stmt);
 
             if ($has_existing_account) {
-                // Update existing account
-                $update_account_sql = "UPDATE guest_payment_accounts SET account_number = ?, account_email = ? WHERE account_id = ?";
+                // Update existing account and explicitly set account_type to the new normalized value
+                $update_account_sql = "UPDATE guest_payment_accounts SET account_type = ?, account_number = ?, account_email = ? WHERE account_id = ?";
                 $update_account_stmt = mysqli_prepare($mycon, $update_account_sql);
-                mysqli_stmt_bind_param($update_account_stmt, "ssi", $account_number, $account_email, $existing_account_id);
+                mysqli_stmt_bind_param($update_account_stmt, "sssi", $account_type, $account_number, $account_email, $existing_account_id);
                 if (mysqli_stmt_execute($update_account_stmt)) {
                     // Add notification for account update
                     $notif_msg = "Your " . ucfirst(str_replace('_', ' ', $account_type)) . " payment account has been updated.";

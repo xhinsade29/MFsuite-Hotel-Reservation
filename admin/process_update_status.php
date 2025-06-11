@@ -320,6 +320,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle marking reservation as completed
         if ($reservation_id && $action === 'complete' && $new_status === 'completed') {
+            // Check if reservation has an assigned room
+            $stmt = mysqli_prepare($mycon, "SELECT assigned_room_id FROM tbl_reservation WHERE reservation_id = ?");
+            mysqli_stmt_bind_param($stmt, "i", $reservation_id);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_bind_result($stmt, $assigned_room_id);
+            mysqli_stmt_fetch($stmt);
+            mysqli_stmt_close($stmt);
+            if (empty($assigned_room_id) || $assigned_room_id == 0) {
+                // Show error and do not mark as completed
+                add_notification($_SESSION['admin_id'], 'admin', 'reservation', 'Cannot complete reservation #'.$reservation_id.' because no room is assigned. Please assign a room first.', $mycon, 0, null, $reservation_id);
+                header("Location: reservations.php?msg=Cannot+complete+reservation:+No+room+assigned");
+                exit();
+            }
             // Update reservation status
             $stmt = mysqli_prepare($mycon, "UPDATE tbl_reservation SET status = ? WHERE reservation_id = ?");
             mysqli_stmt_bind_param($stmt, "si", $new_status, $reservation_id);
@@ -327,19 +340,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_close($stmt);
 
             // Optionally, set the room status to 'Available' after completion
-            $stmt = mysqli_prepare($mycon, "SELECT assigned_room_id FROM tbl_reservation WHERE reservation_id = ?");
-            mysqli_stmt_bind_param($stmt, "i", $reservation_id);
-            mysqli_stmt_execute($stmt);
-            mysqli_stmt_bind_result($stmt, $assigned_room_id);
-            if (mysqli_stmt_fetch($stmt) && $assigned_room_id) {
-                mysqli_stmt_close($stmt);
-                $stmt_room = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Available' WHERE room_id = ?");
-                mysqli_stmt_bind_param($stmt_room, "i", $assigned_room_id);
-                mysqli_stmt_execute($stmt_room);
-                mysqli_stmt_close($stmt_room);
-            } else {
-                mysqli_stmt_close($stmt);
-            }
+            $stmt_room = mysqli_prepare($mycon, "UPDATE tbl_room SET status = 'Available' WHERE room_id = ?");
+            mysqli_stmt_bind_param($stmt_room, "i", $assigned_room_id);
+            mysqli_stmt_execute($stmt_room);
+            mysqli_stmt_close($stmt_room);
 
             // Add notification
             add_notification($guest_id, 'user', 'reservation', 'Your stay has been marked as completed. Thank you!', $mycon, 0, $admin_id, $reservation_id);

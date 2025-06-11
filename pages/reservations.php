@@ -36,8 +36,9 @@ if (isset($_SESSION['guest_id'])) {
     $guest_id = $_SESSION['guest_id'];
     $sql = "SELECT r.*, r.status AS reservation_status, rt.type_name, rt.description, rt.nightly_rate, 
                    GROUP_CONCAT(s.service_name SEPARATOR ', ') AS services,
-                   p.payment_status, p.payment_method, p.amount, rt.room_type_id
+                   p.payment_status, p.payment_method, p.amount, rt.room_type_id, rm.room_number AS assigned_room_number
             FROM tbl_reservation r
+            LEFT JOIN tbl_room rm ON r.assigned_room_id = rm.room_id
             LEFT JOIN tbl_room_type rt ON r.room_id = rt.room_type_id
             LEFT JOIN reservation_services rs ON r.reservation_id = rs.reservation_id
             LEFT JOIN tbl_services s ON rs.service_id = s.service_id
@@ -508,8 +509,8 @@ if (isset($_GET['get_trash_html']) && $_GET['get_trash_html'] == 1) {
                         <span class="badge <?php echo $badgeClass; ?> mb-2">
                             <?php echo ucfirst(str_replace('_', ' ', $booking['reservation_status'])); ?>
                         </span>
-                        <?php if (!empty($booking['assigned_room_id'])): ?>
-                        <div class="meta"><strong>Room Number:</strong> <?php echo htmlspecialchars($booking['assigned_room_id']); ?></div>
+                        <?php if (!empty($booking['assigned_room_number'])): ?>
+                        <div class="meta"><strong>Room Number:</strong> <?php echo htmlspecialchars($booking['assigned_room_number']); ?></div>
                         <?php endif; ?>
                         <div class="meta"><strong>Date Booked:</strong> <?php echo date('Y-m-d h:i A', strtotime($booking['date_created'])); ?></div>
                         <div class="meta"><strong>Number of Nights:</strong> <?php echo $booking['number_of_nights']; ?></div>

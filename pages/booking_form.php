@@ -335,7 +335,7 @@ if ($room_type_id) {
             <div class="alert alert-danger"> <?php echo $_SESSION['error']; unset($_SESSION['error']); ?> </div>
         <?php endif; ?>
         <div id="formErrorMsg" class="alert alert-danger d-none"></div>
-        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate <?php if ($room_fully_booked || $no_rooms_available) echo 'style="pointer-events:none;opacity:0.6;border: 1px solid rgba(255,0,0,0.2);"'; ?>>
+        <form id="bookingForm" action="../functions/bookings.php" method="POST" class="bg-secondary-subtle p-4 rounded-3 shadow-sm text-dark needs-validation" novalidate enctype="multipart/form-data" <?php if ($room_fully_booked || $no_rooms_available) echo 'style="pointer-events:none;opacity:0.6;border: 1px solid rgba(255,0,0,0.2);"'; ?>>
             <input type="hidden" name="room_type_id" value="<?php echo htmlspecialchars($room_type_id); ?>">
             <input type="hidden" id="totalAmountRaw" name="total_amount" value="0.00"> <!-- Added for total amount submission -->
             <div class="row g-3">
@@ -361,19 +361,20 @@ if ($room_type_id) {
                         <label class="form-label">Payment Method</label>
                         <select class="form-control" name="payment_id" id="payment_id" required>
                             <option value="">Select Payment Method</option>
-                            <?php foreach ($payment_types as $type): ?>
+                            <?php foreach (
+                                $payment_types as $type): ?>
                                 <?php
                                     $disabled = '';
                                     $tooltip = '';
-                                    $payment_name_lower = strtolower($type['payment_name']);
-
+                                    $payment_name_lower = strtolower(str_replace([' ', '-'], ['_', ''], $type['payment_name']));
                                     if ($payment_name_lower === 'wallet' && !isset($_SESSION['guest_id'])) {
                                         $disabled = 'disabled';
                                         $tooltip = 'data-bs-toggle="tooltip" data-bs-placement="top" title="Please log in to use wallet."';
                                     } elseif ($payment_name_lower !== 'wallet' && isset($_SESSION['guest_id'])) {
                                         $account_linked = false;
                                         foreach ($user_payment_accounts as $account_type => $account_data) {
-                                            if ($account_type === $payment_name_lower) {
+                                            $normalized_account_type = strtolower(str_replace([' ', '-'], ['_', ''], $account_type));
+                                            if ($normalized_account_type === $payment_name_lower) {
                                                 $account_linked = true;
                                                 break;
                                             }
@@ -392,8 +393,23 @@ if ($room_type_id) {
                         <div class="invalid-feedback">Please select a payment method.</div>
                     </div>
                 </div>
+                <!-- Live total amount display -->
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0" id="liveTotalAmountDisplay" style="font-size:1.15em;font-weight:600;">
+                            Total Amount: ₱<span id="liveTotalAmount">0.00</span>
+                        </div>
+                    </div>
+                </div>
                     </div>
             <div id="availabilityMessage" class="mt-3 text-center"></div>
+            <div class="row g-3 mt-2" id="bankSlipRow" style="display:none;">
+                <div class="col-12">
+                    <label for="bankSlip" class="form-label">Upload Bank Transfer Slip <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="bankSlip" name="bank_slip" accept="image/*,application/pdf" required>
+                    <div class="invalid-feedback">Please upload your bank transfer slip.</div>
+                </div>
+            </div>
             <div class="d-grid mt-4">
                 <button type="submit" id="bookNowBtn" class="btn btn-primary btn-lg" <?php if ($room_fully_booked || $no_rooms_available) echo 'disabled'; ?>>Book Now</button>
             </div>
@@ -521,6 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalAmount = nightlyRate * numberOfNights;
             totalAmountInput.value = totalAmount.toFixed(2);
             checkWalletSufficiency();
+            updateLiveTotalAmount();
         }
 
         // Checks if wallet balance is sufficient for booking
@@ -549,7 +566,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-
         // Event Listeners
         checkInDateInput.addEventListener('change', calculateCheckoutDate);
         checkInDateInput.addEventListener('change', checkRoomAvailability); // Also check availability on check-in change
@@ -564,6 +580,11 @@ document.addEventListener('DOMContentLoaded', function() {
         numberOfNightsInput.addEventListener('change', calculateNightsAndAmount);
         numberOfNightsInput.addEventListener('input', calculateNightsAndAmount);
 
+        // Update live total amount whenever the total changes
+        numberOfNightsInput.addEventListener('input', updateLiveTotalAmount);
+        numberOfNightsInput.addEventListener('change', updateLiveTotalAmount);
+        paymentMethodSelect.addEventListener('change', updateLiveTotalAmount);
+        document.addEventListener('DOMContentLoaded', updateLiveTotalAmount);
 
         // Initial calls
         initializeFlatpickr();
@@ -581,13 +602,6 @@ document.addEventListener('DOMContentLoaded', function() {
         checkRoomAvailability(); // Ensure initial availability check is run
         calculateNightsAndAmount(); // Ensure initial nights and amount calculation is run
         checkWalletSufficiency(); // Ensure initial wallet sufficiency check is run
-
-
-        // Re-check availability and wallet sufficiency when payment method changes
-        paymentMethodSelect.addEventListener('change', function() {
-            checkWalletSufficiency();
-            checkRoomAvailability(); // Re-check room availability when payment method changes (for consistency, though not directly related)
-        });
 
         // Form submission handler
         document.getElementById('bookingForm').addEventListener('submit', function(event) {
@@ -609,7 +623,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Do not re-enable bookNowBtn here, as it should remain disabled if wallet is insufficient
             }
         });
-
 
         // Handle tooltips for disabled payment options
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -644,7 +657,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalCheckOutCash').textContent = checkOutDateInput.value;
             document.getElementById('modalNightsCash').textContent = numberOfNightsInput.value;
             document.getElementById('modalTotalAmountCash').textContent = '₱' + totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
 
             // Show appropriate modal
             if (paymentMethodName === 'Cash') {
@@ -681,6 +693,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 toast.show();
             }
         }
+
+        function updateLiveTotalAmount() {
+            const totalAmount = parseFloat(document.getElementById('totalAmountRaw').value || '0');
+            document.getElementById('liveTotalAmount').textContent = totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        // Show/hide bank slip upload based on payment method
+        function toggleBankSlipField() {
+            const paymentMethod = paymentMethodSelect.options[paymentMethodSelect.selectedIndex].getAttribute('data-name');
+            const bankSlipRow = document.getElementById('bankSlipRow');
+            const bankSlipInput = document.getElementById('bankSlip');
+            if (paymentMethod && paymentMethod.toLowerCase() === 'bank_transfer') {
+                bankSlipRow.style.display = '';
+                bankSlipInput.required = true;
+            } else {
+                bankSlipRow.style.display = 'none';
+                bankSlipInput.required = false;
+                bankSlipInput.value = '';
+            }
+        }
+        paymentMethodSelect.addEventListener('change', toggleBankSlipField);
+        document.addEventListener('DOMContentLoaded', toggleBankSlipField);
     });
 </script>
 

@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
 </head>
 <body class="<?php echo ($theme_preference === 'light') ? 'light-mode' : ''; ?>">
-<?php include '../components/user_navigation.php'; ?>
+
 <div class="container py-5">
     <div class="card bg-dark text-light p-4 mx-auto" style="max-width:400px;">
         <h3 class="mb-3 text-warning">Forgot Password</h3>
