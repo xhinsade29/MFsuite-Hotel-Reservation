@@ -38,6 +38,47 @@ if ($types && count($params) > 0) {
 }
 $stmt->execute();
 $result = $stmt->get_result();
+
+function get_notification_type_badge($type) {
+    $badges = [
+        'reservation' => [
+            'class' => 'badge-reservation',
+            'icon' => 'bi-calendar2-check',
+            'text' => 'RESERVATION'
+        ],
+        'payment' => [
+            'class' => 'badge-payment',
+            'icon' => 'bi-credit-card',
+            'text' => 'PAYMENT'
+        ],
+        'profile' => [
+            'class' => 'badge-profile',
+            'icon' => 'bi-person-circle',
+            'text' => 'PROFILE'
+        ],
+        'wallet' => [
+            'class' => 'badge-wallet',
+            'icon' => 'bi-wallet2',
+            'text' => 'WALLET'
+        ],
+        'cancellation' => [
+            'class' => 'badge-cancellation',
+            'icon' => 'bi-x-circle',
+            'text' => 'CANCELLATION'
+        ]
+    ];
+    $type = strtolower($type);
+    if (!isset($badges[$type])) {
+        return '<span class="notification-badge badge-secondary"><i class="bi bi-bell"></i>NOTIFICATION</span>';
+    }
+    $badge = $badges[$type];
+    return sprintf(
+        '<span class="notification-badge %s"><i class="bi %s"></i>%s</span>',
+        $badge['class'],
+        $badge['icon'],
+        $badge['text']
+    );
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -107,16 +148,54 @@ $result = $stmt->get_result();
             box-shadow: 0 0 0 0.12rem rgba(255,140,0,0.13);
         }
         /* End light mode overrides */
-        .notif-card { background: #23234a; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.12); margin-bottom: 18px; }
-        .notif-type-reservation { color: #FF8C00; }
-        .notif-type-wallet { color: #00c896; }
-        .notif-type-profile { color: #1e90ff; }
-        .notif-date { font-size: 0.95em; color: #bdbdbd; }
-        .notif-unread-new {
+        .notif-card {
+            background: #23234a;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            margin-bottom: 18px;
+            padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            border-left: 5px solid transparent;
+            transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+        }
+        .notif-card.unread {
             border-left: 5px solid #FF8C00;
             background: linear-gradient(90deg, #2d2d5a 80%, #23234a 100%);
             box-shadow: 0 4px 18px rgba(255,140,0,0.10);
-            position: relative;
+        }
+        .notif-type-reservation { color: #FF8C00; }
+        .notif-type-wallet { color: #00c896; }
+        .notif-type-profile { color: #1e90ff; }
+        .notif-type-payment { color: #00c896; }
+        .notif-type-cancellation { color: #ff4d4d; }
+        .notif-icon {
+            font-size: 1.7rem;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .notif-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.3rem;
+        }
+        .notif-type-label {
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-right: 12px;
+            font-size: 1.08rem;
+        }
+        .notif-date {
+            font-size: 0.98rem;
+            color: #bdbdbd;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .notif-message {
+            color: #fff;
+            font-size: 1.05rem;
+            margin-bottom: 0;
         }
         .notification-card-link {
             text-decoration: none;
@@ -130,6 +209,41 @@ $result = $stmt->get_result();
         .notification-card.clickable {
             cursor: pointer;
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-left-color 0.2s ease-in-out;
+        }
+        .notification-badge {
+            font-size: 0.85rem;
+            padding: 0.5em 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 10px;
+        }
+        .notification-badge i {
+            font-size: 0.9rem;
+        }
+        .notification-badge.badge-reservation {
+            background: linear-gradient(90deg,#ffa533 60%,#ff8c00 100%);
+            color: #23234a;
+        }
+        .notification-badge.badge-payment {
+            background: linear-gradient(90deg,#00c896 60%,#1e90ff 100%);
+            color: #fff;
+        }
+        .notification-badge.badge-profile {
+            background: linear-gradient(90deg,#0d6efd 60%,#1e90ff 100%);
+            color: #fff;
+        }
+        .notification-badge.badge-wallet {
+            background: linear-gradient(90deg,#00c896 60%,#1e90ff 100%);
+            color: #fff;
+        }
+        .notification-badge.badge-cancellation {
+            background: linear-gradient(90deg,#ff4d4d 60%,#c0392b 100%);
+            color: #fff;
         }
     </style>
 </head>
@@ -179,20 +293,32 @@ document.addEventListener('DOMContentLoaded', function() {
             <?php while ($row = $result->fetch_assoc()): ?>
                 <?php
                     $is_clickable = !empty($row['reservation_id']);
-                    $card_class = $is_clickable ? 'clickable' : '';
+                    $card_class = 'notif-card';
+                    if (!$row['is_read']) $card_class .= ' unread';
+                    if ($is_clickable) $card_class .= ' clickable';
                     $link_href = $is_clickable ? 'reservation_details.php?id=' . $row['reservation_id'] : '#';
                     $tag_open = $is_clickable ? '<a href="' . $link_href . '" class="notification-card-link">' : '';
                     $tag_close = $is_clickable ? '</a>' : '';
+                    $type = strtolower($row['title']);
+                    $type_icon = 'bi-bell';
+                    $type_class = '';
+                    if ($type === 'reservation') { $type_icon = 'bi-calendar2-check'; $type_class = 'notif-type-reservation'; }
+                    elseif ($type === 'payment') { $type_icon = 'bi-credit-card'; $type_class = 'notif-type-payment'; }
+                    elseif ($type === 'profile') { $type_icon = 'bi-person-circle'; $type_class = 'notif-type-profile'; }
+                    elseif ($type === 'wallet') { $type_icon = 'bi-wallet2'; $type_class = 'notif-type-wallet'; }
+                    elseif ($type === 'cancellation') { $type_icon = 'bi-x-circle'; $type_class = 'notif-type-cancellation'; }
                 ?>
                 <?php echo $tag_open; ?>
-                <div class="notification-card <?php echo $card_class; ?>">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-bell-fill notification-icon me-3"></i>
-                        <div class="notification-content">
-                            <h5 class="notification-title"><?php echo htmlspecialchars($row['title']); ?></h5>
-                            <p class="notification-message"><?php echo htmlspecialchars($row['message']); ?></p>
-                            <small class="notification-date text-muted"><?php echo date('F j, Y, g:i a', strtotime($row['date_created'])); ?></small>
+                <div class="<?php echo $card_class; ?>">
+                    <span class="notif-icon <?php echo $type_class; ?>">
+                        <i class="bi <?php echo $type_icon; ?>"></i>
+                    </span>
+                    <div style="flex:1;">
+                        <div class="notif-header">
+                            <span class="notif-type-label <?php echo $type_class; ?>"><?php echo ucwords(strtolower(htmlspecialchars($row['title']))); ?></span>
+                            <span class="notif-date"><?php echo date('F j, Y, g:i a', strtotime($row['date_created'])); ?></span>
                         </div>
+                        <p class="notif-message"><?php echo htmlspecialchars($row['message']); ?></p>
                     </div>
                 </div>
                 <?php echo $tag_close; ?>

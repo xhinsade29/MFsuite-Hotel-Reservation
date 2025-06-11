@@ -98,19 +98,92 @@ function show_log_notifications($limit = 20) {
     }
     ?>
     <style>
-    .notif-gmail-card {
-        background: #fff;
+    body { 
+        background: #1e1e2f; 
+        color: #fff; 
+        font-family: 'Poppins', sans-serif; 
+    }
+
+    .notif-card { 
+        background: #23234a; 
+        border-radius: 12px; 
+        box-shadow: 0 2px 12px rgba(0,0,0,0.12); 
+        margin-bottom: 18px; 
+    }
+
+    .notif-type-reservation { color: #FF8C00; }
+    .notif-type-wallet { color: #00c896; }
+    .notif-type-profile { color: #1e90ff; }
+    .notif-type-payment { color: #00c896; }
+    .notif-type-cancellation { color: #ff4d4d; }
+
+    .notif-date { 
+        font-size: 0.95em; 
+        color: #bdbdbd; 
+    }
+
+    .notif-unread-new {
+        border-left: 5px solid #FF8C00;
+        background: linear-gradient(90deg, #2d2d5a 80%, #23234a 100%);
+        box-shadow: 0 4px 18px rgba(255,140,0,0.10);
+        position: relative;
+    }
+
+    .notification-badge {
+        font-size: 0.85rem;
+        padding: 0.5em 0.85em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .notification-badge i {
+        font-size: 0.9rem;
+    }
+
+    .notification-badge.badge-reservation {
+        background: linear-gradient(90deg,#ffa533 60%,#ff8c00 100%);
         color: #23234a;
-        border-radius: 10px;
+    }
+
+    .notification-badge.badge-payment {
+        background: linear-gradient(90deg,#00c896 60%,#1e90ff 100%);
+        color: #fff;
+    }
+
+    .notification-badge.badge-profile {
+        background: linear-gradient(90deg,#0d6efd 60%,#1e90ff 100%);
+        color: #fff;
+    }
+
+    .notification-badge.badge-wallet {
+        background: linear-gradient(90deg,#00c896 60%,#1e90ff 100%);
+        color: #fff;
+    }
+
+    .notification-badge.badge-cancellation {
+        background: linear-gradient(90deg,#ff4d4d 60%,#c0392b 100%);
+        color: #fff;
+    }
+
+    .notif-gmail-card {
+        background: #23234a;
+        color: #fff;
+        border-radius: 12px;
         box-shadow: 0 2px 12px rgba(31, 38, 135, 0.08);
-        max-width: 600px;
+        max-width: 800px;
         margin: 30px auto 0 auto;
         padding: 0;
-        border: 1px solid #eee;
+        border: 1px solid rgba(255,255,255,0.08);
     }
+
     .notif-gmail-header {
-        background: #f5f5f5;
-        border-bottom: 1px solid #eee;
+        background: #2d2d5a;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
         padding: 18px 28px;
         font-size: 1.3rem;
         font-weight: 600;
@@ -120,67 +193,204 @@ function show_log_notifications($limit = 20) {
         align-items: center;
         gap: 10px;
     }
+
     .notif-gmail-list {
         list-style: none;
         margin: 0;
         padding: 0;
     }
+
     .notif-gmail-item {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 16px;
         padding: 18px 28px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
         transition: background 0.18s;
-        cursor: pointer;
     }
-    .notif-gmail-item:last-child { border-bottom: none; }
+
+    .notif-gmail-item:last-child { 
+        border-bottom: none; 
+    }
+
     .notif-gmail-item:hover {
-        background: #f9f6f2;
+        background: #2d2d5a;
     }
+
     .notif-gmail-icon {
         font-size: 1.5rem;
         color: #ff8c00;
         flex-shrink: 0;
     }
-    .notif-gmail-text {
+
+    .notif-gmail-content {
         flex: 1;
+    }
+
+    .notif-gmail-text {
         font-size: 1.05rem;
-        color: #23234a;
+        color: #fff;
         word-break: break-word;
     }
+
     .notif-gmail-date {
         font-size: 0.98rem;
-        color: #888;
+        color: #bdbdbd;
         margin-left: 10px;
         white-space: nowrap;
     }
     </style>
-    <div class="notif-gmail-card">
-        <div class="notif-gmail-header"><i class="bi bi-bell-fill"></i> Notifications</div>
-        <ul class="notif-gmail-list">
-        <?php
-        $count = 0;
-        foreach ($lines as $line) {
-            if ($count++ >= $limit) break;
-            // Parse date and message
-            if (preg_match('/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \| (.+)$/', $line, $matches)) {
-                $date = date('M d, Y h:i A', strtotime($matches[1]));
-                $msg = $matches[2];
-            } else {
-                $date = '';
-                $msg = $line;
+    <div class="container py-5">
+        <div class="notif-gmail-card">
+            <div class="notif-gmail-header">
+                <i class="bi bi-bell-fill"></i> Notifications
+            </div>
+            <ul class="notif-gmail-list">
+            <?php
+            $count = 0;
+            foreach ($lines as $line) {
+                if ($count++ >= $limit) break;
+                // Parse date and message
+                if (preg_match('/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \| (.+)$/', $line, $matches)) {
+                    $date = date('M d, Y h:i A', strtotime($matches[1]));
+                    $msg = $matches[2];
+                    // Determine notification type from message
+                    $type = 'notification';
+                    if (stripos($msg, 'reservation') !== false) $type = 'reservation';
+                    else if (stripos($msg, 'payment') !== false) $type = 'payment';
+                    else if (stripos($msg, 'profile') !== false) $type = 'profile';
+                    else if (stripos($msg, 'wallet') !== false) $type = 'wallet';
+                    else if (stripos($msg, 'cancel') !== false) $type = 'cancellation';
+                } else {
+                    $date = '';
+                    $msg = $line;
+                    $type = 'notification';
+                }
+                ?>
+                <li class="notif-gmail-item">
+                    <span class="notif-gmail-icon">
+                        <?php if ($type === 'reservation'): ?>
+                            <i class="bi bi-calendar2-check"></i>
+                        <?php elseif ($type === 'payment'): ?>
+                            <i class="bi bi-credit-card"></i>
+                        <?php elseif ($type === 'profile'): ?>
+                            <i class="bi bi-person-circle"></i>
+                        <?php elseif ($type === 'wallet'): ?>
+                            <i class="bi bi-wallet2"></i>
+                        <?php elseif ($type === 'cancellation'): ?>
+                            <i class="bi bi-x-circle"></i>
+                        <?php else: ?>
+                            <i class="bi bi-bell"></i>
+                        <?php endif; ?>
+                    </span>
+                    <div class="notif-gmail-content">
+                        <?php echo get_notification_type_badge($type); ?>
+                        <span class="fw-bold me-2 notif-type-<?php echo htmlspecialchars($type); ?>" style="letter-spacing:1px;">
+                            <?php echo strtoupper(htmlspecialchars($type)); ?>
+                        </span>
+                        <div class="notif-gmail-text mt-2"><?php echo htmlspecialchars($msg); ?></div>
+                    </div>
+                    <span class="notif-gmail-date"><?php echo htmlspecialchars($date); ?></span>
+                </li>
+                <?php
             }
-            echo '<li class="notif-gmail-item">';
-            echo '<span class="notif-gmail-icon"><i class="bi bi-envelope-open"></i></span>';
-            echo '<span class="notif-gmail-text">' . htmlspecialchars($msg) . '</span>';
-            echo '<span class="notif-gmail-date">' . htmlspecialchars($date) . '</span>';
-            echo '</li>';
-        }
-        ?>
-        </ul>
+            ?>
+            </ul>
+        </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?php
+}
+
+/**
+ * Get unread notification counts for a user
+ * @param int $user_id The ID of the user
+ * @return array Array containing counts for different notification types
+ */
+function get_unread_notification_counts($user_id) {
+    global $mycon;
+    $counts = [
+        'reservation' => 0,
+        'payment' => 0
+    ];
+    
+    if ($user_id) {
+        $res_count = mysqli_query($mycon, "SELECT type, COUNT(*) as cnt 
+            FROM notifications 
+            WHERE recipient_id = $user_id 
+            AND recipient_type = 'user' 
+            AND is_read = 0 
+            AND type IN ('reservation','payment') 
+            GROUP BY type");
+            
+        if ($res_count) {
+            while ($row = mysqli_fetch_assoc($res_count)) {
+                $counts[$row['type']] = $row['cnt'];
+            }
+        }
+    }
+    return $counts;
+}
+
+/**
+ * Display notification badges for unread notifications
+ * @param int $user_id The ID of the user
+ */
+function show_notification_badges($user_id) {
+    $counts = get_unread_notification_counts($user_id);
+    if ($counts['reservation'] > 0) {
+        echo '<span class="notification-badge badge-reservation"><i class="bi bi-calendar-check"></i>RESERVATION: ' . $counts['reservation'] . '</span>';
+    }
+    if ($counts['payment'] > 0) {
+        echo '<span class="notification-badge badge-payment"><i class="bi bi-credit-card"></i>PAYMENT: ' . $counts['payment'] . '</span>';
+    }
+}
+
+/**
+ * Get badge HTML for a specific notification type
+ * @param string $type The notification type
+ * @return string The HTML for the badge
+ */
+function get_notification_type_badge($type) {
+    $badges = [
+        'reservation' => [
+            'class' => 'badge-reservation',
+            'icon' => 'bi-calendar-check',
+            'text' => 'RESERVATION'
+        ],
+        'payment' => [
+            'class' => 'badge-payment',
+            'icon' => 'bi-credit-card',
+            'text' => 'PAYMENT'
+        ],
+        'profile' => [
+            'class' => 'badge-profile',
+            'icon' => 'bi-person',
+            'text' => 'PROFILE'
+        ],
+        'wallet' => [
+            'class' => 'badge-wallet',
+            'icon' => 'bi-wallet2',
+            'text' => 'WALLET'
+        ],
+        'cancellation' => [
+            'class' => 'badge-cancellation',
+            'icon' => 'bi-x-circle',
+            'text' => 'CANCELLATION'
+        ]
+    ];
+
+    if (!isset($badges[$type])) {
+        return '<span class="notification-badge badge-secondary"><i class="bi bi-bell"></i>NOTIFICATION</span>';
+    }
+
+    $badge = $badges[$type];
+    return sprintf(
+        '<span class="notification-badge %s"><i class="bi %s"></i>%s</span>',
+        $badge['class'],
+        $badge['icon'],
+        $badge['text']
+    );
 }
 
 // --- Notification Page Entry Point ---
@@ -190,10 +400,10 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications</title>
+    <title>Notifications - MF Suites Hotel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <style>body { background: #f6f8fa; min-height: 100vh; }</style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <?php show_log_notifications(); ?>
