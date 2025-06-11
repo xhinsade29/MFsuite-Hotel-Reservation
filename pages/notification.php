@@ -98,12 +98,30 @@ function show_log_notifications($limit = 20) {
     }
     ?>
     <style>
-    body { 
-        background: #1e1e2f; 
-        color: #fff; 
-        font-family: 'Poppins', sans-serif; 
+    :root {
+        --notif-bg: #23234a;
+        --notif-header-bg: #2d2d5a;
+        --notif-header-color: #ff8c00;
+        --notif-text: #fff;
+        --notif-date: #bdbdbd;
+        --notif-card-shadow: 0 2px 12px rgba(0,0,0,0.12);
+        --notif-border: 1px solid rgba(255,255,255,0.08);
     }
-
+    body.light-mode {
+        --notif-bg: #fff;
+        --notif-header-bg: #f5f5f5;
+        --notif-header-color: #ff8c00;
+        --notif-text: #23234a;
+        --notif-date: #666;
+        --notif-card-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        --notif-border: 1px solid #eee;
+    }
+    body {
+        background: var(--notif-bg);
+        color: var(--notif-text);
+        font-family: 'Poppins', sans-serif;
+        transition: background 0.3s, color 0.3s;
+    }
     .notif-card { 
         background: #23234a; 
         border-radius: 12px; 
@@ -171,27 +189,37 @@ function show_log_notifications($limit = 20) {
     }
 
     .notif-gmail-card {
-        background: #23234a;
-        color: #fff;
+        background: var(--notif-bg);
+        color: var(--notif-text);
         border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(31, 38, 135, 0.08);
+        box-shadow: var(--notif-card-shadow);
         max-width: 800px;
         margin: 30px auto 0 auto;
         padding: 0;
-        border: 1px solid rgba(255,255,255,0.08);
+        border: var(--notif-border);
     }
 
     .notif-gmail-header {
-        background: #2d2d5a;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        background: var(--notif-header-bg);
+        border-bottom: var(--notif-border);
         padding: 18px 28px;
         font-size: 1.3rem;
         font-weight: 600;
-        color: #ff8c00;
+        color: var(--notif-header-color);
         letter-spacing: 1px;
         display: flex;
         align-items: center;
         gap: 10px;
+        justify-content: space-between;
+    }
+
+    .notif-gmail-header .mode-toggle-btn {
+        background: none;
+        border: none;
+        color: var(--notif-header-color);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: color 0.3s;
     }
 
     .notif-gmail-list {
@@ -205,7 +233,7 @@ function show_log_notifications($limit = 20) {
         align-items: flex-start;
         gap: 16px;
         padding: 18px 28px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-bottom: var(--notif-border);
         transition: background 0.18s;
     }
 
@@ -214,7 +242,7 @@ function show_log_notifications($limit = 20) {
     }
 
     .notif-gmail-item:hover {
-        background: #2d2d5a;
+        background: var(--notif-header-bg);
     }
 
     .notif-gmail-icon {
@@ -229,13 +257,13 @@ function show_log_notifications($limit = 20) {
 
     .notif-gmail-text {
         font-size: 1.05rem;
-        color: #fff;
+        color: var(--notif-text);
         word-break: break-word;
     }
 
     .notif-gmail-date {
         font-size: 0.98rem;
-        color: #bdbdbd;
+        color: var(--notif-date);
         margin-left: 10px;
         white-space: nowrap;
     }
@@ -243,7 +271,10 @@ function show_log_notifications($limit = 20) {
     <div class="container py-5">
         <div class="notif-gmail-card">
             <div class="notif-gmail-header">
-                <i class="bi bi-bell-fill"></i> Notifications
+                <span><i class="bi bi-bell-fill"></i> Notifications</span>
+                <button class="mode-toggle-btn" id="modeToggleBtn" title="Toggle light/dark mode">
+                    <i class="bi bi-moon"></i>
+                </button>
             </div>
             <ul class="notif-gmail-list">
             <?php
@@ -299,6 +330,32 @@ function show_log_notifications($limit = 20) {
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Theme toggle logic
+    function setTheme(mode) {
+        if (mode === 'light') {
+            document.body.classList.add('light-mode');
+            document.getElementById('modeToggleBtn').innerHTML = '<i class="bi bi-brightness-high"></i>';
+        } else {
+            document.body.classList.remove('light-mode');
+            document.getElementById('modeToggleBtn').innerHTML = '<i class="bi bi-moon"></i>';
+        }
+        localStorage.setItem('notifTheme', mode);
+    }
+    function getPreferredTheme() {
+        if (localStorage.getItem('notifTheme')) {
+            return localStorage.getItem('notifTheme');
+        }
+        return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        setTheme(getPreferredTheme());
+        document.getElementById('modeToggleBtn').addEventListener('click', function() {
+            const isLight = document.body.classList.contains('light-mode');
+            setTheme(isLight ? 'dark' : 'light');
+        });
+    });
+    </script>
     <?php
 }
 
