@@ -267,6 +267,10 @@ function show_log_notifications($limit = 20) {
         margin-left: 10px;
         white-space: nowrap;
     }
+
+    body.light-mode .notif-gmail-text {
+        color: #23234a !important;
+    }
     </style>
     <div class="container py-5">
         <div class="notif-gmail-card">
