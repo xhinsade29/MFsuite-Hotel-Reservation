@@ -1609,11 +1609,6 @@ end
 
 ---
 
-**Document Version**: 1.4  
-**Last Updated**: November 27, 2025  
-**System**: MFsuite Hotel Reservation System  
-**Architecture Level**: 0-2 (Context, Process, Use Cases)
-
 ## 24. Written Description — Brief Narrative
 
 Purpose of the system and diagrams
